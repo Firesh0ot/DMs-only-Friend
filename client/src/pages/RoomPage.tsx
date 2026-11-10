@@ -5,7 +5,7 @@ import { GmToolbar } from "../components/GmToolbar";
 import { InitiativeBanner } from "../components/InitiativeBanner";
 import { InitiativePanel } from "../components/InitiativePanel";
 import { getSocket } from "../socket/socket";
-import { selectVisibleTokens, useRoomStore } from "../state/roomStore";
+import { useRoomStore } from "../state/roomStore";
 
 type Props = {
   code: string;
@@ -16,11 +16,18 @@ type Props = {
 export function RoomPage({ code, role, name }: Props) {
   const joinRoom = useRoomStore((state) => state.joinRoom);
   const snapshot = useRoomStore((state) => state.snapshot);
+  const optimisticTokens = useRoomStore((state) => state.optimisticTokens);
   const joining = useRoomStore((state) => state.joining);
   const error = useRoomStore((state) => state.error);
   const connected = useRoomStore((state) => state.connected);
   const moveTokenOptimistic = useRoomStore((state) => state.moveTokenOptimistic);
-  const tokens = useRoomStore(selectVisibleTokens);
+
+  const tokens = useMemo(() => {
+    if (!snapshot) {
+      return [];
+    }
+    return snapshot.tokens.map((token) => optimisticTokens[token.id] ?? token);
+  }, [snapshot, optimisticTokens]);
 
   useEffect(() => {
     void joinRoom(code, role, name ?? undefined);
