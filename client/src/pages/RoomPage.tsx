@@ -2,6 +2,8 @@ import { useEffect, useMemo } from "react";
 import { ClientEvents, type CameraState, type Role } from "@dms/shared";
 import { MapCanvas } from "../canvas/MapCanvas";
 import { GmToolbar } from "../components/GmToolbar";
+import { InitiativeBanner } from "../components/InitiativeBanner";
+import { InitiativePanel } from "../components/InitiativePanel";
 import { getSocket } from "../socket/socket";
 import { selectVisibleTokens, useRoomStore } from "../state/roomStore";
 
@@ -56,26 +58,28 @@ export function RoomPage({ code, role, name }: Props) {
 
       {snapshot ? (
         <div className="room-layout">
-          {role === "gm" ? (
-            <GmToolbar
-              code={code}
-              tokens={tokens}
-              gridPx={snapshot.map?.gridPx ?? 70}
-            />
-          ) : (
-            <section className="panel stack">
-              <h2>{role === "screen" ? "Player screen" : "Player view"}</h2>
-              <p className="muted">
-                Camera follows the GM.{" "}
-                {role === "player"
-                  ? "Drag only your own token (matching your name)."
-                  : "Watch-only tokens."}
-              </p>
-              <a href="#/">Back home</a>
-            </section>
-          )}
+          <div className="stack">
+            {role === "gm" ? (
+              <>
+                <GmToolbar code={code} tokens={tokens} gridPx={snapshot.map?.gridPx ?? 70} />
+                <InitiativePanel tokens={tokens} initiative={snapshot.initiative} />
+              </>
+            ) : (
+              <section className="panel stack">
+                <h2>{role === "screen" ? "Player screen" : "Player view"}</h2>
+                <p className="muted">
+                  Camera follows the GM.{" "}
+                  {role === "player"
+                    ? "Drag only your own token (matching your name)."
+                    : "Watch-only tokens."}
+                </p>
+                <a href="#/">Back home</a>
+              </section>
+            )}
+          </div>
 
           <section className="stack">
+            <InitiativeBanner initiative={snapshot.initiative} />
             {!snapshot.map ? (
               <p className="lede">Waiting for the GM to upload a map…</p>
             ) : null}
