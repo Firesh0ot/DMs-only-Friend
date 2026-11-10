@@ -3,5 +3,7 @@ dist/
 *.sqlite
 *.sqlite3
 server/uploads/
+server/data/
 .env
 .DS_Store
+coverage/
