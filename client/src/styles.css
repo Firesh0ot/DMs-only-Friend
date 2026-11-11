@@ -611,6 +611,39 @@ html[data-lantern="off"] .map-table {
   height: 100%;
 }
 
+.canvas-host--fog-tool,
+.canvas-host--fog-tool canvas {
+  cursor: crosshair;
+}
+
+.fog-island__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.fog-island__tools button {
+  flex: 1 1 auto;
+  min-width: 4.2rem;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.78rem;
+}
+
+.fog-island__tools button.is-active {
+  background:
+    linear-gradient(180deg, rgba(255, 210, 140, 0.28), transparent 45%),
+    linear-gradient(180deg, var(--wood-mid), var(--wood-deep));
+  color: #fff6e4;
+  box-shadow:
+    0 0 0 1px rgba(255, 200, 120, 0.3),
+    0 1px 0 rgba(255, 220, 160, 0.25) inset;
+}
+
+.fog-island__hint {
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
 .token-list {
   list-style: none;
   margin: 0;

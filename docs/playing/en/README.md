@@ -6,7 +6,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 
 | Role | What you see |
 |---|---|
-| **GM** | **Settings** for prep; **Play** with floating islands (Map, Initiative, NPCs, Log, Dice) |
+| **GM** | **Settings** for prep; **Play** with floating islands (Map, Initiative, NPCs, Log, Dice, Fog) |
 | **Player screen** | Full-screen map + TCG-style initiative rail; compact battle duration / last events; dice toast on rolls; camera follows the GM |
 | **Remote player** | Like the player screen, plus control of your own token (label = your name) |
 
@@ -27,14 +27,15 @@ Floating islands around the map:
 - **NPCs** — spawn or place roster NPCs; select one to adjust HP (−5/−1/+1/+5) and see AC/notes.
 - **Log** — recent session events and battle timer; **Start** / **End** battle. The first **Next** turn also starts a battle if none is active.
 - **Dice** — enter expressions such as `2d6+3` (or use quick chips), roll on the server, see totals and recent rolls. Results are broadcast and appear in the session log.
+- **Fog** — brush or rectangle to **Reveal** / **Hide** areas; **Cover all** / **Clear all**. New maps start fully covered. Fog is translucent for you and solid for screen/players. Turn the tool **Off** to pan and move tokens again.
 
 Use **Snap** on an island to cycle corners. Positions are remembered for this room in the browser.
 
-Changing the active map brings in characters linked to that map (and drops the others). Tokens snap to grid and sync live. Camera pan/zoom on the GM side is followed by screen and players.
+Changing the active map brings in characters linked to that map (and drops the others). Tokens snap to grid and sync live. Camera pan/zoom on the GM side is followed by screen and players. Fog is stored per map.
 
 ## Screen / player
 
-No GM islands. Use the side rail for round, turn order, and whose turn it is. PC hit points may appear on initiative cards; **monster HP stays GM-only** by default. A small strip shows battle elapsed time and the latest events when present. Dice rolls flash briefly as a toast over the map. Follow the GM’s pan/zoom.
+No GM islands. Use the side rail for round, turn order, and whose turn it is. PC hit points may appear on initiative cards; **monster HP stays GM-only** by default. A small strip shows battle elapsed time and the latest events when present. Dice rolls flash briefly as a toast over the map. Follow the GM’s pan/zoom. Unrevealed map areas stay under solid fog (including tokens in those areas).
 
 ## Look & lantern
 
@@ -58,4 +59,5 @@ The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings
 - Dice island ADR: [../../decisions/0007-dice-play-island.md](../../decisions/0007-dice-play-island.md)
 - dd2vtt import ADR: [../../decisions/0008-dd2vtt-map-import.md](../../decisions/0008-dd2vtt-map-import.md)
 - HP visibility ADR: [../../decisions/0009-hp-screen-visibility.md](../../decisions/0009-hp-screen-visibility.md)
+- Manual fog ADR: [../../decisions/0010-manual-fog-of-war.md](../../decisions/0010-manual-fog-of-war.md)
 - Developing: [../../developing/README.md](../../developing/README.md)
