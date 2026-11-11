@@ -105,13 +105,13 @@ export function RoomPage({ code, role, name }: Props) {
           {isGm ? (
             <>
               <button
-                className={gmMode === "play" ? undefined : "secondary"}
+                className={gmMode === "play" ? "is-active" : "secondary"}
                 onClick={() => setGmMode("play")}
               >
                 Play
               </button>
               <button
-                className={gmMode === "settings" ? undefined : "secondary"}
+                className={gmMode === "settings" ? "is-active" : "secondary"}
                 onClick={() => setGmMode("settings")}
               >
                 Settings
