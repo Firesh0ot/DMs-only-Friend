@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { ClientEvents, type CameraState, type Role } from "@dms/shared";
 import { MapCanvas } from "../canvas/MapCanvas";
+import { DiceIsland } from "../components/DiceIsland";
+import { DiceToast } from "../components/DiceToast";
 import { InitiativeIsland } from "../components/InitiativeIsland";
 import { InitiativeRail } from "../components/InitiativeRail";
 import { LogIsland } from "../components/LogIsland";
@@ -35,6 +37,8 @@ export function RoomPage({ code, role, name }: Props) {
   const error = useRoomStore((state) => state.error);
   const connected = useRoomStore((state) => state.connected);
   const moveTokenOptimistic = useRoomStore((state) => state.moveTokenOptimistic);
+  const lastDice = useRoomStore((state) => state.lastDice);
+  const recentDice = useRoomStore((state) => state.recentDice);
 
   const [gmMode, setGmMode] = useState<GmMode>("play");
   const [islandLayout, setIslandLayout] = useState<IslandLayout | null>(null);
@@ -192,8 +196,16 @@ export function RoomPage({ code, role, name }: Props) {
                   corner={islandLayout.log}
                   onCycleCorner={() => cycleIsland("log")}
                 />
+                <DiceIsland
+                  lastDice={lastDice}
+                  recent={recentDice}
+                  corner={islandLayout.dice}
+                  onCycleCorner={() => cycleIsland("dice")}
+                />
               </>
             ) : null}
+
+            {role !== "gm" ? <DiceToast lastDice={lastDice} /> : null}
           </div>
         </div>
       ) : null}

@@ -6,8 +6,8 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 
 | Rolle | Sicht |
 |---|---|
-| **GM** | **Settings** für Vorbereitung; **Play** mit schwebenden Inseln (Map, Initiative, NPCs, Log) |
-| **Player-Screen** | Vollbild-Karte + TCG-Initiative-Leiste; kompakte Kampfdauer / letzte Events; Kamera folgt dem GM |
+| **GM** | **Settings** für Vorbereitung; **Play** mit schwebenden Inseln (Map, Initiative, NPCs, Log, Dice) |
+| **Player-Screen** | Vollbild-Karte + TCG-Initiative-Leiste; kompakte Kampfdauer / letzte Events; Würfel-Toast bei Rolls; Kamera folgt dem GM |
 | **Remote-Spieler** | Wie Player-Screen, plus Steuerung des eigenen Tokens (Label = Name) |
 
 ## GM-Vorbereitung (Settings)
@@ -26,6 +26,7 @@ Schwebende Inseln um die Karte:
 - **Initiative** — Werte, Reihenfolge, Next Turn (Runde steigt beim Überlauf).
 - **NPCs** — NPCs spawnen oder aus dem Roster auf die aktuelle Karte setzen.
 - **Log** — Session-Events und Kampftimer; Kampf **Start** / **Ende**. Das erste **Next** startet automatisch einen Kampf, falls keiner läuft.
+- **Dice** — Ausdrücke wie `2d6+3` eingeben (oder Quick-Chips), serverseitig würfeln, Summe und letzte Rolls sehen. Ergebnisse werden gebroadcastet und erscheinen im Session-Log.
 
 **Snap** verschiebt eine Insel zur nächsten Ecke. Positionen bleiben pro Raum im Browser erhalten.
 
@@ -33,7 +34,7 @@ Kartenwechsel lädt die verknüpften Charaktere und entfernt die übrigen. Token
 
 ## Screen / Player
 
-Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Pan/Zoom folgt dem GM.
+Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Würfelwürfe erscheinen kurz als Toast über der Karte. Pan/Zoom folgt dem GM.
 
 ## Look & Laterne
 
@@ -54,4 +55,5 @@ Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**
 - Prep/Play-ADR: [../../decisions/0003-prep-play-ux.md](../../decisions/0003-prep-play-ux.md)
 - Session-Log-ADR: [../../decisions/0004-session-battle-log.md](../../decisions/0004-session-battle-log.md)
 - Tavernen-Theme-ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
+- Dice-Insel-ADR: [../../decisions/0007-dice-play-island.md](../../decisions/0007-dice-play-island.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

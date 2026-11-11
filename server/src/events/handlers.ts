@@ -153,21 +153,39 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       try {
         const data = DiceRollPayloadSchema.parse(payload);
         const rolled = roll(data.expr);
+        const playerName = session.playerName ?? session.role.toUpperCase();
         const logged = rooms.logDice({
           roomId: session.roomId,
-          playerName: session.playerName ?? session.role.toUpperCase(),
+          playerName,
           expr: rolled.parsed.expr,
           results: rolled.results,
           total: rolled.total,
         });
-        io.to(roomChannel(session.roomId)).emit(ServerEvents.DiceRolled, {
+        const dicePayload = {
           id: logged.id,
-          playerName: session.playerName ?? session.role.toUpperCase(),
+          playerName,
           expr: rolled.parsed.expr,
           results: rolled.results,
           total: rolled.total,
           createdAt: logged.createdAt,
-        });
+        };
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.DiceRolled, dicePayload);
+        emitLog(
+          io,
+          session.roomId,
+          rooms.appendEvent({
+            roomId: session.roomId,
+            type: "dice_roll",
+            summary: `${playerName}: ${rolled.parsed.expr} → ${rolled.total}`,
+            payload: {
+              diceLogId: logged.id,
+              playerName,
+              expr: rolled.parsed.expr,
+              results: rolled.results,
+              total: rolled.total,
+            },
+          }),
+        );
       } catch (error) {
         emitError(socket, error);
       }

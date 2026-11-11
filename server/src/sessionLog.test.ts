@@ -85,6 +85,35 @@ describe("session event log and battle timing", () => {
     expect(second.startEvent).toBeNull();
   });
 
+  it("records dice rolls in dice_log and as session events", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+
+    const logged = store.logDice({
+      roomId: room.id,
+      playerName: "GM",
+      expr: "2d6+3",
+      results: [4, 4],
+      total: 11,
+    });
+    expect(logged.id).toBeGreaterThan(0);
+
+    const event = store.appendEvent({
+      roomId: room.id,
+      type: "dice_roll",
+      summary: "GM: 2d6+3 → 11",
+      payload: {
+        diceLogId: logged.id,
+        playerName: "GM",
+        expr: "2d6+3",
+        results: [4, 4],
+        total: 11,
+      },
+    });
+    expect(event.type).toBe("dice_roll");
+    expect(store.getSnapshot(room.id, "gm", null).eventLog.at(-1)?.summary).toContain("2d6+3");
+  });
+
   it("throttles token move log entries", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-11-11T19:00:00.000Z"));

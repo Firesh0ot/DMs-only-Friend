@@ -22,6 +22,7 @@ type RoomStore = {
   error: string | null;
   snapshot: Snapshot | null;
   lastDice: DiceRolled | null;
+  recentDice: DiceRolled[];
   optimisticTokens: Record<string, TokenState>;
   joinRoom: (code: string, role: Role, name?: string) => Promise<void>;
   applySnapshot: (snapshot: Snapshot) => void;
@@ -36,6 +37,7 @@ type RoomStore = {
   setInitiative: (initiative: InitiativeState) => void;
   appendEvent: (event: SessionEvent) => void;
   setBattle: (battle: BattleState | null) => void;
+  pushDice: (dice: DiceRolled) => void;
   moveTokenOptimistic: (tokenId: string, x: number, y: number) => void;
   clearError: () => void;
 };
@@ -46,6 +48,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
   error: null,
   snapshot: null,
   lastDice: null,
+  recentDice: [],
   optimisticTokens: {},
 
   clearError: () => set({ error: null }),
@@ -56,6 +59,8 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       optimisticTokens: {},
       error: null,
       joining: false,
+      lastDice: null,
+      recentDice: [],
     }),
 
   setMap: (map) => {
@@ -163,6 +168,14 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     set({ snapshot: { ...snapshot, battle } });
   },
 
+  pushDice: (dice) => {
+    const without = get().recentDice.filter((entry) => entry.id !== dice.id);
+    set({
+      lastDice: dice,
+      recentDice: [dice, ...without].slice(0, 12),
+    });
+  },
+
   moveTokenOptimistic: (tokenId, x, y) => {
     const snapshot = get().snapshot;
     if (!snapshot) {
@@ -226,7 +239,7 @@ export function bindSocketListeners(): void {
   socket.on(ServerEvents.InitiativeUpdated, (initiative) => store().setInitiative(initiative));
   socket.on(ServerEvents.LogAppended, (event) => store().appendEvent(event));
   socket.on(ServerEvents.BattleUpdated, (battle) => store().setBattle(battle));
-  socket.on(ServerEvents.DiceRolled, (dice) => useRoomStore.setState({ lastDice: dice }));
+  socket.on(ServerEvents.DiceRolled, (dice) => store().pushDice(dice));
   socket.on(ServerEvents.Error, ({ message }) => useRoomStore.setState({ error: message }));
 }
 
