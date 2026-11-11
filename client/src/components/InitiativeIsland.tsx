@@ -1,29 +1,48 @@
 import { useMemo, useState } from "react";
-import { ClientEvents, type InitiativeState, type TokenState } from "@dms/shared";
+import {
+  ClientEvents,
+  type CharacterState,
+  type InitiativeState,
+  type TokenState,
+} from "@dms/shared";
+import { formatHp } from "../lib/hp";
+import type { Corner } from "../lib/islandLayout";
 import { getSocket } from "../socket/socket";
 import { PlayIsland } from "./PlayIsland";
-import type { Corner } from "../lib/islandLayout";
 
 type Props = {
   tokens: TokenState[];
+  characters: CharacterState[];
   initiative: InitiativeState | null;
   corner: Corner;
   onCycleCorner: () => void;
 };
 
-export function InitiativeIsland({ tokens, initiative, corner, onCycleCorner }: Props) {
+export function InitiativeIsland({
+  tokens,
+  characters,
+  initiative,
+  corner,
+  onCycleCorner,
+}: Props) {
   const [draft, setDraft] = useState<Record<string, string>>({});
+  const byCharacter = useMemo(
+    () => new Map(characters.map((character) => [character.id, character])),
+    [characters],
+  );
 
   const rows = useMemo(() => {
     return tokens.map((token) => {
       const existing = initiative?.order.find((entry) => entry.tokenId === token.id);
+      const character = token.characterId ? byCharacter.get(token.characterId) : undefined;
       return {
         token,
+        character,
         value: draft[token.id] ?? (existing ? String(existing.initiative) : ""),
         image: existing?.image ?? token.image,
       };
     });
-  }, [tokens, initiative, draft]);
+  }, [tokens, initiative, draft, byCharacter]);
 
   function setOrder() {
     const order = rows
@@ -39,8 +58,14 @@ export function InitiativeIsland({ tokens, initiative, corner, onCycleCorner }: 
     getSocket().emit(ClientEvents.InitiativeNext);
   }
 
+  function nudgeHp(characterId: string, delta: number) {
+    getSocket().emit(ClientEvents.CharacterSetHp, { characterId, delta });
+  }
+
   const active = initiative?.order[initiative.activeIndex] ?? null;
   const activeInitial = active?.label.trim().charAt(0).toUpperCase() || "?";
+  const activeRow = rows.find((row) => row.token.id === active?.tokenId);
+  const activeHp = activeRow?.character ? formatHp(activeRow.character) : null;
 
   return (
     <PlayIsland title="Initiative" corner={corner} onCycleCorner={onCycleCorner}>
@@ -50,6 +75,12 @@ export function InitiativeIsland({ tokens, initiative, corner, onCycleCorner }: 
           <>
             {" "}
             · <strong>{active.label}</strong>
+            {activeHp ? (
+              <>
+                {" "}
+                <span className="hp-chip">{activeHp}</span>
+              </>
+            ) : null}
           </>
         ) : null}
       </p>
@@ -66,6 +97,27 @@ export function InitiativeIsland({ tokens, initiative, corner, onCycleCorner }: 
           <div>
             <span className="muted">Now</span>
             <strong className="init-active-card__name">{active.label}</strong>
+            {activeHp ? <span className="hp-chip">{activeHp}</span> : null}
+            {activeRow?.character ? (
+              <div className="row init-active-card__hp">
+                <button
+                  type="button"
+                  className="secondary hp-btn"
+                  onClick={() => nudgeHp(activeRow.character!.id, -1)}
+                  aria-label={`Damage ${active.label} by 1`}
+                >
+                  −1
+                </button>
+                <button
+                  type="button"
+                  className="secondary hp-btn"
+                  onClick={() => nudgeHp(activeRow.character!.id, 1)}
+                  aria-label={`Heal ${active.label} by 1`}
+                >
+                  +1
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -75,6 +127,7 @@ export function InitiativeIsland({ tokens, initiative, corner, onCycleCorner }: 
           const isActive = active?.tokenId === row.token.id;
           const initial = row.token.label.trim().charAt(0).toUpperCase() || "?";
           const inputId = `init-${row.token.id}`;
+          const hp = row.character ? formatHp(row.character) : null;
           return (
             <li key={row.token.id} className={isActive ? "active" : undefined}>
               <div className="init-row">
@@ -86,7 +139,10 @@ export function InitiativeIsland({ tokens, initiative, corner, onCycleCorner }: 
                   </span>
                 )}
                 <label className="init-row__label" htmlFor={inputId}>
-                  <span>{row.token.label}</span>
+                  <span className="init-row__name">
+                    <span>{row.token.label}</span>
+                    {hp ? <span className="hp-chip">{hp}</span> : null}
+                  </span>
                   <input
                     id={inputId}
                     style={{ maxWidth: "4.5rem" }}

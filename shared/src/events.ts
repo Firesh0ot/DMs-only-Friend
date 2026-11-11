@@ -42,6 +42,9 @@ export const CharacterStateSchema = z.object({
   notes: z.string().nullable(),
   sizeCells: z.number().positive(),
   mapIds: z.array(z.string()),
+  hpCurrent: z.number().int().nullable(),
+  hpMax: z.number().int().nullable(),
+  ac: z.number().int().nullable(),
 });
 export type CharacterState = z.infer<typeof CharacterStateSchema>;
 
@@ -201,6 +204,9 @@ export const CharacterUpsertPayloadSchema = z.object({
   notes: z.string().max(500).nullable().optional(),
   sizeCells: z.number().positive().optional(),
   mapIds: z.array(z.string().min(1)).optional(),
+  hpCurrent: z.number().int().min(0).nullable().optional(),
+  hpMax: z.number().int().min(0).nullable().optional(),
+  ac: z.number().int().min(0).max(99).nullable().optional(),
 });
 export type CharacterUpsertPayload = z.infer<typeof CharacterUpsertPayloadSchema>;
 
@@ -208,6 +214,20 @@ export const CharacterRemovePayloadSchema = z.object({
   characterId: z.string().min(1),
 });
 export type CharacterRemovePayload = z.infer<typeof CharacterRemovePayloadSchema>;
+
+export const CharacterSetHpPayloadSchema = z
+  .object({
+    characterId: z.string().min(1),
+    hpCurrent: z.number().int().min(0).nullable().optional(),
+    hpMax: z.number().int().min(0).nullable().optional(),
+    delta: z.number().int().optional(),
+  })
+  .refine(
+    (value) =>
+      value.hpCurrent !== undefined || value.hpMax !== undefined || value.delta !== undefined,
+    { message: "Provide hpCurrent, hpMax, or delta" },
+  );
+export type CharacterSetHpPayload = z.infer<typeof CharacterSetHpPayloadSchema>;
 
 export const VisibilitySetPayloadSchema = z.object({
   showPcs: z.boolean().optional(),
@@ -239,6 +259,7 @@ export const ClientEvents = {
   MapRemove: "map:remove",
   CharacterUpsert: "character:upsert",
   CharacterRemove: "character:remove",
+  CharacterSetHp: "character:setHp",
   VisibilitySet: "visibility:set",
   BattleStart: "battle:start",
   BattleEnd: "battle:end",
@@ -279,6 +300,7 @@ export type ClientToServerEvents = {
   [ClientEvents.MapRemove]: (payload: MapRemovePayload) => void;
   [ClientEvents.CharacterUpsert]: (payload: CharacterUpsertPayload) => void;
   [ClientEvents.CharacterRemove]: (payload: CharacterRemovePayload) => void;
+  [ClientEvents.CharacterSetHp]: (payload: CharacterSetHpPayload) => void;
   [ClientEvents.VisibilitySet]: (payload: VisibilitySetPayload) => void;
   [ClientEvents.BattleStart]: () => void;
   [ClientEvents.BattleEnd]: () => void;

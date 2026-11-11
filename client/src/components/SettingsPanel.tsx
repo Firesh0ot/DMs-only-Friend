@@ -5,6 +5,7 @@ import {
   type CharacterState,
   type MapState,
 } from "@dms/shared";
+import { parseOptionalInt } from "../lib/hp";
 import { getSocket } from "../socket/socket";
 
 type Props = {
@@ -19,6 +20,9 @@ type DraftCharacter = {
   name: string;
   kind: CharacterKind;
   notes: string;
+  hpCurrent: string;
+  hpMax: string;
+  ac: string;
   mapIds: string[];
 };
 
@@ -26,6 +30,9 @@ const emptyDraft = (): DraftCharacter => ({
   name: "",
   kind: "pc",
   notes: "",
+  hpCurrent: "",
+  hpMax: "",
+  ac: "",
   mapIds: [],
 });
 
@@ -43,6 +50,9 @@ export function SettingsPanel({
   const [message, setMessage] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftCharacter>(emptyDraft);
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
+  const [editingStats, setEditingStats] = useState<
+    Record<string, { hpCurrent: string; hpMax: string; ac: string }>
+  >({});
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const links = useMemo(
@@ -135,16 +145,28 @@ export function SettingsPanel({
       setMessage("Enter a display name for the character");
       return;
     }
-    getSocket().emit(ClientEvents.CharacterUpsert, {
-      name,
-      kind: draft.kind,
-      mapIds: draft.mapIds,
-      notes: draft.notes.trim() || null,
-      sizeCells: 1,
-      image: null,
-    });
-    setDraft(emptyDraft());
-    setMessage(`Added ${draft.kind.toUpperCase()} ${name}`);
+    try {
+      const hpMax = parseOptionalInt(draft.hpMax);
+      const hpCurrent = draft.hpCurrent.trim()
+        ? parseOptionalInt(draft.hpCurrent)
+        : hpMax;
+      const ac = parseOptionalInt(draft.ac);
+      getSocket().emit(ClientEvents.CharacterUpsert, {
+        name,
+        kind: draft.kind,
+        mapIds: draft.mapIds,
+        notes: draft.notes.trim() || null,
+        sizeCells: 1,
+        image: null,
+        hpCurrent,
+        hpMax,
+        ac,
+      });
+      setDraft(emptyDraft());
+      setMessage(`Added ${draft.kind.toUpperCase()} ${name}`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Invalid stats");
+    }
   }
 
   function saveCharacter(character: CharacterState, patch: Partial<CharacterState>) {
@@ -159,7 +181,37 @@ export function SettingsPanel({
           : (editingNotes[character.id] ?? character.notes ?? null),
       sizeCells: character.sizeCells,
       image: character.image,
+      hpCurrent: patch.hpCurrent !== undefined ? patch.hpCurrent : character.hpCurrent,
+      hpMax: patch.hpMax !== undefined ? patch.hpMax : character.hpMax,
+      ac: patch.ac !== undefined ? patch.ac : character.ac,
     });
+  }
+
+  function statsDraftFor(character: CharacterState) {
+    return (
+      editingStats[character.id] ?? {
+        hpCurrent: character.hpCurrent === null ? "" : String(character.hpCurrent),
+        hpMax: character.hpMax === null ? "" : String(character.hpMax),
+        ac: character.ac === null ? "" : String(character.ac),
+      }
+    );
+  }
+
+  function saveStats(character: CharacterState) {
+    const stats = statsDraftFor(character);
+    try {
+      const hpMax = parseOptionalInt(stats.hpMax);
+      const hpCurrent = stats.hpCurrent.trim() ? parseOptionalInt(stats.hpCurrent) : hpMax;
+      const ac = parseOptionalInt(stats.ac);
+      saveCharacter(character, { hpCurrent, hpMax, ac });
+      setEditingStats((current) => {
+        const next = { ...current };
+        delete next[character.id];
+        return next;
+      });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Invalid stats");
+    }
   }
 
   function toggleCharacterMap(character: CharacterState, mapId: string) {
@@ -176,7 +228,11 @@ export function SettingsPanel({
   function renderCharacterCard(character: CharacterState) {
     const notesId = `${baseId}-notes-${character.id}`;
     const portraitId = `${baseId}-portrait-${character.id}`;
+    const hpCurrentId = `${baseId}-hp-cur-${character.id}`;
+    const hpMaxId = `${baseId}-hp-max-${character.id}`;
+    const acId = `${baseId}-ac-${character.id}`;
     const notesValue = editingNotes[character.id] ?? character.notes ?? "";
+    const stats = statsDraftFor(character);
     const initial = character.name.trim().charAt(0).toUpperCase() || "?";
 
     return (
@@ -212,14 +268,68 @@ export function SettingsPanel({
             </span>
           </div>
 
+          <div className="character-stats-row">
+            <label className="stack" htmlFor={hpCurrentId}>
+              <span className="muted">HP</span>
+              <input
+                id={hpCurrentId}
+                inputMode="numeric"
+                value={stats.hpCurrent}
+                placeholder="cur"
+                aria-label={`Current HP for ${character.name}`}
+                onChange={(event) =>
+                  setEditingStats((current) => ({
+                    ...current,
+                    [character.id]: { ...stats, hpCurrent: event.target.value },
+                  }))
+                }
+                onBlur={() => saveStats(character)}
+              />
+            </label>
+            <label className="stack" htmlFor={hpMaxId}>
+              <span className="muted">Max</span>
+              <input
+                id={hpMaxId}
+                inputMode="numeric"
+                value={stats.hpMax}
+                placeholder="max"
+                aria-label={`Max HP for ${character.name}`}
+                onChange={(event) =>
+                  setEditingStats((current) => ({
+                    ...current,
+                    [character.id]: { ...stats, hpMax: event.target.value },
+                  }))
+                }
+                onBlur={() => saveStats(character)}
+              />
+            </label>
+            <label className="stack" htmlFor={acId}>
+              <span className="muted">AC</span>
+              <input
+                id={acId}
+                inputMode="numeric"
+                value={stats.ac}
+                placeholder="–"
+                aria-label={`AC for ${character.name}`}
+                onChange={(event) =>
+                  setEditingStats((current) => ({
+                    ...current,
+                    [character.id]: { ...stats, ac: event.target.value },
+                  }))
+                }
+                onBlur={() => saveStats(character)}
+              />
+            </label>
+          </div>
+
           <label className="stack" htmlFor={notesId}>
-            <span className="muted">Notes</span>
+            <span className="muted">Stat notes</span>
             <textarea
               id={notesId}
               rows={2}
               maxLength={500}
               value={notesValue}
-              placeholder="Short description"
+              placeholder="Short stats / traits"
               onChange={(event) =>
                 setEditingNotes((current) => ({
                   ...current,
@@ -367,7 +477,8 @@ export function SettingsPanel({
       <section className="settings-section stack" aria-labelledby="settings-characters">
         <h3 id="settings-characters">Characters</h3>
         <p className="muted">
-          Add PCs and NPCs with display names, notes, and portraits for the initiative rail.
+          Add PCs and NPCs with display names, HP/AC, short notes, and portraits for the initiative
+          rail.
         </p>
 
         <fieldset className="settings-fieldset stack">
@@ -398,14 +509,52 @@ export function SettingsPanel({
               <option value="npc">NPC</option>
             </select>
           </label>
+          <div className="character-stats-row">
+            <label className="stack" htmlFor={`${baseId}-new-hp`}>
+              <span className="muted">HP</span>
+              <input
+                id={`${baseId}-new-hp`}
+                inputMode="numeric"
+                value={draft.hpCurrent}
+                placeholder="cur"
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, hpCurrent: event.target.value }))
+                }
+              />
+            </label>
+            <label className="stack" htmlFor={`${baseId}-new-hp-max`}>
+              <span className="muted">Max</span>
+              <input
+                id={`${baseId}-new-hp-max`}
+                inputMode="numeric"
+                value={draft.hpMax}
+                placeholder="max"
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, hpMax: event.target.value }))
+                }
+              />
+            </label>
+            <label className="stack" htmlFor={`${baseId}-new-ac`}>
+              <span className="muted">AC</span>
+              <input
+                id={`${baseId}-new-ac`}
+                inputMode="numeric"
+                value={draft.ac}
+                placeholder="–"
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, ac: event.target.value }))
+                }
+              />
+            </label>
+          </div>
           <label className="stack" htmlFor={`${baseId}-new-notes`}>
-            <span className="muted">Notes (optional)</span>
+            <span className="muted">Stat notes (optional)</span>
             <textarea
               id={`${baseId}-new-notes`}
               rows={2}
               maxLength={500}
               value={draft.notes}
-              placeholder="Short description"
+              placeholder="Short stats / traits"
               onChange={(event) =>
                 setDraft((current) => ({ ...current, notes: event.target.value }))
               }

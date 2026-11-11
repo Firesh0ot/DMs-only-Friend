@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BattleStateSchema,
+  CharacterSetHpPayloadSchema,
   CharacterUpsertPayloadSchema,
   MapActivatePayloadSchema,
   RoomJoinPayloadSchema,
@@ -44,10 +45,23 @@ describe("event schemas", () => {
       kind: "pc",
       mapIds: ["map-1"],
       notes: "Scout",
+      hpCurrent: 18,
+      hpMax: 24,
+      ac: 15,
     });
     expect(character.kind).toBe("pc");
     expect(character.notes).toBe("Scout");
+    expect(character.hpMax).toBe(24);
+    expect(character.ac).toBe(15);
     expect(VisibilitySetPayloadSchema.parse({ showNpcs: false }).showNpcs).toBe(false);
+  });
+
+  it("accepts character HP adjust payloads", () => {
+    expect(CharacterSetHpPayloadSchema.parse({ characterId: "c1", delta: -3 }).delta).toBe(-3);
+    expect(
+      CharacterSetHpPayloadSchema.parse({ characterId: "c1", hpCurrent: 10, hpMax: 20 }).hpCurrent,
+    ).toBe(10);
+    expect(() => CharacterSetHpPayloadSchema.parse({ characterId: "c1" })).toThrow();
   });
 
   it("accepts a prep/play snapshot shape", () => {

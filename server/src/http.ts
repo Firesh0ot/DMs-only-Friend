@@ -5,6 +5,7 @@ import multer from "multer";
 import fs from "node:fs";
 import path from "node:path";
 import type { Server as IoServer } from "socket.io";
+import { emitCharactersUpdated } from "./events/handlers.js";
 import { readImageSize } from "./imageSize.js";
 import { roomChannel, type RoomStore } from "./rooms.js";
 
@@ -198,9 +199,7 @@ export function createHttpApp(deps: HttpDeps): Express {
         const imageUrl = `/uploads/${req.file.filename}`;
         const updated = deps.rooms.setCharacterPortrait(characterId, imageUrl);
         const initiative = deps.rooms.getInitiative(room.id);
-        deps.io
-          .to(roomChannel(room.id))
-          .emit(ServerEvents.CharactersUpdated, deps.rooms.listCharacters(room.id));
+        emitCharactersUpdated(deps.io, deps.rooms, room.id);
         deps.io
           .to(roomChannel(room.id))
           .emit(ServerEvents.TokensSynced, deps.rooms.listVisibleTokens(room.id));

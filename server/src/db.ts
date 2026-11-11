@@ -119,6 +119,9 @@ function migrate(db: Db): void {
   `);
 
   ensureColumn(db, "characters", "notes", "TEXT");
+  ensureColumn(db, "characters", "hp_current", "INT");
+  ensureColumn(db, "characters", "hp_max", "INT");
+  ensureColumn(db, "characters", "ac", "INT");
 
   backfillActiveMaps(db);
   backfillTokenMaps(db);
