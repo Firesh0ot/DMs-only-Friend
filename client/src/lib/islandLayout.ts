@@ -1,6 +1,6 @@
 export type Corner = "tl" | "tr" | "bl" | "br";
 
-export type IslandId = "map" | "initiative" | "npcs" | "log" | "dice";
+export type IslandId = "map" | "initiative" | "npcs" | "log" | "dice" | "fog";
 
 export type IslandLayout = Record<IslandId, Corner>;
 
@@ -10,6 +10,7 @@ const DEFAULT_LAYOUT: IslandLayout = {
   npcs: "br",
   log: "bl",
   dice: "br",
+  fog: "tr",
 };
 
 function storageKey(roomId: string): string {
@@ -29,6 +30,7 @@ export function loadIslandLayout(roomId: string): IslandLayout {
       npcs: parsed.npcs ?? DEFAULT_LAYOUT.npcs,
       log: parsed.log ?? DEFAULT_LAYOUT.log,
       dice: parsed.dice ?? DEFAULT_LAYOUT.dice,
+      fog: parsed.fog ?? DEFAULT_LAYOUT.fog,
     };
   } catch {
     return { ...DEFAULT_LAYOUT };

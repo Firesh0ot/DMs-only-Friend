@@ -45,7 +45,7 @@ See [ADR 0003](../decisions/0003-prep-play-ux.md).
 - Roster: `characters` + `character_maps`; activating a map syncs tokens for linked characters.
 - Visibility: `rooms.show_pcs` / `show_npcs`; snapshot tokens are filtered server-side.
 - Initiative: `room_initiative` includes `round`.
-- Island layout: client-only `localStorage` key `dms-islands:<roomId>` (Map, Initiative, NPCs, Log).
+- Island layout: client-only `localStorage` key `dms-islands:<roomId>` (Map, Initiative, NPCs, Log, Fog).
 
 ### Session / battle log
 
@@ -69,7 +69,16 @@ See [ADR 0008](../decisions/0008-dd2vtt-map-import.md).
 - Client: GM-only wall overlay in `useMapScene`; Settings Maps accepts `.dd2vtt` beside PNG/JPG/WebP.
 - Not yet: portals/lights rendering, automatic LoS fog, animated WebM packages.
 
-Out of scope here: automatic LoS fog, full monster stats, replay/video, WebM animated map layers.
+### Manual fog of war
+
+See [ADR 0010](../decisions/0010-manual-fog-of-war.md).
+
+- Table: `map_fog` (`base_covered`, `strokes_json`) keyed by `map_id`.
+- Snapshot field: `fog` for the active map.
+- Events: `fog:paint`, `fog:reset` → `fog:updated` (GM only to mutate).
+- Client: PixiJS v8 fog mask above tokens; Fog Play island for brush/rect tools.
+
+Out of scope here: automatic LoS from walls, replay/video, WebM animated map layers.
 
 ### Visual theme
 

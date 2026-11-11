@@ -129,6 +129,9 @@ export function createHttpApp(deps: HttpDeps): Express {
         deps.io
           .to(roomChannel(room.id))
           .emit(ServerEvents.TokensSynced, deps.rooms.listVisibleTokens(room.id));
+        deps.io
+          .to(roomChannel(room.id))
+          .emit(ServerEvents.FogUpdated, deps.rooms.getActiveFog(room.id));
         if (active && previousActive?.id !== active.id) {
           const event = deps.rooms.appendEvent({
             roomId: room.id,

@@ -48,3 +48,4 @@ What becomes easier, harder, or out of scope.
 | [0007](0007-dice-play-island.md) | Dice Play island | accepted |
 | [0008](0008-dd2vtt-map-import.md) | Universal VTT (.dd2vtt) map import | accepted |
 | [0009](0009-hp-screen-visibility.md) | HP / monster stats screen visibility | accepted |
+| [0010](0010-manual-fog-of-war.md) | Manual Fog of War (brush / rect) | accepted |

@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { ClientEvents, type CameraState, type Role } from "@dms/shared";
+import {
+  ClientEvents,
+  type CameraState,
+  type FogPaintMode,
+  type FogStrokeInput,
+  type Role,
+} from "@dms/shared";
 import { MapCanvas } from "../canvas/MapCanvas";
+import type { FogToolMode } from "../canvas/useMapScene";
 import { DiceIsland } from "../components/DiceIsland";
 import { DiceToast } from "../components/DiceToast";
+import { FogIsland } from "../components/FogIsland";
 import { InitiativeIsland } from "../components/InitiativeIsland";
 import { InitiativeRail } from "../components/InitiativeRail";
 import { LogIsland } from "../components/LogIsland";
@@ -42,6 +50,9 @@ export function RoomPage({ code, role, name }: Props) {
 
   const [gmMode, setGmMode] = useState<GmMode>("play");
   const [islandLayout, setIslandLayout] = useState<IslandLayout | null>(null);
+  const [fogTool, setFogTool] = useState<FogToolMode>("off");
+  const [fogPaintMode, setFogPaintMode] = useState<FogPaintMode>("reveal");
+  const [fogBrushRadius, setFogBrushRadius] = useState(36);
 
   const tokens = useMemo(() => {
     if (!snapshot) {
@@ -81,6 +92,13 @@ export function RoomPage({ code, role, name }: Props) {
     getSocket().emit(ClientEvents.CameraSet, camera);
   }
 
+  function onFogPaint(stroke: FogStrokeInput) {
+    if (role !== "gm" || !snapshot?.map) {
+      return;
+    }
+    getSocket().emit(ClientEvents.FogPaint, { mapId: snapshot.map.id, stroke });
+  }
+
   function cycleIsland(id: IslandId) {
     if (!snapshot || !islandLayout) {
       return;
@@ -101,6 +119,7 @@ export function RoomPage({ code, role, name }: Props) {
           <p className="muted">
             {connected ? "Connected" : "Connecting…"} · {role}
             {snapshot?.playerName ? ` · ${snapshot.playerName}` : ""}
+            {isGm && fogTool !== "off" ? " · Fog tool" : ""}
           </p>
           <h1 className="brand brand--compact">Room {code}</h1>
         </div>
@@ -116,7 +135,10 @@ export function RoomPage({ code, role, name }: Props) {
               </button>
               <button
                 className={gmMode === "settings" ? "is-active" : "secondary"}
-                onClick={() => setGmMode("settings")}
+                onClick={() => {
+                  setFogTool("off");
+                  setGmMode("settings");
+                }}
               >
                 Settings
               </button>
@@ -166,8 +188,13 @@ export function RoomPage({ code, role, name }: Props) {
                   role={role}
                   playerName={snapshot.playerName}
                   activeTokenId={activeTokenId}
+                  fog={snapshot.fog}
+                  fogTool={isGm ? fogTool : "off"}
+                  fogPaintMode={fogPaintMode}
+                  fogBrushRadius={fogBrushRadius}
                   onTokenMove={onTokenMove}
                   onCameraChange={onCameraChange}
+                  onFogPaint={onFogPaint}
                 />
               </div>
             </div>
@@ -206,6 +233,17 @@ export function RoomPage({ code, role, name }: Props) {
                   recent={recentDice}
                   corner={islandLayout.dice}
                   onCycleCorner={() => cycleIsland("dice")}
+                />
+                <FogIsland
+                  mapId={snapshot.map?.id ?? null}
+                  tool={fogTool}
+                  paintMode={fogPaintMode}
+                  brushRadius={fogBrushRadius}
+                  corner={islandLayout.fog}
+                  onToolChange={setFogTool}
+                  onPaintModeChange={setFogPaintMode}
+                  onBrushRadiusChange={setFogBrushRadius}
+                  onCycleCorner={() => cycleIsland("fog")}
                 />
               </>
             ) : null}

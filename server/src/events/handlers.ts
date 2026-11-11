@@ -5,6 +5,8 @@ import {
   CharacterUpsertPayloadSchema,
   ClientEvents,
   DiceRollPayloadSchema,
+  FogPaintPayloadSchema,
+  FogResetPayloadSchema,
   InitiativeSetPayloadSchema,
   MapActivatePayloadSchema,
   MapRemovePayloadSchema,
@@ -355,6 +357,10 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         const active = rooms.getActiveMap(session.roomId);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.MapsUpdated, maps);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.MapSet, active);
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.FogUpdated,
+          rooms.getActiveFog(session.roomId),
+        );
       } catch (error) {
         emitError(socket, error);
       }
@@ -375,6 +381,10 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           rooms.listVisibleTokens(session.roomId),
         );
         emitCharactersUpdated(io, rooms, session.roomId);
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.FogUpdated,
+          rooms.getActiveFog(session.roomId),
+        );
       } catch (error) {
         emitError(socket, error);
       }
@@ -523,6 +533,34 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       }
     });
 
+    socket.on(ClientEvents.FogPaint, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = FogPaintPayloadSchema.parse(payload);
+        const fog = rooms.paintFog(session.roomId, data.mapId, data.stroke);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.FogUpdated, fog);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.FogReset, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = FogResetPayloadSchema.parse(payload);
+        const fog = rooms.resetFog(session.roomId, data.mapId, data.baseCovered);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.FogUpdated, fog);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
     socket.on("disconnect", () => {
       rooms.removeSession(socket.id);
     });
@@ -538,6 +576,7 @@ function broadcastMapView(
   io.to(roomChannel(roomId)).emit(ServerEvents.MapsUpdated, rooms.listMaps(roomId));
   io.to(roomChannel(roomId)).emit(ServerEvents.MapSet, map);
   io.to(roomChannel(roomId)).emit(ServerEvents.TokensSynced, rooms.listVisibleTokens(roomId));
+  io.to(roomChannel(roomId)).emit(ServerEvents.FogUpdated, rooms.getActiveFog(roomId));
 }
 
 export function emitCharactersUpdated(io: AppServer, rooms: RoomStore, roomId: string): void {

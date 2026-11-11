@@ -3,6 +3,9 @@ import {
   type CameraState,
   type CharacterKind,
   type CharacterState,
+  type FogState,
+  type FogStroke,
+  type FogStrokeInput,
   type InitiativeState,
   type MapState,
   type Role,
@@ -20,6 +23,7 @@ const makeCode = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
 const makeId = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 16);
 const EVENT_LOG_LIMIT = 80;
 const TOKEN_MOVE_LOG_MS = 3000;
+const FOG_STROKE_LIMIT = 400;
 
 type RoomRow = {
   id: string;
@@ -87,6 +91,11 @@ type SessionEventRow = {
   summary: string;
   payload_json: string;
   created_at: string;
+};
+type MapFogRow = {
+  map_id: string;
+  base_covered: number;
+  strokes_json: string;
 };
 
 export type Session = {
@@ -269,6 +278,7 @@ export class RoomStore {
     if (!map || map.roomId !== roomId) {
       throw new Error("Map not found");
     }
+    this.db.prepare("DELETE FROM map_fog WHERE map_id = ?").run(mapId);
     this.db.prepare("DELETE FROM character_maps WHERE map_id = ?").run(mapId);
     this.db.prepare("DELETE FROM tokens WHERE map_id = ?").run(mapId);
     this.db.prepare("DELETE FROM maps WHERE id = ?").run(mapId);
@@ -907,6 +917,86 @@ export class RoomStore {
     });
   }
 
+  getFog(mapId: string): FogState {
+    const row = this.db.prepare("SELECT * FROM map_fog WHERE map_id = ?").get(mapId) as
+      | MapFogRow
+      | undefined;
+    if (!row) {
+      return { mapId, baseCovered: true, strokes: [] };
+    }
+    return {
+      mapId: row.map_id,
+      baseCovered: row.base_covered === 1,
+      strokes: JSON.parse(row.strokes_json) as FogStroke[],
+    };
+  }
+
+  getActiveFog(roomId: string): FogState | null {
+    const map = this.getActiveMap(roomId);
+    if (!map) {
+      return null;
+    }
+    return this.getFog(map.id);
+  }
+
+  paintFog(roomId: string, mapId: string, strokeInput: FogStrokeInput): FogState {
+    const map = this.getMapById(mapId);
+    if (!map || map.roomId !== roomId) {
+      throw new Error("Map not found");
+    }
+    const current = this.getFog(mapId);
+    if (current.strokes.length >= FOG_STROKE_LIMIT) {
+      throw new Error("Fog stroke limit reached; reset fog to continue");
+    }
+    const stroke = normalizeFogStroke(
+      strokeInput.kind === "brush"
+        ? {
+            id: makeId(),
+            kind: "brush",
+            mode: strokeInput.mode,
+            radius: strokeInput.radius,
+            points: strokeInput.points,
+          }
+        : {
+            id: makeId(),
+            kind: "rect",
+            mode: strokeInput.mode,
+            x: strokeInput.x,
+            y: strokeInput.y,
+            w: strokeInput.w,
+            h: strokeInput.h,
+          },
+    );
+    const strokes = [...current.strokes, stroke];
+    this.db
+      .prepare(
+        `INSERT INTO map_fog (map_id, base_covered, strokes_json)
+         VALUES (?, ?, ?)
+         ON CONFLICT(map_id) DO UPDATE SET
+           base_covered = excluded.base_covered,
+           strokes_json = excluded.strokes_json`,
+      )
+      .run(mapId, current.baseCovered ? 1 : 0, JSON.stringify(strokes));
+    return { mapId, baseCovered: current.baseCovered, strokes };
+  }
+
+  resetFog(roomId: string, mapId: string, baseCovered: boolean): FogState {
+    const map = this.getMapById(mapId);
+    if (!map || map.roomId !== roomId) {
+      throw new Error("Map not found");
+    }
+    this.db
+      .prepare(
+        `INSERT INTO map_fog (map_id, base_covered, strokes_json)
+         VALUES (?, ?, '[]')
+         ON CONFLICT(map_id) DO UPDATE SET
+           base_covered = excluded.base_covered,
+           strokes_json = '[]'`,
+      )
+      .run(mapId, baseCovered ? 1 : 0);
+    return { mapId, baseCovered, strokes: [] };
+  }
+
   getSnapshot(roomId: string, role: Role, playerName: string | null): Snapshot {
     const room = this.getRoomById(roomId);
     if (!room) {
@@ -923,10 +1013,25 @@ export class RoomStore {
       initiative: this.getInitiative(roomId),
       eventLog: this.listRecentEvents(roomId),
       battle: this.getActiveBattle(roomId),
+      fog: this.getActiveFog(roomId),
       role,
       playerName,
     };
   }
+}
+
+function normalizeFogStroke(stroke: FogStroke): FogStroke {
+  if (stroke.kind === "brush") {
+    return stroke;
+  }
+  const x = Math.min(stroke.x, stroke.x + stroke.w);
+  const y = Math.min(stroke.y, stroke.y + stroke.h);
+  const w = Math.abs(stroke.w);
+  const h = Math.abs(stroke.h);
+  if (w < 1 || h < 1) {
+    throw new Error("Fog rectangle too small");
+  }
+  return { ...stroke, x, y, w, h };
 }
 
 function battleRowToState(row: BattleRow): BattleState {
