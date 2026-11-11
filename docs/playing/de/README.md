@@ -35,6 +35,10 @@ Kartenwechsel lädt die verknüpften Charaktere und entfernt die übrigen. Token
 
 Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Pan/Zoom folgt dem GM.
 
+## Look & Laterne
+
+Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**-Schalter (Startseite, Settings, Play und Screen) wechselst du zwischen kerzenwarm und dunkler, rauchiger Dungeon-Taverne. Die Wahl bleibt in diesem Browser gespeichert.
+
 ## Schnellstart (Tisch)
 
 1. App starten (Self-Hosting oder lokal `npm run dev`).
@@ -49,4 +53,5 @@ Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Ein sch
 - Phase-1-Spezifikation: [../../phase-1.md](../../phase-1.md)
 - Prep/Play-ADR: [../../decisions/0003-prep-play-ux.md](../../decisions/0003-prep-play-ux.md)
 - Session-Log-ADR: [../../decisions/0004-session-battle-log.md](../../decisions/0004-session-battle-log.md)
+- Tavernen-Theme-ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

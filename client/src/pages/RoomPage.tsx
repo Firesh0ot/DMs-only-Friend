@@ -7,6 +7,7 @@ import { LogIsland } from "../components/LogIsland";
 import { MapControlIsland } from "../components/MapControlIsland";
 import { NpcIsland } from "../components/NpcIsland";
 import { SessionStrip } from "../components/SessionStrip";
+import { LanternToggle } from "../components/LanternToggle";
 import { SettingsPanel } from "../components/SettingsPanel";
 import {
   loadIslandLayout,
@@ -100,6 +101,7 @@ export function RoomPage({ code, role, name }: Props) {
           <h1 className="brand brand--compact">Room {code}</h1>
         </div>
         <div className="row">
+          <LanternToggle />
           {isGm ? (
             <>
               <button
@@ -147,16 +149,20 @@ export function RoomPage({ code, role, name }: Props) {
             {!snapshot.map ? (
               <p className="lede play-stage__empty">Waiting for the GM to upload a map…</p>
             ) : null}
-            <MapCanvas
-              map={snapshot.map}
-              tokens={tokens}
-              camera={snapshot.camera}
-              role={role}
-              playerName={snapshot.playerName}
-              activeTokenId={activeTokenId}
-              onTokenMove={onTokenMove}
-              onCameraChange={onCameraChange}
-            />
+            <div className="map-table">
+              <div className="map-table__well">
+                <MapCanvas
+                  map={snapshot.map}
+                  tokens={tokens}
+                  camera={snapshot.camera}
+                  role={role}
+                  playerName={snapshot.playerName}
+                  activeTokenId={activeTokenId}
+                  onTokenMove={onTokenMove}
+                  onCameraChange={onCameraChange}
+                />
+              </div>
+            </div>
 
             {showPlayChrome ? (
               <>
