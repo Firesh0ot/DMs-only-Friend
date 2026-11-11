@@ -12,7 +12,7 @@ Phase 2 needs current/max HP, optional AC, and short stat notes on PC/NPC charac
 - Persist `hpCurrent`, `hpMax`, and `ac` on `characters` (nullable). Reuse `notes` for short stat notes.
 - Adjust HP in Play via `character:setHp` (absolute or delta), GM-only. Settings upserts set baseline stats.
 - **Default visibility:** GM always receives full stats. Screen and remote players receive PC HP/AC; **NPC/monster HP and AC are redacted** (null) in snapshots and `characters:updated` payloads. Notes stay visible.
-- No room toggle in this slice; a future opt-in to reveal monster HP on screen can supersede this default.
+- Room toggle for coarse screen HP bands is defined in [0013](0013-screen-hp-quarters.md) (default still off = this redaction).
 
 ## Consequences
 

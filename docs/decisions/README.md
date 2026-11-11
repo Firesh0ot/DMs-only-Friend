@@ -50,3 +50,5 @@ What becomes easier, harder, or out of scope.
 | [0009](0009-hp-screen-visibility.md) | HP / monster stats screen visibility | accepted |
 | [0010](0010-manual-fog-of-war.md) | Manual Fog of War (brush / rect) | accepted |
 | [0011](0011-token-conditions.md) | Character conditions on roster / tokens | accepted |
+| [0012](0012-room-identity-gm-auth.md) | Room identity and GM auth (PIN + single-use invite) | accepted |
+| [0013](0013-screen-hp-quarters.md) | Screen HP quarter bands toggle | accepted |

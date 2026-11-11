@@ -14,10 +14,12 @@ import {
   MapUpdateGridPayloadSchema,
   RoomJoinPayloadSchema,
   ServerEvents,
+  SettingsSetPayloadSchema,
   TokenCreatePayloadSchema,
   TokenMovePayloadSchema,
   TokenRemovePayloadSchema,
   VisibilitySetPayloadSchema,
+  normalizeRoomCode,
   roll,
   type ClientToServerEvents,
   type ServerToClientEvents,
@@ -34,10 +36,14 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
     socket.on(ClientEvents.RoomJoin, (payload, callback) => {
       try {
         const data = RoomJoinPayloadSchema.parse(payload);
-        const room = rooms.getRoomByCode(data.code);
+        const room = rooms.getRoomByCode(normalizeRoomCode(data.code));
         if (!room) {
           callback?.({ ok: false, error: "Room not found" });
           return;
+        }
+
+        if (data.role === "gm") {
+          rooms.assertGmJoin(room.id, data.pin, data.invite);
         }
 
         const playerName =
@@ -51,7 +57,8 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
 
         void socket.join(roomChannel(room.id));
         const snapshot = rooms.getSnapshot(room.id, data.role, playerName);
-        callback?.({ ok: true, snapshot });
+        const uploadToken = data.role === "gm" ? rooms.issueUploadToken(room.id) : undefined;
+        callback?.({ ok: true, snapshot, uploadToken });
         socket.emit(ServerEvents.Snapshot, snapshot);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Join failed";
@@ -487,6 +494,46 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         emitCharactersUpdated(io, rooms, session.roomId);
       } catch (error) {
         emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.SettingsSet, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = SettingsSetPayloadSchema.parse(payload);
+        const settings = rooms.setSettings(session.roomId, data);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.SettingsUpdated, settings);
+        emitCharactersUpdated(io, rooms, session.roomId);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Settings update failed";
+        socket.emit(ServerEvents.Error, { message });
+      }
+    });
+
+    socket.on(ClientEvents.GmMintInvite, (callback) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        callback?.({ ok: false, error: "GM only" });
+        return;
+      }
+      try {
+        const invite = rooms.mintGmInvite(session.roomId);
+        const room = rooms.getRoomById(session.roomId);
+        if (!room) {
+          callback?.({ ok: false, error: "Room not found" });
+          return;
+        }
+        callback?.({
+          ok: true,
+          invite,
+          gmInviteUrl: `#/room/${room.code}?role=gm&invite=${encodeURIComponent(invite)}`,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Could not mint invite";
+        callback?.({ ok: false, error: message });
       }
     });
 

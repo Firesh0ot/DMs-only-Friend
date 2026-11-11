@@ -9,6 +9,7 @@ import {
   type InitiativeState,
   type MapState,
   type Role,
+  type RoomSettings,
   type SessionEvent,
   type Snapshot,
   type TokenState,
@@ -17,21 +18,31 @@ import {
 import { create } from "zustand";
 import { getSocket } from "../socket/socket";
 
+type JoinOptions = {
+  code: string;
+  role: Role;
+  name?: string;
+  pin?: string;
+  invite?: string;
+};
+
 type RoomStore = {
   connected: boolean;
   joining: boolean;
   error: string | null;
   snapshot: Snapshot | null;
+  uploadToken: string | null;
   lastDice: DiceRolled | null;
   recentDice: DiceRolled[];
   optimisticTokens: Record<string, TokenState>;
-  joinRoom: (code: string, role: Role, name?: string) => Promise<void>;
+  joinRoom: (options: JoinOptions) => Promise<void>;
   applySnapshot: (snapshot: Snapshot) => void;
   setMap: (map: MapState | null) => void;
   setMaps: (maps: MapState[]) => void;
   setTokens: (tokens: TokenState[]) => void;
   setCharacters: (characters: CharacterState[]) => void;
   setVisibility: (visibility: VisibilityState) => void;
+  setSettings: (settings: RoomSettings) => void;
   upsertToken: (token: TokenState) => void;
   removeToken: (tokenId: string) => void;
   setCamera: (camera: CameraState) => void;
@@ -49,6 +60,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
   joining: false,
   error: null,
   snapshot: null,
+  uploadToken: null,
   lastDice: null,
   recentDice: [],
   optimisticTokens: {},
@@ -103,6 +115,14 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       return;
     }
     set({ snapshot: { ...snapshot, visibility } });
+  },
+
+  setSettings: (settings) => {
+    const snapshot = get().snapshot;
+    if (!snapshot) {
+      return;
+    }
+    set({ snapshot: { ...snapshot, settings } });
   },
 
   upsertToken: (token) => {
@@ -204,21 +224,26 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     });
   },
 
-  joinRoom: async (code, role, name) => {
+  joinRoom: async ({ code, role, name, pin, invite }) => {
     const socket = getSocket();
-    set({ joining: true, error: null });
+    set({ joining: true, error: null, uploadToken: null });
 
     await new Promise<void>((resolve, reject) => {
-      socket.emit(ClientEvents.RoomJoin, { code, role, name }, (result) => {
-        if (!result?.ok) {
-          const message = result?.error ?? "Join failed";
-          set({ joining: false, error: message });
-          reject(new Error(message));
-          return;
-        }
-        get().applySnapshot(result.snapshot);
-        resolve();
-      });
+      socket.emit(
+        ClientEvents.RoomJoin,
+        { code, role, name, pin, invite },
+        (result) => {
+          if (!result?.ok) {
+            const message = result?.error ?? "Join failed";
+            set({ joining: false, error: message });
+            reject(new Error(message));
+            return;
+          }
+          get().applySnapshot(result.snapshot);
+          set({ uploadToken: result.uploadToken ?? null });
+          resolve();
+        },
+      );
     });
   },
 }));
@@ -242,6 +267,7 @@ export function bindSocketListeners(): void {
   socket.on(ServerEvents.TokensSynced, (tokens) => store().setTokens(tokens));
   socket.on(ServerEvents.CharactersUpdated, (characters) => store().setCharacters(characters));
   socket.on(ServerEvents.VisibilityUpdated, (visibility) => store().setVisibility(visibility));
+  socket.on(ServerEvents.SettingsUpdated, (settings) => store().setSettings(settings));
   socket.on(ServerEvents.TokenCreated, (token) => store().upsertToken(token));
   socket.on(ServerEvents.TokenMoved, (token) => store().upsertToken(token));
   socket.on(ServerEvents.TokenRemoved, ({ tokenId }) => store().removeToken(tokenId));

@@ -62,7 +62,7 @@ function connect(url: string): ClientSocket<ServerToClientEvents, ClientToServer
 describe("initiative socket handlers", () => {
   it("sets sorted order and advances turns for GM", async () => {
     const { url, rooms } = await startServer();
-    const { room, code } = rooms.createRoom();
+    const { room, code, gmInviteToken } = rooms.createRoom();
     const aria = rooms.createToken({ roomId: room.id, label: "Aria", x: 1, y: 1 });
     const goblin = rooms.createToken({ roomId: room.id, label: "Goblin", x: 2, y: 2 });
 
@@ -73,13 +73,17 @@ describe("initiative socket handlers", () => {
     });
 
     await new Promise<void>((resolve, reject) => {
-      gm.emit(ClientEvents.RoomJoin, { code, role: "gm" }, (result) => {
-        if (!result.ok) {
-          reject(new Error(result.error));
-          return;
-        }
-        resolve();
-      });
+      gm.emit(
+        ClientEvents.RoomJoin,
+        { code, role: "gm", pin: "1234", invite: gmInviteToken },
+        (result) => {
+          if (!result.ok) {
+            reject(new Error(result.error));
+            return;
+          }
+          resolve();
+        },
+      );
     });
 
     const updated = new Promise((resolve) => {

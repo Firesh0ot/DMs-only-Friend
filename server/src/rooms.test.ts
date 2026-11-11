@@ -23,9 +23,17 @@ function createStore(): RoomStore {
 describe("RoomStore", () => {
   it("creates a room and returns a snapshot on join data", () => {
     const store = createStore();
-    const { room, code } = store.createRoom("Forest Table");
-    expect(code).toHaveLength(6);
+    const { room, code, gmInviteToken } = store.createRoom({
+      name: "Forest Table",
+      code: "Forest1",
+      pin: "4242",
+    });
+    expect(code).toBe("FOREST1");
+    expect(gmInviteToken.length).toBeGreaterThan(8);
     expect(store.getRoomByCode(code)?.id).toBe(room.id);
+    expect(() =>
+      store.createRoom({ name: "Dup", code: "forest1", pin: "9999" }),
+    ).toThrow(/already taken/);
 
     const snapshot = store.getSnapshot(room.id, "gm", null);
     expect(snapshot.room.name).toBe("Forest Table");
@@ -33,9 +41,28 @@ describe("RoomStore", () => {
     expect(snapshot.maps).toEqual([]);
     expect(snapshot.characters).toEqual([]);
     expect(snapshot.visibility).toEqual({ showPcs: true, showNpcs: true });
+    expect(snapshot.settings).toEqual({ screenHpQuarters: false });
     expect(snapshot.tokens).toEqual([]);
     expect(snapshot.eventLog).toEqual([]);
     expect(snapshot.battle).toBeNull();
+  });
+
+  it("requires PIN and single-use invite for first GM claim", () => {
+    const store = createStore();
+    const { room, gmInviteToken } = store.createRoom({
+      name: "Gate",
+      code: "GATE-ROOM",
+      pin: "1357",
+    });
+    expect(() => store.assertGmJoin(room.id, undefined, gmInviteToken)).toThrow(/PIN/);
+    expect(() => store.assertGmJoin(room.id, "1357", undefined)).toThrow(/invite/);
+    expect(() => store.assertGmJoin(room.id, "0000", gmInviteToken)).toThrow(/Invalid GM PIN/);
+    store.assertGmJoin(room.id, "1357", gmInviteToken);
+    expect(store.hasPendingGmInvite(room.id)).toBe(false);
+    store.assertGmJoin(room.id, "1357", undefined);
+    const upload = store.issueUploadToken(room.id);
+    expect(store.validateUploadToken(upload, room.id)).toBe(true);
+    expect(store.validateUploadToken("nope", room.id)).toBe(false);
   });
 
   it("persists tokens and camera", () => {

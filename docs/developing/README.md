@@ -44,8 +44,10 @@ See [ADR 0003](../decisions/0003-prep-play-ux.md).
 - Multi-map: `maps` rows + `rooms.active_map_id`; upload **adds** a map.
 - Roster: `characters` + `character_maps`; activating a map syncs tokens for linked characters.
 - Visibility: `rooms.show_pcs` / `show_npcs`; snapshot tokens are filtered server-side.
+- Settings: `rooms.screen_hp_quarters` (default 0); snapshot `settings`; `settings:set` / `settings:updated`.
 - Initiative: `room_initiative` includes `round`.
-- Island layout: client-only `localStorage` key `dms-islands:<roomId>` (Map, Initiative, NPCs, Log, Fog).
+- Island layout: client-only `localStorage` key `dms-islands:<roomCode>` (Map, Initiative, NPCs, Log, Dice, Fog); defaults use unique docks `tl/tr/mr/br/bl/ml`.
+- Auth: creator-chosen room `code`, hashed `pin_hash`/`pin_salt`, single-use `gm_invite_hash`; GM join needs PIN (+ invite while pending). Upload routes require `X-Dms-Upload-Token` issued on GM `room:join`. See [ADR 0012](../decisions/0012-room-identity-gm-auth.md) and [ADR 0013](../decisions/0013-screen-hp-quarters.md).
 
 ### Session / battle log
 

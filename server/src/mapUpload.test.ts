@@ -23,7 +23,8 @@ describe("map upload", () => {
     tempDirs.push(dir);
     const db = openDb(path.join(dir, "test.sqlite"));
     const rooms = new RoomStore(db);
-    const { code } = rooms.createRoom("Upload Table");
+    const { room, code } = rooms.createRoom("Upload Table");
+    const uploadToken = rooms.issueUploadToken(room.id);
     const uploadsDir = path.join(dir, "uploads");
     const httpServer = http.createServer();
     const io = new Server(httpServer);
@@ -37,6 +38,7 @@ describe("map upload", () => {
     const fixture = path.resolve(process.cwd(), "../fixtures/tiny-map-for-unit-tests.png");
     const response = await request(app)
       .post(`/api/rooms/${code}/map`)
+      .set("X-Dms-Upload-Token", uploadToken)
       .field("gridPx", "70")
       .attach("map", fixture);
 
@@ -53,7 +55,8 @@ describe("map upload", () => {
     tempDirs.push(dir);
     const db = openDb(path.join(dir, "test.sqlite"));
     const rooms = new RoomStore(db);
-    const { code } = rooms.createRoom("UVTT Table");
+    const { room, code } = rooms.createRoom("UVTT Table");
+    const uploadToken = rooms.issueUploadToken(room.id);
     const uploadsDir = path.join(dir, "uploads");
     const httpServer = http.createServer();
     const io = new Server(httpServer);
@@ -67,6 +70,7 @@ describe("map upload", () => {
     const fixture = path.resolve(process.cwd(), "../fixtures/tiny-map-for-unit-tests.dd2vtt");
     const response = await request(app)
       .post(`/api/rooms/${code}/map`)
+      .set("X-Dms-Upload-Token", uploadToken)
       .field("gridPx", "40")
       .attach("map", fixture);
 
