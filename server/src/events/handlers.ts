@@ -1,13 +1,19 @@
 import {
   CameraSetPayloadSchema,
+  CharacterRemovePayloadSchema,
+  CharacterUpsertPayloadSchema,
   ClientEvents,
   DiceRollPayloadSchema,
   InitiativeSetPayloadSchema,
+  MapActivatePayloadSchema,
+  MapRemovePayloadSchema,
+  MapUpdateGridPayloadSchema,
   RoomJoinPayloadSchema,
   ServerEvents,
   TokenCreatePayloadSchema,
   TokenMovePayloadSchema,
   TokenRemovePayloadSchema,
+  VisibilitySetPayloadSchema,
   roll,
   type ClientToServerEvents,
   type ServerToClientEvents,
@@ -56,6 +62,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       }
       try {
         const data = TokenCreatePayloadSchema.parse(payload);
+        const active = rooms.getActiveMap(session.roomId);
         const token = rooms.createToken({
           roomId: session.roomId,
           label: data.label,
@@ -64,8 +71,14 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           y: data.y,
           sizeCells: data.sizeCells,
           isPlayer: data.isPlayer,
+          mapId: data.mapId ?? active?.id ?? null,
+          characterId: data.characterId ?? null,
         });
         io.to(roomChannel(session.roomId)).emit(ServerEvents.TokenCreated, token);
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.CharactersUpdated,
+          rooms.listCharacters(session.roomId),
+        );
       } catch (error) {
         emitError(socket, error);
       }
@@ -87,6 +100,10 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         io.to(roomChannel(session.roomId)).emit(ServerEvents.TokenRemoved, {
           tokenId: data.tokenId,
         });
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.CharactersUpdated,
+          rooms.listCharacters(session.roomId),
+        );
       } catch (error) {
         emitError(socket, error);
       }
@@ -168,26 +185,35 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       }
       try {
         const data = InitiativeSetPayloadSchema.parse(payload);
-        const tokens = rooms.listTokens(session.roomId);
-        const byId = new Map(tokens.map((token) => [token.id, token]));
+        const tokens = rooms.listAllTokensOnActiveMap(session.roomId);
+        const characters = rooms.listCharacters(session.roomId);
+        const byToken = new Map(tokens.map((token) => [token.id, token]));
+        const byCharacter = new Map(characters.map((character) => [character.id, character]));
         const order = data.order
           .map((entry) => {
-            const token = byId.get(entry.tokenId);
+            const token = byToken.get(entry.tokenId);
             if (!token) {
               return null;
             }
+            const character = token.characterId
+              ? byCharacter.get(token.characterId)
+              : undefined;
             return {
               tokenId: token.id,
               label: token.label,
               initiative: entry.initiative,
+              kind: character?.kind ?? (token.isPlayer ? ("pc" as const) : ("npc" as const)),
+              image: character?.image ?? token.image,
             };
           })
           .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
           .sort((a, b) => b.initiative - a.initiative || a.label.localeCompare(b.label));
 
+        const previous = rooms.getInitiative(session.roomId);
         const initiative = rooms.setInitiative(session.roomId, {
           order,
           activeIndex: 0,
+          round: previous?.round ?? 1,
         });
         io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
       } catch (error) {
@@ -206,12 +232,147 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           emitError(socket, new Error("No initiative order"));
           return;
         }
-        const activeIndex = (current.activeIndex + 1) % current.order.length;
+        const wrapping = current.activeIndex + 1 >= current.order.length;
+        const activeIndex = wrapping ? 0 : current.activeIndex + 1;
+        const round = wrapping ? current.round + 1 : current.round;
         const initiative = rooms.setInitiative(session.roomId, {
           order: current.order,
           activeIndex,
+          round,
         });
         io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.MapActivate, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = MapActivatePayloadSchema.parse(payload);
+        const map = rooms.setActiveMap(session.roomId, data.mapId);
+        broadcastMapView(io, rooms, session.roomId, map);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.MapUpdateGrid, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = MapUpdateGridPayloadSchema.parse(payload);
+        const existing = rooms.getMapById(data.mapId);
+        if (!existing || existing.roomId !== session.roomId) {
+          emitError(socket, new Error("Map not found"));
+          return;
+        }
+        rooms.updateMapGrid(data.mapId, data.gridPx);
+        const maps = rooms.listMaps(session.roomId);
+        const active = rooms.getActiveMap(session.roomId);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.MapsUpdated, maps);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.MapSet, active);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.MapRemove, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = MapRemovePayloadSchema.parse(payload);
+        const result = rooms.removeMap(session.roomId, data.mapId);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.MapsUpdated, result.maps);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.MapSet, result.active);
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.TokensSynced,
+          rooms.listVisibleTokens(session.roomId),
+        );
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.CharactersUpdated,
+          rooms.listCharacters(session.roomId),
+        );
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.CharacterUpsert, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = CharacterUpsertPayloadSchema.parse(payload);
+        rooms.upsertCharacter({
+          id: data.id,
+          roomId: session.roomId,
+          name: data.name,
+          kind: data.kind,
+          image: data.image,
+          sizeCells: data.sizeCells,
+          mapIds: data.mapIds,
+        });
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.CharactersUpdated,
+          rooms.listCharacters(session.roomId),
+        );
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.TokensSynced,
+          rooms.listVisibleTokens(session.roomId),
+        );
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.CharacterRemove, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = CharacterRemovePayloadSchema.parse(payload);
+        const character = rooms.getCharacter(data.characterId);
+        if (!character || character.roomId !== session.roomId) {
+          emitError(socket, new Error("Character not found"));
+          return;
+        }
+        rooms.removeCharacter(data.characterId);
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.CharactersUpdated,
+          rooms.listCharacters(session.roomId),
+        );
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.TokensSynced,
+          rooms.listVisibleTokens(session.roomId),
+        );
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.VisibilitySet, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = VisibilitySetPayloadSchema.parse(payload);
+        const visibility = rooms.setVisibility(session.roomId, data);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.VisibilityUpdated, visibility);
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.TokensSynced,
+          rooms.listVisibleTokens(session.roomId),
+        );
       } catch (error) {
         emitError(socket, error);
       }
@@ -221,6 +382,17 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       rooms.removeSession(socket.id);
     });
   });
+}
+
+function broadcastMapView(
+  io: AppServer,
+  rooms: RoomStore,
+  roomId: string,
+  map: ReturnType<RoomStore["getActiveMap"]>,
+): void {
+  io.to(roomChannel(roomId)).emit(ServerEvents.MapsUpdated, rooms.listMaps(roomId));
+  io.to(roomChannel(roomId)).emit(ServerEvents.MapSet, map);
+  io.to(roomChannel(roomId)).emit(ServerEvents.TokensSynced, rooms.listVisibleTokens(roomId));
 }
 
 function requireGm(socket: AppSocket, rooms: RoomStore) {

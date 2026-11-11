@@ -30,6 +30,9 @@ describe("RoomStore", () => {
     const snapshot = store.getSnapshot(room.id, "gm", null);
     expect(snapshot.room.name).toBe("Forest Table");
     expect(snapshot.map).toBeNull();
+    expect(snapshot.maps).toEqual([]);
+    expect(snapshot.characters).toEqual([]);
+    expect(snapshot.visibility).toEqual({ showPcs: true, showNpcs: true });
     expect(snapshot.tokens).toEqual([]);
   });
 

@@ -6,7 +6,7 @@ Normally DMs have no friends. But this web app doesn't judge good throws.
 
 ## Status
 
-Phase 1 playable cut: rooms, PNG map + tokens, Follow-GM camera, and minimal initiative. Spec: [docs/phase-1.md](docs/phase-1.md).
+Phase 1 table plus Prep/Play UX: multi-map Settings, Play control islands, player initiative rail, Follow-GM camera. Specs: [docs/phase-1.md](docs/phase-1.md), [docs/decisions/0003-prep-play-ux.md](docs/decisions/0003-prep-play-ux.md). Playing: [docs/playing/en.md](docs/playing/en.md) · [docs/playing/de.md](docs/playing/de.md). Developing: [docs/developing/en.md](docs/developing/en.md).
 
 ## Dev
 
@@ -39,8 +39,8 @@ npm run build
 
 | Rolle | Sicht |
 |---|---|
-| **GM** | Karte + Tokens + Initiative-Tracker, Monster-Blätter, Würfel, Notizen, Fog-Pinsel, Import |
-| **Player-Screen** | Nur Karte + Tokens + Initiative-Banner, Vollbild (TV/Tablet am Tisch) |
+| **GM** | Settings (Karten, Roster, Links) + Play-Inseln (Map, Initiative, NPCs) |
+| **Player-Screen** | Karte + TCG-Initiative-Leiste, Kamera folgt dem GM |
 | **Spieler (remote)** | Wie Player-Screen + eigener Token |
 
 ## Roadmap

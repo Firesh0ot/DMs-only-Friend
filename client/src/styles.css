@@ -4,7 +4,7 @@
   --moss: #1f6b5c;
   --moss-deep: #0f3d36;
   --signal: #c45c26;
-  --panel: rgba(236, 244, 241, 0.9);
+  --panel: rgba(236, 244, 241, 0.92);
   --font-display: "Literata", "Palatino Linotype", serif;
   --font-body: "IBM Plex Sans", "Segoe UI", sans-serif;
   font-family: var(--font-body);
@@ -31,7 +31,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -56,7 +57,8 @@ button:disabled {
   cursor: not-allowed;
 }
 
-input {
+input,
+select {
   width: 100%;
   border: 1px solid rgba(28, 24, 18, 0.18);
   border-radius: 8px;
@@ -74,12 +76,33 @@ a {
   padding: 2.5rem 1.25rem 4rem;
 }
 
+.play-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 0.75rem;
+  gap: 0.75rem;
+}
+
+.play-topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: end;
+  padding: 0.25rem 0.35rem;
+}
+
 .brand {
   font-family: var(--font-display);
   font-size: clamp(2.4rem, 6vw, 4.2rem);
   line-height: 0.95;
   margin: 0 0 0.75rem;
   letter-spacing: -0.03em;
+}
+
+.brand--compact {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  margin: 0;
 }
 
 .lede {
@@ -96,6 +119,13 @@ a {
   border-radius: 16px;
   padding: 1.25rem;
   backdrop-filter: blur(8px);
+}
+
+.settings-panel {
+  max-width: 920px;
+  margin: 0 auto;
+  max-height: calc(100vh - 6rem);
+  overflow: auto;
 }
 
 .stack {
@@ -134,8 +164,36 @@ a {
   }
 }
 
+.play-stage {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.play-stage--with-rail {
+  grid-template-columns: minmax(140px, 180px) 1fr;
+}
+
+.play-stage__map {
+  position: relative;
+  min-height: 70vh;
+}
+
+.play-stage__empty {
+  position: absolute;
+  z-index: 2;
+  left: 1rem;
+  top: 1rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background: rgba(236, 244, 241, 0.9);
+  border-radius: 12px;
+}
+
 .canvas-host {
   min-height: 70vh;
+  height: calc(100vh - 6.5rem);
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid rgba(28, 24, 18, 0.12);
@@ -174,16 +232,165 @@ a {
   border-radius: 10px;
 }
 
+.token-list.compact li {
+  padding: 0.4rem 0.5rem;
+}
+
 .token-list li.active {
   outline: 2px solid var(--signal);
 }
 
-.banner {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  padding: 0.65rem 0.9rem;
+.play-island {
+  position: absolute;
+  z-index: 5;
+  width: min(280px, calc(100% - 1.5rem));
+  max-height: min(48vh, 420px);
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid rgba(28, 24, 18, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(20, 32, 40, 0.16);
+  backdrop-filter: blur(10px);
+}
+
+.play-island__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem 0.35rem;
+}
+
+.play-island__header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-family: var(--font-display);
+}
+
+.play-island__snap {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+.play-island__body {
+  padding: 0.35rem 0.75rem 0.85rem;
+}
+
+.island-dock--tl {
+  top: 0.75rem;
+  left: 0.75rem;
+}
+
+.island-dock--tr {
+  top: 0.75rem;
+  right: 0.75rem;
+}
+
+.island-dock--bl {
+  bottom: 0.75rem;
+  left: 0.75rem;
+}
+
+.island-dock--br {
+  bottom: 0.75rem;
+  right: 0.75rem;
+}
+
+.initiative-rail {
   background: rgba(15, 61, 54, 0.94);
   color: #eef7f4;
-  font-weight: 600;
+  border-radius: 16px;
+  padding: 0.85rem 0.7rem;
+  overflow: auto;
+  max-height: calc(100vh - 6.5rem);
+}
+
+.initiative-rail__round {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+}
+
+.initiative-rail__round strong {
+  font-size: 1.4rem;
+  font-family: var(--font-display);
+}
+
+.initiative-rail__turn {
+  margin: 0 0 0.85rem;
+  font-size: 0.95rem;
+}
+
+.initiative-rail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.tcg-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.45rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(238, 247, 244, 0.18);
+}
+
+.tcg-card__art,
+.tcg-card__placeholder {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 8px;
+  object-fit: cover;
+  background: linear-gradient(160deg, #2f6f62, #1a3d38);
+}
+
+.tcg-card__placeholder {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: #dff5ee;
+}
+
+.tcg-card__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.tcg-card__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.initiative-rail__list li.is-active .tcg-card {
+  outline: 2px solid #f0a46a;
+  background: rgba(196, 92, 38, 0.28);
+}
+
+@media (max-width: 800px) {
+  .play-stage--with-rail {
+    grid-template-columns: 1fr;
+  }
+
+  .initiative-rail {
+    max-height: none;
+  }
+
+  .initiative-rail__list {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(96px, 120px);
+    overflow-x: auto;
+  }
+
+  .play-island {
+    width: min(240px, calc(100% - 1rem));
+    max-height: 38vh;
+  }
 }
