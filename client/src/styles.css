@@ -314,7 +314,8 @@ html[data-lantern="off"] .brand {
 .settings-panel,
 .play-island,
 .session-strip,
-.initiative-rail {
+.initiative-rail,
+.dice-toast {
   position: relative;
   background-color: var(--parchment);
   background-image:
@@ -340,7 +341,8 @@ html[data-lantern="off"] .brand {
 .settings-panel::before,
 .play-island::before,
 .session-strip::before,
-.initiative-rail::before {
+.initiative-rail::before,
+.dice-toast::before {
   content: "";
   pointer-events: none;
   position: absolute;
@@ -354,7 +356,8 @@ html[data-lantern="off"] .brand {
 .settings-panel::after,
 .play-island::after,
 .session-strip::after,
-.initiative-rail::after {
+.initiative-rail::after,
+.dice-toast::after {
   content: "";
   pointer-events: none;
   position: absolute;
@@ -695,6 +698,114 @@ html[data-lantern="off"] .map-table {
 
 .log-island__battle {
   justify-content: space-between;
+}
+
+.dice-island__form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.45rem;
+  align-items: end;
+}
+
+.dice-island__label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.dice-island__label input {
+  width: 100%;
+  min-width: 0;
+}
+
+.dice-island__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.dice-island__chip {
+  padding: 0.22rem 0.45rem;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dice-island__result {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.dice-island__result strong {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  color: var(--wood-deep);
+  line-height: 1.1;
+}
+
+.dice-island__history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+  max-height: 7rem;
+  overflow: auto;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dice-island__history li {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr;
+  gap: 0.4rem;
+  align-items: baseline;
+}
+
+.dice-toast {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  max-width: min(22rem, calc(100% - 1.5rem));
+  padding: 0.55rem 0.85rem;
+  animation: dice-toast-in 0.28s ease-out;
+  pointer-events: none;
+}
+
+.dice-toast > * {
+  position: relative;
+  z-index: 1;
+}
+
+.dice-toast__total {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--wood-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+.dice-toast__detail {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes dice-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0.45rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .play-island {

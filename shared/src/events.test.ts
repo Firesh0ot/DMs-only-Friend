@@ -79,6 +79,16 @@ describe("event schemas", () => {
       createdAt: "2026-11-11T18:00:00.000Z",
     });
     expect(event.type).toBe("battle_start");
+    const diceEvent = SessionEventSchema.parse({
+      id: 2,
+      roomId: "r1",
+      battleId: null,
+      type: "dice_roll",
+      summary: "GM: 2d6+3 → 11",
+      payload: { expr: "2d6+3", total: 11, results: [4, 4] },
+      createdAt: "2026-11-11T18:01:00.000Z",
+    });
+    expect(diceEvent.type).toBe("dice_roll");
     const battle = BattleStateSchema.parse({
       id: "b1",
       roomId: "r1",

@@ -53,10 +53,14 @@ See [ADR 0004](../decisions/0004-session-battle-log.md).
 
 - Tables: `session_events` (append-only), `battles` (start/end timestamps).
 - Snapshot fields: `eventLog`, `battle`.
-- Events: map change, throttled token moves, initiative set/next, round advance, visibility, battle start/end.
+- Events: map change, throttled token moves, initiative set/next, round advance, visibility, battle start/end, dice rolls.
 - Auto-start battle on first `initiative:next` if none active; GM ends via `battle:end`.
 
-Out of scope: Fog, `.dd2vtt` import, full monster stats, replay/video. Dice remain on the wire / `dice_log` but are not a Play island priority.
+### Dice Play island
+
+See [ADR 0007](../decisions/0007-dice-play-island.md). GM island emits `dice:roll`; server uses `parseExpr`/`roll`, persists `dice_log`, broadcasts `dice:rolled`, and appends `dice_roll` to the session log. Screen/player show a short toast.
+
+Out of scope: Fog, `.dd2vtt` import, full monster stats, replay/video.
 
 ### Visual theme
 

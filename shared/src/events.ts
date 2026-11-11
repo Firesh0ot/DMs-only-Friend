@@ -90,6 +90,7 @@ export const SessionEventTypeSchema = z.enum([
   "initiative_next",
   "round_advance",
   "visibility_set",
+  "dice_roll",
 ]);
 export type SessionEventType = z.infer<typeof SessionEventTypeSchema>;
 
