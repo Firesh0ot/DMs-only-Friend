@@ -383,9 +383,11 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           name: data.name,
           kind: data.kind,
           image: data.image,
+          notes: data.notes,
           sizeCells: data.sizeCells,
           mapIds: data.mapIds,
         });
+        const initiative = rooms.refreshInitiativePortraits(session.roomId);
         io.to(roomChannel(session.roomId)).emit(
           ServerEvents.CharactersUpdated,
           rooms.listCharacters(session.roomId),
@@ -394,6 +396,9 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           ServerEvents.TokensSynced,
           rooms.listVisibleTokens(session.roomId),
         );
+        if (initiative) {
+          io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+        }
       } catch (error) {
         emitError(socket, error);
       }

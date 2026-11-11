@@ -85,6 +85,7 @@ function migrate(db: Db): void {
       name TEXT NOT NULL,
       kind TEXT NOT NULL,
       image TEXT,
+      notes TEXT,
       size_cells REAL NOT NULL DEFAULT 1
     );
 
@@ -116,6 +117,8 @@ function migrate(db: Db): void {
     CREATE INDEX IF NOT EXISTS idx_session_events_room_created
       ON session_events (room_id, id DESC);
   `);
+
+  ensureColumn(db, "characters", "notes", "TEXT");
 
   backfillActiveMaps(db);
   backfillTokenMaps(db);

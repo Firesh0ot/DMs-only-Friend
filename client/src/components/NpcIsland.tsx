@@ -47,6 +47,7 @@ export function NpcIsland({ characters, tokens, activeMapId, corner, onCycleCorn
       kind: character.kind,
       mapIds,
       image: character.image,
+      notes: character.notes,
       sizeCells: character.sizeCells,
     });
   }

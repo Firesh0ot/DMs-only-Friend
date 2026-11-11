@@ -39,6 +39,7 @@ export const CharacterStateSchema = z.object({
   name: z.string().min(1),
   kind: CharacterKindSchema,
   image: z.string().nullable(),
+  notes: z.string().nullable(),
   sizeCells: z.number().positive(),
   mapIds: z.array(z.string()),
 });
@@ -197,6 +198,7 @@ export const CharacterUpsertPayloadSchema = z.object({
   name: z.string().min(1).max(64),
   kind: CharacterKindSchema,
   image: z.string().nullable().optional(),
+  notes: z.string().max(500).nullable().optional(),
   sizeCells: z.number().positive().optional(),
   mapIds: z.array(z.string().min(1)).optional(),
 });

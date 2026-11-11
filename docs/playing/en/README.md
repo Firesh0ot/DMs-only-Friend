@@ -15,8 +15,8 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 1. Create a room from the home page and open the GM link.
 2. Upload one or more maps; set each map’s `grid_px`.
 3. Copy Screen / Player links for the table.
-4. Add PCs and NPCs; tick which maps each character appears on.
-5. Switch to **Play** when the session starts.
+4. Add PCs and NPCs (display name, optional notes, portrait); tick which maps each character appears on.
+5. Switch to **Play** when the session starts. Portraits appear on initiative cards when set.
 
 ## GM play
 
