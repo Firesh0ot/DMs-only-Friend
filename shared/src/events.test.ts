@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   BattleStateSchema,
   CharacterUpsertPayloadSchema,
+  FogPaintPayloadSchema,
+  FogStateSchema,
   MapActivatePayloadSchema,
   RoomJoinPayloadSchema,
   SessionEventSchema,
@@ -62,10 +64,40 @@ describe("event schemas", () => {
       initiative: { order: [], activeIndex: 0, round: 1 },
       eventLog: [],
       battle: null,
+      fog: null,
       role: "gm",
       playerName: null,
     });
     expect(snapshot.visibility.showPcs).toBe(true);
+  });
+
+  it("accepts fog paint payloads and fog state", () => {
+    const brush = FogPaintPayloadSchema.parse({
+      mapId: "map-1",
+      stroke: {
+        kind: "brush",
+        mode: "reveal",
+        radius: 32,
+        points: [{ x: 10, y: 12 }],
+      },
+    });
+    expect(brush.stroke.kind).toBe("brush");
+    const fog = FogStateSchema.parse({
+      mapId: "map-1",
+      baseCovered: true,
+      strokes: [
+        {
+          id: "s1",
+          kind: "rect",
+          mode: "hide",
+          x: 0,
+          y: 0,
+          w: 40,
+          h: 20,
+        },
+      ],
+    });
+    expect(fog.strokes[0]?.kind).toBe("rect");
   });
 
   it("accepts session log and battle schemas", () => {

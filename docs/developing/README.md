@@ -45,7 +45,7 @@ See [ADR 0003](../decisions/0003-prep-play-ux.md).
 - Roster: `characters` + `character_maps`; activating a map syncs tokens for linked characters.
 - Visibility: `rooms.show_pcs` / `show_npcs`; snapshot tokens are filtered server-side.
 - Initiative: `room_initiative` includes `round`.
-- Island layout: client-only `localStorage` key `dms-islands:<roomId>` (Map, Initiative, NPCs, Log).
+- Island layout: client-only `localStorage` key `dms-islands:<roomId>` (Map, Initiative, NPCs, Log, Fog).
 
 ### Session / battle log
 
@@ -56,7 +56,16 @@ See [ADR 0004](../decisions/0004-session-battle-log.md).
 - Events: map change, throttled token moves, initiative set/next, round advance, visibility, battle start/end.
 - Auto-start battle on first `initiative:next` if none active; GM ends via `battle:end`.
 
-Out of scope: Fog, `.dd2vtt` import, full monster stats, replay/video. Dice remain on the wire / `dice_log` but are not a Play island priority.
+### Manual fog of war
+
+See [ADR 0007](../decisions/0007-manual-fog-of-war.md).
+
+- Table: `map_fog` (`base_covered`, `strokes_json`) keyed by `map_id`.
+- Snapshot field: `fog` for the active map.
+- Events: `fog:paint`, `fog:reset` → `fog:updated` (GM only to mutate).
+- Client: PixiJS v8 fog mask above tokens; Fog Play island for brush/rect tools.
+
+Out of scope still: automatic LoS from walls, `.dd2vtt` import, full monster stats, replay/video. Dice remain on the wire / `dice_log` but are not a Play island priority.
 
 ### Visual theme
 

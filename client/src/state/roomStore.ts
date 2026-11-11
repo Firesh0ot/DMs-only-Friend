@@ -5,6 +5,7 @@ import {
   type CameraState,
   type CharacterState,
   type DiceRolled,
+  type FogState,
   type InitiativeState,
   type MapState,
   type Role,
@@ -36,6 +37,7 @@ type RoomStore = {
   setInitiative: (initiative: InitiativeState) => void;
   appendEvent: (event: SessionEvent) => void;
   setBattle: (battle: BattleState | null) => void;
+  setFog: (fog: FogState | null) => void;
   moveTokenOptimistic: (tokenId: string, x: number, y: number) => void;
   clearError: () => void;
 };
@@ -163,6 +165,14 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     set({ snapshot: { ...snapshot, battle } });
   },
 
+  setFog: (fog) => {
+    const snapshot = get().snapshot;
+    if (!snapshot) {
+      return;
+    }
+    set({ snapshot: { ...snapshot, fog } });
+  },
+
   moveTokenOptimistic: (tokenId, x, y) => {
     const snapshot = get().snapshot;
     if (!snapshot) {
@@ -226,6 +236,7 @@ export function bindSocketListeners(): void {
   socket.on(ServerEvents.InitiativeUpdated, (initiative) => store().setInitiative(initiative));
   socket.on(ServerEvents.LogAppended, (event) => store().appendEvent(event));
   socket.on(ServerEvents.BattleUpdated, (battle) => store().setBattle(battle));
+  socket.on(ServerEvents.FogUpdated, (fog) => store().setFog(fog));
   socket.on(ServerEvents.DiceRolled, (dice) => useRoomStore.setState({ lastDice: dice }));
   socket.on(ServerEvents.Error, ({ message }) => useRoomStore.setState({ error: message }));
 }

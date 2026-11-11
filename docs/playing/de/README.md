@@ -6,7 +6,7 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 
 | Rolle | Sicht |
 |---|---|
-| **GM** | **Settings** für Vorbereitung; **Play** mit schwebenden Inseln (Map, Initiative, NPCs, Log) |
+| **GM** | **Settings** für Vorbereitung; **Play** mit schwebenden Inseln (Map, Initiative, NPCs, Log, Fog) |
 | **Player-Screen** | Vollbild-Karte + TCG-Initiative-Leiste; kompakte Kampfdauer / letzte Events; Kamera folgt dem GM |
 | **Remote-Spieler** | Wie Player-Screen, plus Steuerung des eigenen Tokens (Label = Name) |
 
@@ -26,14 +26,15 @@ Schwebende Inseln um die Karte:
 - **Initiative** — Werte, Reihenfolge, Next Turn (Runde steigt beim Überlauf).
 - **NPCs** — NPCs spawnen oder aus dem Roster auf die aktuelle Karte setzen.
 - **Log** — Session-Events und Kampftimer; Kampf **Start** / **Ende**. Das erste **Next** startet automatisch einen Kampf, falls keiner läuft.
+- **Fog** — Pinsel oder Rechteck zum **Reveal** / **Hide**; **Cover all** / **Clear all**. Neue Karten starten voll verdeckt. Für dich ist Fog durchscheinend, für Screen/Spieler deckend. Tool **Off**, um wieder zu pannen und Tokens zu bewegen.
 
 **Snap** verschiebt eine Insel zur nächsten Ecke. Positionen bleiben pro Raum im Browser erhalten.
 
-Kartenwechsel lädt die verknüpften Charaktere und entfernt die übrigen. Tokens snappen aufs Raster und syncen live. Pan/Zoom der GM-Ansicht folgen Screen und Spieler.
+Kartenwechsel lädt die verknüpften Charaktere und entfernt die übrigen. Tokens snappen aufs Raster und syncen live. Pan/Zoom der GM-Ansicht folgen Screen und Spieler. Fog wird pro Karte gespeichert.
 
 ## Screen / Player
 
-Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Pan/Zoom folgt dem GM.
+Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Pan/Zoom folgt dem GM. Unaufgedeckte Bereiche bleiben unter solidem Fog (inkl. Tokens dort).
 
 ## Look & Laterne
 
@@ -54,4 +55,5 @@ Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**
 - Prep/Play-ADR: [../../decisions/0003-prep-play-ux.md](../../decisions/0003-prep-play-ux.md)
 - Session-Log-ADR: [../../decisions/0004-session-battle-log.md](../../decisions/0004-session-battle-log.md)
 - Tavernen-Theme-ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
+- Manuelles Fog-ADR: [../../decisions/0007-manual-fog-of-war.md](../../decisions/0007-manual-fog-of-war.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

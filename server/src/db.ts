@@ -116,6 +116,12 @@ function migrate(db: Db): void {
 
     CREATE INDEX IF NOT EXISTS idx_session_events_room_created
       ON session_events (room_id, id DESC);
+
+    CREATE TABLE IF NOT EXISTS map_fog (
+      map_id TEXT PRIMARY KEY REFERENCES maps(id) ON DELETE CASCADE,
+      base_covered INT NOT NULL DEFAULT 1,
+      strokes_json TEXT NOT NULL DEFAULT '[]'
+    );
   `);
 
   ensureColumn(db, "characters", "notes", "TEXT");

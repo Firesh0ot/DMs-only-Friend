@@ -6,7 +6,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 
 | Role | What you see |
 |---|---|
-| **GM** | **Settings** for prep; **Play** with floating islands (Map, Initiative, NPCs, Log) |
+| **GM** | **Settings** for prep; **Play** with floating islands (Map, Initiative, NPCs, Log, Fog) |
 | **Player screen** | Full-screen map + TCG-style initiative rail; compact battle duration / last events; camera follows the GM |
 | **Remote player** | Like the player screen, plus control of your own token (label = your name) |
 
@@ -26,14 +26,15 @@ Floating islands around the map:
 - **Initiative** — enter scores, set order, next turn (round advances when the order wraps).
 - **NPCs** — spawn or place roster NPCs on the current map.
 - **Log** — recent session events and battle timer; **Start** / **End** battle. The first **Next** turn also starts a battle if none is active.
+- **Fog** — brush or rectangle to **Reveal** / **Hide** areas; **Cover all** / **Clear all**. New maps start fully covered. Fog is translucent for you and solid for screen/players. Turn the tool **Off** to pan and move tokens again.
 
 Use **Snap** on an island to cycle corners. Positions are remembered for this room in the browser.
 
-Changing the active map brings in characters linked to that map (and drops the others). Tokens snap to grid and sync live. Camera pan/zoom on the GM side is followed by screen and players.
+Changing the active map brings in characters linked to that map (and drops the others). Tokens snap to grid and sync live. Camera pan/zoom on the GM side is followed by screen and players. Fog is stored per map.
 
 ## Screen / player
 
-No GM islands. Use the side rail for round, turn order, and whose turn it is. A small strip shows battle elapsed time and the latest events when present. Follow the GM’s pan/zoom.
+No GM islands. Use the side rail for round, turn order, and whose turn it is. A small strip shows battle elapsed time and the latest events when present. Follow the GM’s pan/zoom. Unrevealed map areas stay under solid fog (including tokens in those areas).
 
 ## Look & lantern
 
@@ -54,4 +55,5 @@ The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings
 - Prep/Play ADR: [../../decisions/0003-prep-play-ux.md](../../decisions/0003-prep-play-ux.md)
 - Session log ADR: [../../decisions/0004-session-battle-log.md](../../decisions/0004-session-battle-log.md)
 - Tavern theme ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
+- Manual fog ADR: [../../decisions/0007-manual-fog-of-war.md](../../decisions/0007-manual-fog-of-war.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

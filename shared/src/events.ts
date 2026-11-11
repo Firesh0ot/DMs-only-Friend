@@ -112,6 +112,56 @@ export const BattleStateSchema = z.object({
 });
 export type BattleState = z.infer<typeof BattleStateSchema>;
 
+export const FogPaintModeSchema = z.enum(["reveal", "hide"]);
+export type FogPaintMode = z.infer<typeof FogPaintModeSchema>;
+
+export const FogPointSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+});
+export type FogPoint = z.infer<typeof FogPointSchema>;
+
+export const FogBrushStrokeSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal("brush"),
+  mode: FogPaintModeSchema,
+  radius: z.number().min(4).max(256),
+  points: z.array(FogPointSchema).min(1).max(240),
+});
+export type FogBrushStroke = z.infer<typeof FogBrushStrokeSchema>;
+
+export const FogRectStrokeSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal("rect"),
+  mode: FogPaintModeSchema,
+  x: z.number(),
+  y: z.number(),
+  w: z.number(),
+  h: z.number(),
+});
+export type FogRectStroke = z.infer<typeof FogRectStrokeSchema>;
+
+export const FogStrokeSchema = z.discriminatedUnion("kind", [
+  FogBrushStrokeSchema,
+  FogRectStrokeSchema,
+]);
+export type FogStroke = z.infer<typeof FogStrokeSchema>;
+
+export const FogBrushStrokeInputSchema = FogBrushStrokeSchema.omit({ id: true });
+export const FogRectStrokeInputSchema = FogRectStrokeSchema.omit({ id: true });
+export const FogStrokeInputSchema = z.discriminatedUnion("kind", [
+  FogBrushStrokeInputSchema,
+  FogRectStrokeInputSchema,
+]);
+export type FogStrokeInput = z.infer<typeof FogStrokeInputSchema>;
+
+export const FogStateSchema = z.object({
+  mapId: z.string(),
+  baseCovered: z.boolean(),
+  strokes: z.array(FogStrokeSchema),
+});
+export type FogState = z.infer<typeof FogStateSchema>;
+
 export const SnapshotSchema = z.object({
   room: RoomStateSchema,
   map: MapStateSchema.nullable(),
@@ -123,6 +173,7 @@ export const SnapshotSchema = z.object({
   initiative: InitiativeStateSchema.nullable(),
   eventLog: z.array(SessionEventSchema),
   battle: BattleStateSchema.nullable(),
+  fog: FogStateSchema.nullable(),
   role: RoleSchema,
   playerName: z.string().nullable(),
 });
@@ -215,6 +266,18 @@ export const VisibilitySetPayloadSchema = z.object({
 });
 export type VisibilitySetPayload = z.infer<typeof VisibilitySetPayloadSchema>;
 
+export const FogPaintPayloadSchema = z.object({
+  mapId: z.string().min(1),
+  stroke: FogStrokeInputSchema,
+});
+export type FogPaintPayload = z.infer<typeof FogPaintPayloadSchema>;
+
+export const FogResetPayloadSchema = z.object({
+  mapId: z.string().min(1),
+  baseCovered: z.boolean(),
+});
+export type FogResetPayload = z.infer<typeof FogResetPayloadSchema>;
+
 export const DiceRolledSchema = z.object({
   id: z.number().int(),
   playerName: z.string(),
@@ -242,6 +305,8 @@ export const ClientEvents = {
   VisibilitySet: "visibility:set",
   BattleStart: "battle:start",
   BattleEnd: "battle:end",
+  FogPaint: "fog:paint",
+  FogReset: "fog:reset",
 } as const;
 
 export const ServerEvents = {
@@ -259,6 +324,7 @@ export const ServerEvents = {
   InitiativeUpdated: "initiative:updated",
   LogAppended: "log:appended",
   BattleUpdated: "battle:updated",
+  FogUpdated: "fog:updated",
   Error: "error",
 } as const;
 
@@ -282,6 +348,8 @@ export type ClientToServerEvents = {
   [ClientEvents.VisibilitySet]: (payload: VisibilitySetPayload) => void;
   [ClientEvents.BattleStart]: () => void;
   [ClientEvents.BattleEnd]: () => void;
+  [ClientEvents.FogPaint]: (payload: FogPaintPayload) => void;
+  [ClientEvents.FogReset]: (payload: FogResetPayload) => void;
 };
 
 export type ServerToClientEvents = {
@@ -299,5 +367,6 @@ export type ServerToClientEvents = {
   [ServerEvents.InitiativeUpdated]: (initiative: InitiativeState) => void;
   [ServerEvents.LogAppended]: (event: SessionEvent) => void;
   [ServerEvents.BattleUpdated]: (battle: BattleState | null) => void;
+  [ServerEvents.FogUpdated]: (fog: FogState | null) => void;
   [ServerEvents.Error]: (payload: { message: string }) => void;
 };
