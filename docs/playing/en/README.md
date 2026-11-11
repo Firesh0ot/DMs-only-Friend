@@ -13,7 +13,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 ## GM prep (Settings)
 
 1. Create a room from the home page and open the GM link.
-2. Upload one or more maps; set each map’s `grid_px`.
+2. Upload one or more maps: PNG/JPG/WebP (set `grid_px`) or Universal VTT `.dd2vtt` (grid and walls come from the file). On the GM view, imported walls show as an amber overlay.
 3. Copy Screen / Player links for the table.
 4. Add PCs and NPCs (display name, optional notes, portrait); tick which maps each character appears on.
 5. Switch to **Play** when the session starts. Portraits appear on initiative cards when set.
@@ -56,4 +56,5 @@ The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings
 - Session log ADR: [../../decisions/0004-session-battle-log.md](../../decisions/0004-session-battle-log.md)
 - Tavern theme ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
 - Dice island ADR: [../../decisions/0007-dice-play-island.md](../../decisions/0007-dice-play-island.md)
+- dd2vtt import ADR: [../../decisions/0008-dd2vtt-map-import.md](../../decisions/0008-dd2vtt-map-import.md)
 - Developing: [../../developing/README.md](../../developing/README.md)
