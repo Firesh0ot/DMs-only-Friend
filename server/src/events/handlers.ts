@@ -1,6 +1,7 @@
 import {
   CameraSetPayloadSchema,
   CharacterRemovePayloadSchema,
+  CharacterSetHpPayloadSchema,
   CharacterUpsertPayloadSchema,
   ClientEvents,
   DiceRollPayloadSchema,
@@ -76,10 +77,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           characterId: data.characterId ?? null,
         });
         io.to(roomChannel(session.roomId)).emit(ServerEvents.TokenCreated, token);
-        io.to(roomChannel(session.roomId)).emit(
-          ServerEvents.CharactersUpdated,
-          rooms.listCharacters(session.roomId),
-        );
+        emitCharactersUpdated(io, rooms, session.roomId);
       } catch (error) {
         emitError(socket, error);
       }
@@ -101,10 +99,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         io.to(roomChannel(session.roomId)).emit(ServerEvents.TokenRemoved, {
           tokenId: data.tokenId,
         });
-        io.to(roomChannel(session.roomId)).emit(
-          ServerEvents.CharactersUpdated,
-          rooms.listCharacters(session.roomId),
-        );
+        emitCharactersUpdated(io, rooms, session.roomId);
       } catch (error) {
         emitError(socket, error);
       }
@@ -379,10 +374,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           ServerEvents.TokensSynced,
           rooms.listVisibleTokens(session.roomId),
         );
-        io.to(roomChannel(session.roomId)).emit(
-          ServerEvents.CharactersUpdated,
-          rooms.listCharacters(session.roomId),
-        );
+        emitCharactersUpdated(io, rooms, session.roomId);
       } catch (error) {
         emitError(socket, error);
       }
@@ -404,12 +396,12 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           notes: data.notes,
           sizeCells: data.sizeCells,
           mapIds: data.mapIds,
+          hpCurrent: data.hpCurrent,
+          hpMax: data.hpMax,
+          ac: data.ac,
         });
         const initiative = rooms.refreshInitiativePortraits(session.roomId);
-        io.to(roomChannel(session.roomId)).emit(
-          ServerEvents.CharactersUpdated,
-          rooms.listCharacters(session.roomId),
-        );
+        emitCharactersUpdated(io, rooms, session.roomId);
         io.to(roomChannel(session.roomId)).emit(
           ServerEvents.TokensSynced,
           rooms.listVisibleTokens(session.roomId),
@@ -435,14 +427,34 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           return;
         }
         rooms.removeCharacter(data.characterId);
-        io.to(roomChannel(session.roomId)).emit(
-          ServerEvents.CharactersUpdated,
-          rooms.listCharacters(session.roomId),
-        );
+        emitCharactersUpdated(io, rooms, session.roomId);
         io.to(roomChannel(session.roomId)).emit(
           ServerEvents.TokensSynced,
           rooms.listVisibleTokens(session.roomId),
         );
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.CharacterSetHp, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = CharacterSetHpPayloadSchema.parse(payload);
+        const character = rooms.getCharacter(data.characterId);
+        if (!character || character.roomId !== session.roomId) {
+          emitError(socket, new Error("Character not found"));
+          return;
+        }
+        rooms.setCharacterHp(data.characterId, {
+          hpCurrent: data.hpCurrent,
+          hpMax: data.hpMax,
+          delta: data.delta,
+        });
+        emitCharactersUpdated(io, rooms, session.roomId);
       } catch (error) {
         emitError(socket, error);
       }
@@ -526,6 +538,15 @@ function broadcastMapView(
   io.to(roomChannel(roomId)).emit(ServerEvents.MapsUpdated, rooms.listMaps(roomId));
   io.to(roomChannel(roomId)).emit(ServerEvents.MapSet, map);
   io.to(roomChannel(roomId)).emit(ServerEvents.TokensSynced, rooms.listVisibleTokens(roomId));
+}
+
+export function emitCharactersUpdated(io: AppServer, rooms: RoomStore, roomId: string): void {
+  for (const session of rooms.listSessionsInRoom(roomId)) {
+    io.to(session.socketId).emit(
+      ServerEvents.CharactersUpdated,
+      rooms.listCharactersForRole(roomId, session.role),
+    );
+  }
 }
 
 function requireGm(socket: AppSocket, rooms: RoomStore) {

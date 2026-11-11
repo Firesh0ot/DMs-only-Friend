@@ -144,7 +144,11 @@ export function RoomPage({ code, role, name }: Props) {
         <div className={`play-stage ${role !== "gm" ? "play-stage--with-rail" : ""}`}>
           {role !== "gm" ? (
             <div className="play-stage__side stack">
-              <InitiativeRail initiative={snapshot.initiative} />
+              <InitiativeRail
+                initiative={snapshot.initiative}
+                tokens={tokens}
+                characters={snapshot.characters}
+              />
               <SessionStrip battle={snapshot.battle} events={snapshot.eventLog} />
             </div>
           ) : null}
@@ -179,6 +183,7 @@ export function RoomPage({ code, role, name }: Props) {
                 />
                 <InitiativeIsland
                   tokens={tokens}
+                  characters={snapshot.characters}
                   initiative={snapshot.initiative}
                   corner={islandLayout.initiative}
                   onCycleCorner={() => cycleIsland("initiative")}
