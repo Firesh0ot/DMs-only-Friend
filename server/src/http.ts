@@ -150,6 +150,72 @@ export function createHttpApp(deps: HttpDeps): Express {
     },
   );
 
+  const portraitUpload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      if (!ALLOWED_MIME.has(file.mimetype)) {
+        cb(new Error("Only png/jpg/webp uploads are allowed"));
+        return;
+      }
+      cb(null, true);
+    },
+  });
+
+  app.post(
+    "/api/rooms/:code/characters/:characterId/portrait",
+    (req, res, next) => {
+      portraitUpload.single("portrait")(req, res, (error) => {
+        if (error) {
+          res.status(400).json({ error: error.message });
+          return;
+        }
+        next();
+      });
+    },
+    (req: Request, res: Response) => {
+      const room = deps.rooms.getRoomByCode(req.params.code ?? "");
+      if (!room) {
+        res.status(404).json({ error: "Room not found" });
+        return;
+      }
+      const characterId = req.params.characterId ?? "";
+      const character = deps.rooms.getCharacter(characterId);
+      if (!character || character.roomId !== room.id) {
+        if (req.file) {
+          fs.unlinkSync(req.file.path);
+        }
+        res.status(404).json({ error: "Character not found" });
+        return;
+      }
+      if (!req.file) {
+        res.status(400).json({ error: "Missing portrait file" });
+        return;
+      }
+
+      try {
+        readImageSize(req.file.path, req.file.mimetype);
+        const imageUrl = `/uploads/${req.file.filename}`;
+        const updated = deps.rooms.setCharacterPortrait(characterId, imageUrl);
+        const initiative = deps.rooms.getInitiative(room.id);
+        deps.io
+          .to(roomChannel(room.id))
+          .emit(ServerEvents.CharactersUpdated, deps.rooms.listCharacters(room.id));
+        deps.io
+          .to(roomChannel(room.id))
+          .emit(ServerEvents.TokensSynced, deps.rooms.listVisibleTokens(room.id));
+        if (initiative) {
+          deps.io.to(roomChannel(room.id)).emit(ServerEvents.InitiativeUpdated, initiative);
+        }
+        res.status(201).json({ character: updated });
+      } catch (error) {
+        fs.unlinkSync(req.file.path);
+        const message = error instanceof Error ? error.message : "Upload failed";
+        res.status(400).json({ error: message });
+      }
+    },
+  );
+
   return app;
 }
 

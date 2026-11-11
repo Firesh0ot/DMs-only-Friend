@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import {
   ClientEvents,
   type CharacterKind,
@@ -15,6 +15,20 @@ type Props = {
   onClose: () => void;
 };
 
+type DraftCharacter = {
+  name: string;
+  kind: CharacterKind;
+  notes: string;
+  mapIds: string[];
+};
+
+const emptyDraft = (): DraftCharacter => ({
+  name: "",
+  kind: "pc",
+  notes: "",
+  mapIds: [],
+});
+
 export function SettingsPanel({
   code,
   maps,
@@ -22,13 +36,13 @@ export function SettingsPanel({
   characters,
   onClose,
 }: Props) {
+  const baseId = useId();
   const [uploadGridPx, setUploadGridPx] = useState("70");
   const [mapName, setMapName] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [charName, setCharName] = useState("");
-  const [charKind, setCharKind] = useState<CharacterKind>("pc");
-  const [charMapIds, setCharMapIds] = useState<string[]>([]);
+  const [draft, setDraft] = useState<DraftCharacter>(emptyDraft);
+  const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const links = useMemo(
@@ -40,7 +54,10 @@ export function SettingsPanel({
     [origin, code],
   );
 
-  async function onUpload(file: File | null) {
+  const pcs = characters.filter((character) => character.kind === "pc");
+  const npcs = characters.filter((character) => character.kind === "npc");
+
+  async function onUploadMap(file: File | null) {
     if (!file) {
       return;
     }
@@ -61,10 +78,35 @@ export function SettingsPanel({
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(payload?.error ?? "Upload failed");
       }
-      setMessage(`Uploaded ${file.name}`);
+      setMessage(`Uploaded map ${file.name}`);
       setMapName("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onUploadPortrait(characterId: string, file: File | null) {
+    if (!file) {
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    try {
+      const body = new FormData();
+      body.append("portrait", file);
+      const response = await fetch(`/api/rooms/${code}/characters/${characterId}/portrait`, {
+        method: "POST",
+        body,
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? "Portrait upload failed");
+      }
+      setMessage(`Portrait updated`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Portrait upload failed");
     } finally {
       setBusy(false);
     }
@@ -87,194 +129,374 @@ export function SettingsPanel({
     getSocket().emit(ClientEvents.MapActivate, { mapId });
   }
 
-  function upsertCharacter(existing?: CharacterState) {
-    const name = (existing ? existing.name : charName).trim();
+  function addCharacter() {
+    const name = draft.name.trim();
     if (!name) {
+      setMessage("Enter a display name for the character");
       return;
     }
     getSocket().emit(ClientEvents.CharacterUpsert, {
-      id: existing?.id,
       name,
-      kind: existing?.kind ?? charKind,
-      mapIds: existing ? existing.mapIds : charMapIds,
-      sizeCells: existing?.sizeCells ?? 1,
-      image: existing?.image ?? null,
+      kind: draft.kind,
+      mapIds: draft.mapIds,
+      notes: draft.notes.trim() || null,
+      sizeCells: 1,
+      image: null,
     });
-    if (!existing) {
-      setCharName("");
-      setCharMapIds([]);
-    }
+    setDraft(emptyDraft());
+    setMessage(`Added ${draft.kind.toUpperCase()} ${name}`);
+  }
+
+  function saveCharacter(character: CharacterState, patch: Partial<CharacterState>) {
+    getSocket().emit(ClientEvents.CharacterUpsert, {
+      id: character.id,
+      name: (patch.name ?? character.name).trim(),
+      kind: patch.kind ?? character.kind,
+      mapIds: patch.mapIds ?? character.mapIds,
+      notes:
+        patch.notes !== undefined
+          ? patch.notes
+          : (editingNotes[character.id] ?? character.notes ?? null),
+      sizeCells: character.sizeCells,
+      image: character.image,
+    });
   }
 
   function toggleCharacterMap(character: CharacterState, mapId: string) {
     const mapIds = character.mapIds.includes(mapId)
       ? character.mapIds.filter((id) => id !== mapId)
       : [...character.mapIds, mapId];
-    getSocket().emit(ClientEvents.CharacterUpsert, {
-      id: character.id,
-      name: character.name,
-      kind: character.kind,
-      mapIds,
-      sizeCells: character.sizeCells,
-      image: character.image,
-    });
+    saveCharacter(character, { mapIds });
   }
 
   function removeCharacter(characterId: string) {
     getSocket().emit(ClientEvents.CharacterRemove, { characterId });
   }
 
-  return (
-    <section className="settings-panel panel stack">
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h2>Settings</h2>
-        <button className="secondary" onClick={onClose}>
-          Back to Play
-        </button>
-      </div>
+  function renderCharacterCard(character: CharacterState) {
+    const notesId = `${baseId}-notes-${character.id}`;
+    const portraitId = `${baseId}-portrait-${character.id}`;
+    const notesValue = editingNotes[character.id] ?? character.notes ?? "";
+    const initial = character.name.trim().charAt(0).toUpperCase() || "?";
 
-      <section className="stack">
-        <h3>Room links</h3>
-        <p className="muted mono">Code {code}</p>
-        <label className="stack">
-          <span className="muted">GM</span>
-          <input readOnly value={links.gm} onFocus={(event) => event.target.select()} />
-        </label>
-        <label className="stack">
-          <span className="muted">Screen</span>
-          <input readOnly value={links.screen} onFocus={(event) => event.target.select()} />
-        </label>
-        <label className="stack">
-          <span className="muted">Player</span>
-          <input readOnly value={links.player} onFocus={(event) => event.target.select()} />
-        </label>
-      </section>
-
-      <section className="stack">
-        <h3>Maps</h3>
-        <label className="stack">
-          <span className="muted">Name (optional)</span>
-          <input
-            value={mapName}
-            onChange={(event) => setMapName(event.target.value)}
-            placeholder="Cave entrance"
-          />
-        </label>
-        <label className="stack">
-          <span className="muted">grid_px</span>
-          <div className="row">
+    return (
+      <li key={character.id} className={`character-card character-card--${character.kind}`}>
+        <div className="character-card__portrait">
+          {character.image ? (
+            <img src={character.image} alt="" className="character-card__art" />
+          ) : (
+            <div className="character-card__placeholder" aria-hidden>
+              {initial}
+            </div>
+          )}
+          <label className="character-card__portrait-upload" htmlFor={portraitId}>
+            <span className="visually-hidden">Upload portrait for {character.name}</span>
             <input
-              style={{ maxWidth: "6rem" }}
-              value={uploadGridPx}
-              onChange={(event) => setUploadGridPx(event.target.value)}
-            />
-            <input
+              id={portraitId}
               type="file"
               accept="image/png,image/jpeg,image/webp"
               disabled={busy}
-              onChange={(event) => void onUpload(event.target.files?.[0] ?? null)}
+              onChange={(event) =>
+                void onUploadPortrait(character.id, event.target.files?.[0] ?? null)
+              }
             />
-          </div>
-        </label>
-
-        <ul className="token-list">
-          {maps.map((map) => (
-            <li key={map.id} className={map.id === activeMapId ? "active" : undefined}>
-              <div className="stack" style={{ flex: 1, gap: "0.35rem" }}>
-                <strong>{map.name}</strong>
-                <span className="muted">
-                  {map.width}×{map.height}
-                </span>
-                <div className="row">
-                  <input
-                    style={{ maxWidth: "5rem" }}
-                    defaultValue={String(map.gridPx)}
-                    aria-label={`grid_px for ${map.name}`}
-                    onBlur={(event) => updateGrid(map.id, event.target.value)}
-                  />
-                  <button className="secondary" onClick={() => activateMap(map.id)}>
-                    Active
-                  </button>
-                  <button className="secondary" onClick={() => removeMap(map.id)}>
-                    Remove
-                  </button>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="stack">
-        <h3>Characters</h3>
-        <div className="row">
-          <input
-            value={charName}
-            onChange={(event) => setCharName(event.target.value)}
-            placeholder="Name"
-          />
-          <select
-            value={charKind}
-            onChange={(event) => setCharKind(event.target.value as CharacterKind)}
-          >
-            <option value="pc">PC</option>
-            <option value="npc">NPC</option>
-          </select>
-          <button onClick={() => upsertCharacter()}>Add</button>
+            Portrait
+          </label>
         </div>
-        {maps.length > 0 ? (
-          <div className="row">
-            {maps.map((map) => (
-              <label key={map.id} className="row" style={{ gap: "0.35rem" }}>
-                <input
-                  type="checkbox"
-                  checked={charMapIds.includes(map.id)}
-                  onChange={() =>
-                    setCharMapIds((current) =>
-                      current.includes(map.id)
-                        ? current.filter((id) => id !== map.id)
-                        : [...current, map.id],
-                    )
-                  }
-                />
-                <span className="muted">{map.name}</span>
-              </label>
-            ))}
-          </div>
-        ) : (
-          <p className="muted">Upload a map before linking characters.</p>
-        )}
 
-        <ul className="token-list">
-          {characters.map((character) => (
-            <li key={character.id}>
-              <div className="stack" style={{ flex: 1, gap: "0.35rem" }}>
-                <span>
-                  {character.name}{" "}
-                  <span className="muted">({character.kind.toUpperCase()})</span>
-                </span>
-                <div className="row">
-                  {maps.map((map) => (
-                    <label key={map.id} className="row" style={{ gap: "0.35rem" }}>
+        <div className="character-card__body stack">
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <strong>{character.name}</strong>
+            <span className={`kind-pill kind-pill--${character.kind}`}>
+              {character.kind.toUpperCase()}
+            </span>
+          </div>
+
+          <label className="stack" htmlFor={notesId}>
+            <span className="muted">Notes</span>
+            <textarea
+              id={notesId}
+              rows={2}
+              maxLength={500}
+              value={notesValue}
+              placeholder="Short description"
+              onChange={(event) =>
+                setEditingNotes((current) => ({
+                  ...current,
+                  [character.id]: event.target.value,
+                }))
+              }
+              onBlur={() =>
+                saveCharacter(character, {
+                  notes: (editingNotes[character.id] ?? character.notes ?? "").trim() || null,
+                })
+              }
+            />
+          </label>
+
+          <fieldset className="settings-fieldset">
+            <legend className="muted">Maps</legend>
+            {maps.length === 0 ? (
+              <p className="muted">Upload a map before linking characters.</p>
+            ) : (
+              <div className="row">
+                {maps.map((map) => {
+                  const checkboxId = `${baseId}-${character.id}-${map.id}`;
+                  return (
+                    <label key={map.id} className="check-row" htmlFor={checkboxId}>
                       <input
+                        id={checkboxId}
                         type="checkbox"
                         checked={character.mapIds.includes(map.id)}
                         onChange={() => toggleCharacterMap(character, map.id)}
                       />
-                      <span className="muted">{map.name}</span>
+                      <span>{map.name}</span>
                     </label>
-                  ))}
-                  <button className="secondary" onClick={() => removeCharacter(character.id)}>
-                    Remove
-                  </button>
-                </div>
+                  );
+                })}
               </div>
-            </li>
-          ))}
+            )}
+          </fieldset>
+
+          <div className="row">
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => removeCharacter(character.id)}
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      </li>
+    );
+  }
+
+  return (
+    <section className="settings-panel panel stack" aria-labelledby={`${baseId}-title`}>
+      <div className="settings-panel__header row">
+        <h2 id={`${baseId}-title`}>Settings</h2>
+        <button type="button" className="secondary" onClick={onClose}>
+          Back to Play
+        </button>
+      </div>
+
+      {message ? (
+        <p className="settings-status" role="status" aria-live="polite">
+          {message}
+        </p>
+      ) : null}
+
+      <nav className="settings-toc" aria-label="Settings sections">
+        <a href="#settings-maps">Maps</a>
+        <a href="#settings-characters">Characters</a>
+        <a href="#settings-links">Room links</a>
+      </nav>
+
+      <section className="settings-section stack" aria-labelledby="settings-maps">
+        <h3 id="settings-maps">Maps</h3>
+        <label className="stack" htmlFor={`${baseId}-map-name`}>
+          <span className="muted">Name (optional)</span>
+          <input
+            id={`${baseId}-map-name`}
+            value={mapName}
+            onChange={(event) => setMapName(event.target.value)}
+            placeholder="Cave entrance"
+            autoComplete="off"
+          />
+        </label>
+        <div className="row settings-upload-row">
+          <label className="stack" htmlFor={`${baseId}-grid`}>
+            <span className="muted">grid_px</span>
+            <input
+              id={`${baseId}-grid`}
+              style={{ maxWidth: "6rem" }}
+              value={uploadGridPx}
+              inputMode="numeric"
+              onChange={(event) => setUploadGridPx(event.target.value)}
+            />
+          </label>
+          <label className="stack" htmlFor={`${baseId}-map-file`}>
+            <span className="muted">Map image</span>
+            <input
+              id={`${baseId}-map-file`}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              disabled={busy}
+              onChange={(event) => void onUploadMap(event.target.files?.[0] ?? null)}
+            />
+          </label>
+        </div>
+
+        <ul className="token-list">
+          {maps.map((map) => {
+            const gridId = `${baseId}-map-grid-${map.id}`;
+            return (
+              <li key={map.id} className={map.id === activeMapId ? "active" : undefined}>
+                <div className="stack" style={{ flex: 1, gap: "0.35rem" }}>
+                  <strong>{map.name}</strong>
+                  <span className="muted">
+                    {map.width}×{map.height}
+                    {map.id === activeMapId ? " · active" : ""}
+                  </span>
+                  <div className="row">
+                    <label className="stack" htmlFor={gridId} style={{ gap: "0.25rem" }}>
+                      <span className="visually-hidden">grid_px for {map.name}</span>
+                      <input
+                        id={gridId}
+                        style={{ maxWidth: "5rem" }}
+                        defaultValue={String(map.gridPx)}
+                        inputMode="numeric"
+                        onBlur={(event) => updateGrid(map.id, event.target.value)}
+                      />
+                    </label>
+                    <button type="button" className="secondary" onClick={() => activateMap(map.id)}>
+                      Set active
+                    </button>
+                    <button type="button" className="secondary" onClick={() => removeMap(map.id)}>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
-      {message ? <p className="muted">{message}</p> : null}
+      <section className="settings-section stack" aria-labelledby="settings-characters">
+        <h3 id="settings-characters">Characters</h3>
+        <p className="muted">
+          Add PCs and NPCs with display names, notes, and portraits for the initiative rail.
+        </p>
+
+        <fieldset className="settings-fieldset stack">
+          <legend>Add character</legend>
+          <label className="stack" htmlFor={`${baseId}-new-name`}>
+            <span className="muted">Display name</span>
+            <input
+              id={`${baseId}-new-name`}
+              value={draft.name}
+              onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+              placeholder="Aria"
+              autoComplete="off"
+            />
+          </label>
+          <label className="stack" htmlFor={`${baseId}-new-kind`}>
+            <span className="muted">Type</span>
+            <select
+              id={`${baseId}-new-kind`}
+              value={draft.kind}
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  kind: event.target.value as CharacterKind,
+                }))
+              }
+            >
+              <option value="pc">PC</option>
+              <option value="npc">NPC</option>
+            </select>
+          </label>
+          <label className="stack" htmlFor={`${baseId}-new-notes`}>
+            <span className="muted">Notes (optional)</span>
+            <textarea
+              id={`${baseId}-new-notes`}
+              rows={2}
+              maxLength={500}
+              value={draft.notes}
+              placeholder="Short description"
+              onChange={(event) =>
+                setDraft((current) => ({ ...current, notes: event.target.value }))
+              }
+            />
+          </label>
+          {maps.length > 0 ? (
+            <fieldset className="settings-fieldset">
+              <legend className="muted">Link to maps</legend>
+              <div className="row">
+                {maps.map((map) => {
+                  const checkboxId = `${baseId}-new-map-${map.id}`;
+                  return (
+                    <label key={map.id} className="check-row" htmlFor={checkboxId}>
+                      <input
+                        id={checkboxId}
+                        type="checkbox"
+                        checked={draft.mapIds.includes(map.id)}
+                        onChange={() =>
+                          setDraft((current) => ({
+                            ...current,
+                            mapIds: current.mapIds.includes(map.id)
+                              ? current.mapIds.filter((id) => id !== map.id)
+                              : [...current.mapIds, map.id],
+                          }))
+                        }
+                      />
+                      <span>{map.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          ) : (
+            <p className="muted">Upload a map before linking characters.</p>
+          )}
+          <button type="button" onClick={addCharacter}>
+            Add {draft.kind.toUpperCase()}
+          </button>
+        </fieldset>
+
+        <div className="settings-roster stack">
+          <h4 className="settings-subhead">Player characters</h4>
+          {pcs.length === 0 ? (
+            <p className="muted">No PCs yet.</p>
+          ) : (
+            <ul className="character-list">{pcs.map(renderCharacterCard)}</ul>
+          )}
+
+          <h4 className="settings-subhead">NPCs</h4>
+          {npcs.length === 0 ? (
+            <p className="muted">No NPCs yet.</p>
+          ) : (
+            <ul className="character-list">{npcs.map(renderCharacterCard)}</ul>
+          )}
+        </div>
+      </section>
+
+      <section className="settings-section stack" aria-labelledby="settings-links">
+        <h3 id="settings-links">Room links</h3>
+        <p className="muted mono">
+          Code <span className="visually-hidden">room code</span>
+          {code}
+        </p>
+        <label className="stack" htmlFor={`${baseId}-link-gm`}>
+          <span className="muted">GM</span>
+          <input
+            id={`${baseId}-link-gm`}
+            readOnly
+            value={links.gm}
+            onFocus={(event) => event.target.select()}
+          />
+        </label>
+        <label className="stack" htmlFor={`${baseId}-link-screen`}>
+          <span className="muted">Screen</span>
+          <input
+            id={`${baseId}-link-screen`}
+            readOnly
+            value={links.screen}
+            onFocus={(event) => event.target.select()}
+          />
+        </label>
+        <label className="stack" htmlFor={`${baseId}-link-player`}>
+          <span className="muted">Player</span>
+          <input
+            id={`${baseId}-link-player`}
+            readOnly
+            value={links.player}
+            onFocus={(event) => event.target.select()}
+          />
+        </label>
+      </section>
     </section>
   );
 }

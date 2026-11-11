@@ -43,8 +43,10 @@ describe("event schemas", () => {
       name: "Aria",
       kind: "pc",
       mapIds: ["map-1"],
+      notes: "Scout",
     });
     expect(character.kind).toBe("pc");
+    expect(character.notes).toBe("Scout");
     expect(VisibilitySetPayloadSchema.parse({ showNpcs: false }).showNpcs).toBe(false);
   });
 

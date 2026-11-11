@@ -59,6 +59,7 @@ type CharacterRow = {
   name: string;
   kind: string;
   image: string | null;
+  notes: string | null;
   size_cells: number;
 };
 type CameraRow = { room_id: string; x: number; y: number; zoom: number };
@@ -311,15 +312,7 @@ export class RoomStore {
       list.push(link.map_id);
       byCharacter.set(link.character_id, list);
     }
-    return rows.map((row) => ({
-      id: row.id,
-      roomId: row.room_id,
-      name: row.name,
-      kind: row.kind as CharacterKind,
-      image: row.image,
-      sizeCells: row.size_cells,
-      mapIds: byCharacter.get(row.id) ?? [],
-    }));
+    return rows.map((row) => toCharacterState(row, byCharacter.get(row.id) ?? []));
   }
 
   getCharacter(characterId: string): CharacterState | null {
@@ -334,15 +327,7 @@ export class RoomStore {
         .prepare("SELECT map_id FROM character_maps WHERE character_id = ?")
         .all(characterId) as Array<{ map_id: string }>
     ).map((entry) => entry.map_id);
-    return {
-      id: row.id,
-      roomId: row.room_id,
-      name: row.name,
-      kind: row.kind as CharacterKind,
-      image: row.image,
-      sizeCells: row.size_cells,
-      mapIds,
-    };
+    return toCharacterState(row, mapIds);
   }
 
   upsertCharacter(input: {
@@ -351,6 +336,7 @@ export class RoomStore {
     name: string;
     kind: CharacterKind;
     image?: string | null;
+    notes?: string | null;
     sizeCells?: number;
     mapIds?: string[];
   }): CharacterState {
@@ -362,20 +348,21 @@ export class RoomStore {
     if (existing) {
       this.db
         .prepare(
-          `UPDATE characters SET name = ?, kind = ?, image = ?, size_cells = ? WHERE id = ?`,
+          `UPDATE characters SET name = ?, kind = ?, image = ?, notes = ?, size_cells = ? WHERE id = ?`,
         )
         .run(
           input.name,
           input.kind,
-          input.image ?? existing.image,
+          input.image !== undefined ? input.image : existing.image,
+          input.notes !== undefined ? input.notes : existing.notes,
           input.sizeCells ?? existing.sizeCells,
           id,
         );
     } else {
       this.db
         .prepare(
-          `INSERT INTO characters (id, room_id, name, kind, image, size_cells)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO characters (id, room_id, name, kind, image, notes, size_cells)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -383,6 +370,7 @@ export class RoomStore {
           input.name,
           input.kind,
           input.image ?? null,
+          input.notes ?? null,
           input.sizeCells ?? 1,
         );
     }
@@ -635,6 +623,43 @@ export class RoomStore {
     return camera;
   }
 
+  setCharacterPortrait(characterId: string, imageUrl: string): CharacterState {
+    const existing = this.getCharacter(characterId);
+    if (!existing) {
+      throw new Error("Character not found");
+    }
+    this.db.prepare("UPDATE characters SET image = ? WHERE id = ?").run(imageUrl, characterId);
+    this.db
+      .prepare("UPDATE tokens SET image = ? WHERE character_id = ?")
+      .run(imageUrl, characterId);
+    this.refreshInitiativePortraits(existing.roomId);
+    const character = this.getCharacter(characterId);
+    if (!character) {
+      throw new Error("Failed to persist portrait");
+    }
+    return character;
+  }
+
+  refreshInitiativePortraits(roomId: string): InitiativeState | null {
+    const current = this.getInitiative(roomId);
+    if (!current || current.order.length === 0) {
+      return current;
+    }
+    const tokens = this.listAllTokensOnActiveMap(roomId);
+    const characters = this.listCharacters(roomId);
+    const byToken = new Map(tokens.map((token) => [token.id, token]));
+    const byCharacter = new Map(characters.map((character) => [character.id, character]));
+    const order = current.order.map((entry) => {
+      const token = byToken.get(entry.tokenId);
+      const character = token?.characterId ? byCharacter.get(token.characterId) : undefined;
+      return {
+        ...entry,
+        image: character?.image ?? token?.image ?? entry.image ?? null,
+      };
+    });
+    return this.setInitiative(roomId, { ...current, order });
+  }
+
   getInitiative(roomId: string): InitiativeState | null {
     const row = this.db
       .prepare("SELECT * FROM room_initiative WHERE room_id = ?")
@@ -870,6 +895,19 @@ function formatDuration(durationMs: number): string {
     return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function toCharacterState(row: CharacterRow, mapIds: string[]): CharacterState {
+  return {
+    id: row.id,
+    roomId: row.room_id,
+    name: row.name,
+    kind: row.kind as CharacterKind,
+    image: row.image,
+    notes: row.notes ?? null,
+    sizeCells: row.size_cells,
+    mapIds,
+  };
 }
 
 function mapRowToState(row: MapRow): MapState {

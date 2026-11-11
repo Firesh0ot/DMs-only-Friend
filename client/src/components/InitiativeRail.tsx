@@ -22,9 +22,18 @@ export function InitiativeRail({ initiative }: Props) {
         <strong>{initiative.round}</strong>
       </div>
       {active ? (
-        <p className="initiative-rail__turn">
-          Turn: <strong>{active.label}</strong>
-        </p>
+        <div className="initiative-rail__active-turn">
+          {active.image ? (
+            <img src={active.image} alt="" className="initiative-rail__active-art" />
+          ) : (
+            <div className="initiative-rail__active-placeholder" aria-hidden>
+              {active.label.trim().charAt(0).toUpperCase() || "?"}
+            </div>
+          )}
+          <p className="initiative-rail__turn">
+            Turn: <strong>{active.label}</strong>
+          </p>
+        </div>
       ) : null}
       <ol className="initiative-rail__list">
         {initiative.order.map((entry, index) => {

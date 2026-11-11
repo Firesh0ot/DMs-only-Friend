@@ -15,8 +15,8 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 1. Raum auf der Startseite erstellen und GM-Link öffnen.
 2. Eine oder mehrere Karten hochladen; je Karte `grid_px` setzen.
 3. Screen-/Player-Links teilen.
-4. PCs und NPCs anlegen; Häkchen setzen, auf welchen Karten sie erscheinen.
-5. Für die Session auf **Play** wechseln.
+4. PCs und NPCs anlegen (Anzeigename, optionale Notizen, Portrait); Häkchen setzen, auf welchen Karten sie erscheinen.
+5. Für die Session auf **Play** wechseln. Portraits erscheinen in der Initiative, wenn gesetzt.
 
 ## GM-Spiel
 
