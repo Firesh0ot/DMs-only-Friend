@@ -890,9 +890,18 @@ html[data-lantern="off"] .map-table {
 }
 
 .settings-toc {
+  position: sticky;
+  top: -0.35rem;
+  z-index: 4;
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
+  margin: 0 -0.35rem;
+  padding: 0.55rem 0.35rem;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 230, 0.96), rgba(236, 217, 173, 0.94));
+  border-bottom: 1px solid rgba(60, 40, 20, 0.18);
+  box-shadow: 0 8px 14px rgba(40, 24, 10, 0.12);
 }
 
 .settings-toc a {
@@ -902,7 +911,7 @@ html[data-lantern="off"] .map-table {
   padding: 0.35rem 0.7rem;
   border-radius: 6px;
   border: 1px solid rgba(60, 40, 20, 0.28);
-  background: rgba(255, 248, 230, 0.55);
+  background: rgba(255, 248, 230, 0.85);
   text-decoration: none;
   font-weight: 600;
   color: var(--wood-deep);
@@ -919,6 +928,7 @@ html[data-lantern="off"] .map-table {
   margin: 0;
   font-size: 1.2rem;
   padding-bottom: 0.15rem;
+  scroll-margin-top: 3.5rem;
 }
 
 .settings-subhead {

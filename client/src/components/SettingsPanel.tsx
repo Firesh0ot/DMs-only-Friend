@@ -288,13 +288,13 @@ export function SettingsPanel({
       ) : null}
 
       <nav className="settings-toc" aria-label="Settings sections">
-        <a href={`#${baseId}-maps`}>Maps</a>
-        <a href={`#${baseId}-characters`}>Characters</a>
-        <a href={`#${baseId}-links`}>Room links</a>
+        <a href="#settings-maps">Maps</a>
+        <a href="#settings-characters">Characters</a>
+        <a href="#settings-links">Room links</a>
       </nav>
 
-      <section className="settings-section stack" aria-labelledby={`${baseId}-maps`}>
-        <h3 id={`${baseId}-maps`}>Maps</h3>
+      <section className="settings-section stack" aria-labelledby="settings-maps">
+        <h3 id="settings-maps">Maps</h3>
         <label className="stack" htmlFor={`${baseId}-map-name`}>
           <span className="muted">Name (optional)</span>
           <input
@@ -364,8 +364,8 @@ export function SettingsPanel({
         </ul>
       </section>
 
-      <section className="settings-section stack" aria-labelledby={`${baseId}-characters`}>
-        <h3 id={`${baseId}-characters`}>Characters</h3>
+      <section className="settings-section stack" aria-labelledby="settings-characters">
+        <h3 id="settings-characters">Characters</h3>
         <p className="muted">
           Add PCs and NPCs with display names, notes, and portraits for the initiative rail.
         </p>
@@ -463,8 +463,8 @@ export function SettingsPanel({
         </div>
       </section>
 
-      <section className="settings-section stack" aria-labelledby={`${baseId}-links`}>
-        <h3 id={`${baseId}-links`}>Room links</h3>
+      <section className="settings-section stack" aria-labelledby="settings-links">
+        <h3 id="settings-links">Room links</h3>
         <p className="muted mono">
           Code <span className="visually-hidden">room code</span>
           {code}
