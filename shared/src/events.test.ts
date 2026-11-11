@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  BattleStateSchema,
   CharacterUpsertPayloadSchema,
   MapActivatePayloadSchema,
   RoomJoinPayloadSchema,
+  SessionEventSchema,
   SnapshotSchema,
   TokenMovePayloadSchema,
   VisibilitySetPayloadSchema,
@@ -56,9 +58,31 @@ describe("event schemas", () => {
       visibility: { showPcs: true, showNpcs: true },
       camera: null,
       initiative: { order: [], activeIndex: 0, round: 1 },
+      eventLog: [],
+      battle: null,
       role: "gm",
       playerName: null,
     });
     expect(snapshot.visibility.showPcs).toBe(true);
+  });
+
+  it("accepts session log and battle schemas", () => {
+    const event = SessionEventSchema.parse({
+      id: 1,
+      roomId: "r1",
+      battleId: "b1",
+      type: "battle_start",
+      summary: "Battle started",
+      payload: { battleId: "b1" },
+      createdAt: "2026-11-11T18:00:00.000Z",
+    });
+    expect(event.type).toBe("battle_start");
+    const battle = BattleStateSchema.parse({
+      id: "b1",
+      roomId: "r1",
+      startedAt: "2026-11-11T18:00:00.000Z",
+      endedAt: null,
+    });
+    expect(battle.endedAt).toBeNull();
   });
 });

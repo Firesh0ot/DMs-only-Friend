@@ -19,4 +19,4 @@ Phase 1 delivered a single GM chrome (toolbar + initiative panel beside the map)
 
 - Snapshot gains `maps`, `characters`, `visibility`; tokens are filtered by active map and visibility.
 - Switching the active map materializes linked character tokens; unlinked characters leave the board.
-- Fog, `.dd2vtt`, battle log, and dice UI stay out of this cut.
+- Fog, `.dd2vtt`, and dice UI stay out of this cut. Session/battle log: see [0004](0004-session-battle-log.md).

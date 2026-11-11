@@ -45,9 +45,18 @@ See [ADR 0003](../decisions/0003-prep-play-ux.md).
 - Roster: `characters` + `character_maps`; activating a map syncs tokens for linked characters.
 - Visibility: `rooms.show_pcs` / `show_npcs`; snapshot tokens are filtered server-side.
 - Initiative: `room_initiative` includes `round`.
-- Island layout: client-only `localStorage` key `dms-islands:<roomId>`.
+- Island layout: client-only `localStorage` key `dms-islands:<roomId>` (Map, Initiative, NPCs, Log).
 
-Out of scope in that cut: Fog, `.dd2vtt` import, battle log, full monster stats. Dice remain on the wire but are not a Play island priority.
+### Session / battle log
+
+See [ADR 0004](../decisions/0004-session-battle-log.md).
+
+- Tables: `session_events` (append-only), `battles` (start/end timestamps).
+- Snapshot fields: `eventLog`, `battle`.
+- Events: map change, throttled token moves, initiative set/next, round advance, visibility, battle start/end.
+- Auto-start battle on first `initiative:next` if none active; GM ends via `battle:end`.
+
+Out of scope: Fog, `.dd2vtt` import, full monster stats, replay/video. Dice remain on the wire / `dice_log` but are not a Play island priority.
 
 ## Architecture pointers
 

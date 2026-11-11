@@ -116,6 +116,7 @@ export function createHttpApp(deps: HttpDeps): Express {
           : path.parse(req.file.originalname).name || "Map";
 
       try {
+        const previousActive = deps.rooms.getActiveMap(room.id);
         const size = readImageSize(req.file.path, req.file.mimetype);
         const map = deps.rooms.addMap(room.id, {
           name: displayName,
@@ -125,11 +126,21 @@ export function createHttpApp(deps: HttpDeps): Express {
           gridPx,
         });
         deps.rooms.syncTokensForActiveMap(room.id);
+        const active = deps.rooms.getActiveMap(room.id);
         deps.io.to(roomChannel(room.id)).emit(ServerEvents.MapsUpdated, deps.rooms.listMaps(room.id));
-        deps.io.to(roomChannel(room.id)).emit(ServerEvents.MapSet, deps.rooms.getActiveMap(room.id));
+        deps.io.to(roomChannel(room.id)).emit(ServerEvents.MapSet, active);
         deps.io
           .to(roomChannel(room.id))
           .emit(ServerEvents.TokensSynced, deps.rooms.listVisibleTokens(room.id));
+        if (active && previousActive?.id !== active.id) {
+          const event = deps.rooms.appendEvent({
+            roomId: room.id,
+            type: "map_change",
+            summary: `Map: ${active.name}`,
+            payload: { mapId: active.id, name: active.name },
+          });
+          deps.io.to(roomChannel(room.id)).emit(ServerEvents.LogAppended, event);
+        }
         res.status(201).json({ map, maps: deps.rooms.listMaps(room.id) });
       } catch (error) {
         fs.unlinkSync(req.file.path);

@@ -80,6 +80,37 @@ export const RoomStateSchema = z.object({
 });
 export type RoomState = z.infer<typeof RoomStateSchema>;
 
+export const SessionEventTypeSchema = z.enum([
+  "battle_start",
+  "battle_end",
+  "map_change",
+  "token_move",
+  "initiative_set",
+  "initiative_next",
+  "round_advance",
+  "visibility_set",
+]);
+export type SessionEventType = z.infer<typeof SessionEventTypeSchema>;
+
+export const SessionEventSchema = z.object({
+  id: z.number().int(),
+  roomId: z.string(),
+  battleId: z.string().nullable(),
+  type: SessionEventTypeSchema,
+  summary: z.string(),
+  payload: z.record(z.string(), z.unknown()),
+  createdAt: z.string(),
+});
+export type SessionEvent = z.infer<typeof SessionEventSchema>;
+
+export const BattleStateSchema = z.object({
+  id: z.string(),
+  roomId: z.string(),
+  startedAt: z.string(),
+  endedAt: z.string().nullable(),
+});
+export type BattleState = z.infer<typeof BattleStateSchema>;
+
 export const SnapshotSchema = z.object({
   room: RoomStateSchema,
   map: MapStateSchema.nullable(),
@@ -89,6 +120,8 @@ export const SnapshotSchema = z.object({
   visibility: VisibilityStateSchema,
   camera: CameraStateSchema.nullable(),
   initiative: InitiativeStateSchema.nullable(),
+  eventLog: z.array(SessionEventSchema),
+  battle: BattleStateSchema.nullable(),
   role: RoleSchema,
   playerName: z.string().nullable(),
 });
@@ -205,6 +238,8 @@ export const ClientEvents = {
   CharacterUpsert: "character:upsert",
   CharacterRemove: "character:remove",
   VisibilitySet: "visibility:set",
+  BattleStart: "battle:start",
+  BattleEnd: "battle:end",
 } as const;
 
 export const ServerEvents = {
@@ -220,6 +255,8 @@ export const ServerEvents = {
   DiceRolled: "dice:rolled",
   CameraSet: "camera:set",
   InitiativeUpdated: "initiative:updated",
+  LogAppended: "log:appended",
+  BattleUpdated: "battle:updated",
   Error: "error",
 } as const;
 
@@ -241,6 +278,8 @@ export type ClientToServerEvents = {
   [ClientEvents.CharacterUpsert]: (payload: CharacterUpsertPayload) => void;
   [ClientEvents.CharacterRemove]: (payload: CharacterRemovePayload) => void;
   [ClientEvents.VisibilitySet]: (payload: VisibilitySetPayload) => void;
+  [ClientEvents.BattleStart]: () => void;
+  [ClientEvents.BattleEnd]: () => void;
 };
 
 export type ServerToClientEvents = {
@@ -256,5 +295,7 @@ export type ServerToClientEvents = {
   [ServerEvents.DiceRolled]: (payload: DiceRolled) => void;
   [ServerEvents.CameraSet]: (camera: CameraState) => void;
   [ServerEvents.InitiativeUpdated]: (initiative: InitiativeState) => void;
+  [ServerEvents.LogAppended]: (event: SessionEvent) => void;
+  [ServerEvents.BattleUpdated]: (battle: BattleState | null) => void;
   [ServerEvents.Error]: (payload: { message: string }) => void;
 };

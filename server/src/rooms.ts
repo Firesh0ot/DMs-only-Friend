@@ -1,4 +1,5 @@
 import {
+  type BattleState,
   type CameraState,
   type CharacterKind,
   type CharacterState,
@@ -6,6 +7,8 @@ import {
   type MapState,
   type Role,
   type RoomState,
+  type SessionEvent,
+  type SessionEventType,
   type Snapshot,
   type TokenState,
   type VisibilityState,
@@ -15,6 +18,8 @@ import type { Db } from "./db.js";
 
 const makeCode = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
 const makeId = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 16);
+const EVENT_LOG_LIMIT = 80;
+const TOKEN_MOVE_LOG_MS = 3000;
 
 type RoomRow = {
   id: string;
@@ -63,6 +68,21 @@ type InitiativeRow = {
   active_index: number;
   round: number;
 };
+type BattleRow = {
+  id: string;
+  room_id: string;
+  started_at: string;
+  ended_at: string | null;
+};
+type SessionEventRow = {
+  id: number;
+  room_id: string;
+  battle_id: string | null;
+  type: string;
+  summary: string;
+  payload_json: string;
+  created_at: string;
+};
 
 export type Session = {
   socketId: string;
@@ -73,6 +93,7 @@ export type Session = {
 
 export class RoomStore {
   private sessions = new Map<string, Session>();
+  private tokenMoveLogAt = new Map<string, number>();
 
   constructor(private readonly db: Db) {}
 
@@ -667,6 +688,136 @@ export class RoomStore {
     return { id: Number(result.lastInsertRowid), createdAt };
   }
 
+  getActiveBattle(roomId: string): BattleState | null {
+    const row = this.db
+      .prepare(
+        `SELECT * FROM battles
+         WHERE room_id = ? AND ended_at IS NULL
+         ORDER BY started_at DESC
+         LIMIT 1`,
+      )
+      .get(roomId) as BattleRow | undefined;
+    return row ? battleRowToState(row) : null;
+  }
+
+  startBattle(roomId: string): { battle: BattleState; event: SessionEvent } {
+    if (this.getActiveBattle(roomId)) {
+      throw new Error("Battle already active");
+    }
+    const id = makeId();
+    const startedAt = new Date().toISOString();
+    this.db
+      .prepare("INSERT INTO battles (id, room_id, started_at, ended_at) VALUES (?, ?, ?, NULL)")
+      .run(id, roomId, startedAt);
+    const battle = this.getActiveBattle(roomId);
+    if (!battle) {
+      throw new Error("Failed to start battle");
+    }
+    const event = this.appendEvent({
+      roomId,
+      type: "battle_start",
+      summary: "Battle started",
+      payload: { battleId: battle.id },
+      battleId: battle.id,
+    });
+    return { battle, event };
+  }
+
+  endBattle(roomId: string): { battle: BattleState; event: SessionEvent } {
+    const active = this.getActiveBattle(roomId);
+    if (!active) {
+      throw new Error("No active battle");
+    }
+    const endedAt = new Date().toISOString();
+    this.db.prepare("UPDATE battles SET ended_at = ? WHERE id = ?").run(endedAt, active.id);
+    const battle: BattleState = { ...active, endedAt };
+    const durationMs = Date.parse(endedAt) - Date.parse(active.startedAt);
+    const event = this.appendEvent({
+      roomId,
+      type: "battle_end",
+      summary: `Battle ended (${formatDuration(durationMs)})`,
+      payload: { battleId: battle.id, durationMs },
+      battleId: battle.id,
+    });
+    return { battle, event };
+  }
+
+  ensureBattleForNextTurn(roomId: string): {
+    battle: BattleState;
+    started: boolean;
+    startEvent: SessionEvent | null;
+  } {
+    const existing = this.getActiveBattle(roomId);
+    if (existing) {
+      return { battle: existing, started: false, startEvent: null };
+    }
+    const { battle, event } = this.startBattle(roomId);
+    return { battle, started: true, startEvent: event };
+  }
+
+  appendEvent(input: {
+    roomId: string;
+    type: SessionEventType;
+    summary: string;
+    payload?: Record<string, unknown>;
+    battleId?: string | null;
+    createdAt?: string;
+  }): SessionEvent {
+    const createdAt = input.createdAt ?? new Date().toISOString();
+    const battleId =
+      input.battleId === undefined ? this.getActiveBattle(input.roomId)?.id ?? null : input.battleId;
+    const payload = input.payload ?? {};
+    const result = this.db
+      .prepare(
+        `INSERT INTO session_events (room_id, battle_id, type, summary, payload_json, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(input.roomId, battleId, input.type, input.summary, JSON.stringify(payload), createdAt);
+    return {
+      id: Number(result.lastInsertRowid),
+      roomId: input.roomId,
+      battleId,
+      type: input.type,
+      summary: input.summary,
+      payload,
+      createdAt,
+    };
+  }
+
+  listRecentEvents(roomId: string, limit = EVENT_LOG_LIMIT): SessionEvent[] {
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM session_events
+         WHERE room_id = ?
+         ORDER BY id DESC
+         LIMIT ?`,
+      )
+      .all(roomId, limit) as SessionEventRow[];
+    return rows.map(sessionEventRowToState).reverse();
+  }
+
+  logTokenMove(input: {
+    roomId: string;
+    tokenId: string;
+    label: string;
+    x: number;
+    y: number;
+  }): SessionEvent | null {
+    const key = `${input.roomId}:${input.tokenId}`;
+    const now = Date.now();
+    const previous = this.tokenMoveLogAt.get(key) ?? 0;
+    if (now - previous < TOKEN_MOVE_LOG_MS) {
+      return null;
+    }
+    this.tokenMoveLogAt.set(key, now);
+    return this.appendEvent({
+      roomId: input.roomId,
+      type: "token_move",
+      summary: `${input.label} moved`,
+      payload: { tokenId: input.tokenId, label: input.label, x: input.x, y: input.y },
+    });
+  }
+
   getSnapshot(roomId: string, role: Role, playerName: string | null): Snapshot {
     const room = this.getRoomById(roomId);
     if (!room) {
@@ -681,10 +832,44 @@ export class RoomStore {
       visibility: this.getVisibility(roomId),
       camera: this.getCamera(roomId),
       initiative: this.getInitiative(roomId),
+      eventLog: this.listRecentEvents(roomId),
+      battle: this.getActiveBattle(roomId),
       role,
       playerName,
     };
   }
+}
+
+function battleRowToState(row: BattleRow): BattleState {
+  return {
+    id: row.id,
+    roomId: row.room_id,
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
+  };
+}
+
+function sessionEventRowToState(row: SessionEventRow): SessionEvent {
+  return {
+    id: row.id,
+    roomId: row.room_id,
+    battleId: row.battle_id,
+    type: row.type as SessionEventType,
+    summary: row.summary,
+    payload: JSON.parse(row.payload_json) as Record<string, unknown>,
+    createdAt: row.created_at,
+  };
+}
+
+function formatDuration(durationMs: number): string {
+  const totalSeconds = Math.max(0, Math.floor(durationMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function mapRowToState(row: MapRow): MapState {

@@ -95,6 +95,26 @@ function migrate(db: Db): void {
       y REAL NOT NULL DEFAULT 1,
       PRIMARY KEY (character_id, map_id)
     );
+
+    CREATE TABLE IF NOT EXISTS battles (
+      id TEXT PRIMARY KEY,
+      room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      started_at TEXT NOT NULL,
+      ended_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS session_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      battle_id TEXT REFERENCES battles(id) ON DELETE SET NULL,
+      type TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_session_events_room_created
+      ON session_events (room_id, id DESC);
   `);
 
   backfillActiveMaps(db);

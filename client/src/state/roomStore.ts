@@ -1,12 +1,14 @@
 import {
   ClientEvents,
   ServerEvents,
+  type BattleState,
   type CameraState,
   type CharacterState,
   type DiceRolled,
   type InitiativeState,
   type MapState,
   type Role,
+  type SessionEvent,
   type Snapshot,
   type TokenState,
   type VisibilityState,
@@ -32,6 +34,8 @@ type RoomStore = {
   removeToken: (tokenId: string) => void;
   setCamera: (camera: CameraState) => void;
   setInitiative: (initiative: InitiativeState) => void;
+  appendEvent: (event: SessionEvent) => void;
+  setBattle: (battle: BattleState | null) => void;
   moveTokenOptimistic: (tokenId: string, x: number, y: number) => void;
   clearError: () => void;
 };
@@ -141,6 +145,24 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     set({ snapshot: { ...snapshot, initiative } });
   },
 
+  appendEvent: (event) => {
+    const snapshot = get().snapshot;
+    if (!snapshot) {
+      return;
+    }
+    const without = snapshot.eventLog.filter((entry) => entry.id !== event.id);
+    const eventLog = [...without, event].slice(-120);
+    set({ snapshot: { ...snapshot, eventLog } });
+  },
+
+  setBattle: (battle) => {
+    const snapshot = get().snapshot;
+    if (!snapshot) {
+      return;
+    }
+    set({ snapshot: { ...snapshot, battle } });
+  },
+
   moveTokenOptimistic: (tokenId, x, y) => {
     const snapshot = get().snapshot;
     if (!snapshot) {
@@ -202,6 +224,8 @@ export function bindSocketListeners(): void {
   socket.on(ServerEvents.TokenRemoved, ({ tokenId }) => store().removeToken(tokenId));
   socket.on(ServerEvents.CameraSet, (camera) => store().setCamera(camera));
   socket.on(ServerEvents.InitiativeUpdated, (initiative) => store().setInitiative(initiative));
+  socket.on(ServerEvents.LogAppended, (event) => store().appendEvent(event));
+  socket.on(ServerEvents.BattleUpdated, (battle) => store().setBattle(battle));
   socket.on(ServerEvents.DiceRolled, (dice) => useRoomStore.setState({ lastDice: dice }));
   socket.on(ServerEvents.Error, ({ message }) => useRoomStore.setState({ error: message }));
 }
