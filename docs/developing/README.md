@@ -80,6 +80,14 @@ See [ADR 0010](../decisions/0010-manual-fog-of-war.md).
 
 Out of scope here: automatic LoS from walls, replay/video, WebM animated map layers.
 
+### Character conditions
+
+See [ADR 0011](../decisions/0011-token-conditions.md).
+
+- Column: `characters.conditions_json` (Zod-validated enum ids).
+- Event: `character:setConditions` (GM only) → `characters:updated` / snapshot.
+- Client: toggle chips on Initiative + NPCs islands; compact badges on screen rail.
+
 ### Visual theme
 
 See [ADR 0005](../decisions/0005-tavern-theme-lantern.md). CSS tokens + textures in `client/public/theme/`; lantern mode in `localStorage` (`dms-lantern`) via `document.documentElement.dataset.lantern`.

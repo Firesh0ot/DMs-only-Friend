@@ -6,6 +6,20 @@ export type Role = z.infer<typeof RoleSchema>;
 export const CharacterKindSchema = z.enum(["pc", "npc"]);
 export type CharacterKind = z.infer<typeof CharacterKindSchema>;
 
+export const ConditionIdSchema = z.enum([
+  "blinded",
+  "charmed",
+  "frightened",
+  "poisoned",
+  "prone",
+  "restrained",
+  "stunned",
+  "unconscious",
+]);
+export type ConditionId = z.infer<typeof ConditionIdSchema>;
+
+export const CONDITION_IDS = ConditionIdSchema.options;
+
 export const WallPointSchema = z.object({
   x: z.number(),
   y: z.number(),
@@ -55,6 +69,7 @@ export const CharacterStateSchema = z.object({
   hpCurrent: z.number().int().nullable(),
   hpMax: z.number().int().nullable(),
   ac: z.number().int().nullable(),
+  conditions: z.array(ConditionIdSchema).default([]),
 });
 export type CharacterState = z.infer<typeof CharacterStateSchema>;
 
@@ -291,6 +306,12 @@ export const CharacterSetHpPayloadSchema = z
   );
 export type CharacterSetHpPayload = z.infer<typeof CharacterSetHpPayloadSchema>;
 
+export const CharacterSetConditionsPayloadSchema = z.object({
+  characterId: z.string().min(1),
+  conditions: z.array(ConditionIdSchema).max(CONDITION_IDS.length),
+});
+export type CharacterSetConditionsPayload = z.infer<typeof CharacterSetConditionsPayloadSchema>;
+
 export const VisibilitySetPayloadSchema = z.object({
   showPcs: z.boolean().optional(),
   showNpcs: z.boolean().optional(),
@@ -334,6 +355,7 @@ export const ClientEvents = {
   CharacterUpsert: "character:upsert",
   CharacterRemove: "character:remove",
   CharacterSetHp: "character:setHp",
+  CharacterSetConditions: "character:setConditions",
   VisibilitySet: "visibility:set",
   BattleStart: "battle:start",
   BattleEnd: "battle:end",
@@ -378,6 +400,7 @@ export type ClientToServerEvents = {
   [ClientEvents.CharacterUpsert]: (payload: CharacterUpsertPayload) => void;
   [ClientEvents.CharacterRemove]: (payload: CharacterRemovePayload) => void;
   [ClientEvents.CharacterSetHp]: (payload: CharacterSetHpPayload) => void;
+  [ClientEvents.CharacterSetConditions]: (payload: CharacterSetConditionsPayload) => void;
   [ClientEvents.VisibilitySet]: (payload: VisibilitySetPayload) => void;
   [ClientEvents.BattleStart]: () => void;
   [ClientEvents.BattleEnd]: () => void;

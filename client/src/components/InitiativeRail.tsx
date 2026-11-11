@@ -1,6 +1,7 @@
 import type { CharacterState, InitiativeState, TokenState } from "@dms/shared";
 import { useMemo } from "react";
 import { formatHp } from "../lib/hp";
+import { ConditionBadges } from "./ConditionBadges";
 
 type Props = {
   initiative: InitiativeState | null;
@@ -56,6 +57,9 @@ export function InitiativeRail({ initiative, tokens, characters }: Props) {
               </>
             ) : null}
           </p>
+          {activeCharacter ? (
+            <ConditionBadges conditions={activeCharacter.conditions} compact />
+          ) : null}
         </div>
       ) : null}
       <ol className="initiative-rail__list">
@@ -78,6 +82,9 @@ export function InitiativeRail({ initiative, tokens, characters }: Props) {
                   <span className="tcg-card__name">{entry.label}</span>
                   <span className="tcg-card__stats">
                     {hp ? <span className="hp-chip">{hp}</span> : null}
+                    {character ? (
+                      <ConditionBadges conditions={character.conditions} compact />
+                    ) : null}
                     <span className="tcg-card__init">{entry.initiative}</span>
                   </span>
                 </div>

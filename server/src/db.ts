@@ -129,6 +129,7 @@ function migrate(db: Db): void {
   ensureColumn(db, "characters", "hp_current", "INT");
   ensureColumn(db, "characters", "hp_max", "INT");
   ensureColumn(db, "characters", "ac", "INT");
+  ensureColumn(db, "characters", "conditions_json", "TEXT NOT NULL DEFAULT '[]'");
 
   backfillActiveMaps(db);
   backfillTokenMaps(db);
