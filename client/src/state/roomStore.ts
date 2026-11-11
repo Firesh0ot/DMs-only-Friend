@@ -164,10 +164,15 @@ export function bindSocketListeners(): void {
   socket.on(ServerEvents.Error, ({ message }) => useRoomStore.setState({ error: message }));
 }
 
+const EMPTY_TOKENS: TokenState[] = [];
+
 export function selectVisibleTokens(state: RoomStore): TokenState[] {
   const snapshot = state.snapshot;
   if (!snapshot) {
-    return [];
+    return EMPTY_TOKENS;
+  }
+  if (Object.keys(state.optimisticTokens).length === 0) {
+    return snapshot.tokens;
   }
   return snapshot.tokens.map((token) => state.optimisticTokens[token.id] ?? token);
 }

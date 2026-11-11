@@ -6,7 +6,7 @@ Normally DMs have no friends. But this web app doesn't judge good throws.
 
 ## Status
 
-Phase 1 in progress – monorepo + room create/join/snapshot are live. Map/tokens and initiative follow in stacked PRs. Spec: [docs/phase-1.md](docs/phase-1.md).
+Phase 1 playable cut: rooms, PNG map + tokens, Follow-GM camera, and minimal initiative. Spec: [docs/phase-1.md](docs/phase-1.md).
 
 ## Dev
 
