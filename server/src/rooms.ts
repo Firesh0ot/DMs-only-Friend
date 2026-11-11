@@ -62,6 +62,9 @@ type CharacterRow = {
   image: string | null;
   notes: string | null;
   size_cells: number;
+  hp_current: number | null;
+  hp_max: number | null;
+  ac: number | null;
 };
 type CameraRow = { room_id: string; x: number; y: number; zoom: number };
 type InitiativeRow = {
@@ -145,6 +148,10 @@ export class RoomStore {
 
   removeSession(socketId: string): void {
     this.sessions.delete(socketId);
+  }
+
+  listSessionsInRoom(roomId: string): Session[] {
+    return [...this.sessions.values()].filter((session) => session.roomId === roomId);
   }
 
   listMaps(roomId: string): MapState[] {
@@ -318,6 +325,12 @@ export class RoomStore {
     return rows.map((row) => toCharacterState(row, byCharacter.get(row.id) ?? []));
   }
 
+  listCharactersForRole(roomId: string, role: Role): CharacterState[] {
+    return this.listCharacters(roomId).map((character) =>
+      redactCharacterStatsForRole(character, role),
+    );
+  }
+
   getCharacter(characterId: string): CharacterState | null {
     const row = this.db.prepare("SELECT * FROM characters WHERE id = ?").get(characterId) as
       | CharacterRow
@@ -342,16 +355,28 @@ export class RoomStore {
     notes?: string | null;
     sizeCells?: number;
     mapIds?: string[];
+    hpCurrent?: number | null;
+    hpMax?: number | null;
+    ac?: number | null;
   }): CharacterState {
     const id = input.id ?? makeId();
     const existing = input.id ? this.getCharacter(input.id) : null;
     if (existing && existing.roomId !== input.roomId) {
       throw new Error("Character not found");
     }
+    const nextHp = normalizeHp({
+      hpCurrent:
+        input.hpCurrent !== undefined
+          ? input.hpCurrent
+          : (existing?.hpCurrent ?? null),
+      hpMax: input.hpMax !== undefined ? input.hpMax : (existing?.hpMax ?? null),
+    });
+    const nextAc = input.ac !== undefined ? input.ac : (existing?.ac ?? null);
     if (existing) {
       this.db
         .prepare(
-          `UPDATE characters SET name = ?, kind = ?, image = ?, notes = ?, size_cells = ? WHERE id = ?`,
+          `UPDATE characters SET name = ?, kind = ?, image = ?, notes = ?, size_cells = ?,
+           hp_current = ?, hp_max = ?, ac = ? WHERE id = ?`,
         )
         .run(
           input.name,
@@ -359,13 +384,16 @@ export class RoomStore {
           input.image !== undefined ? input.image : existing.image,
           input.notes !== undefined ? input.notes : existing.notes,
           input.sizeCells ?? existing.sizeCells,
+          nextHp.hpCurrent,
+          nextHp.hpMax,
+          nextAc,
           id,
         );
     } else {
       this.db
         .prepare(
-          `INSERT INTO characters (id, room_id, name, kind, image, notes, size_cells)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO characters (id, room_id, name, kind, image, notes, size_cells, hp_current, hp_max, ac)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -375,6 +403,9 @@ export class RoomStore {
           input.image ?? null,
           input.notes ?? null,
           input.sizeCells ?? 1,
+          nextHp.hpCurrent,
+          nextHp.hpMax,
+          nextAc,
         );
     }
 
@@ -386,6 +417,36 @@ export class RoomStore {
     const character = this.getCharacter(id);
     if (!character) {
       throw new Error("Failed to persist character");
+    }
+    return character;
+  }
+
+  setCharacterHp(
+    characterId: string,
+    input: { hpCurrent?: number | null; hpMax?: number | null; delta?: number },
+  ): CharacterState {
+    const existing = this.getCharacter(characterId);
+    if (!existing) {
+      throw new Error("Character not found");
+    }
+    let hpCurrent = existing.hpCurrent;
+    let hpMax = existing.hpMax;
+    if (input.hpMax !== undefined) {
+      hpMax = input.hpMax;
+    }
+    if (input.delta !== undefined) {
+      const base = hpCurrent ?? hpMax ?? 0;
+      hpCurrent = base + input.delta;
+    } else if (input.hpCurrent !== undefined) {
+      hpCurrent = input.hpCurrent;
+    }
+    const nextHp = normalizeHp({ hpCurrent, hpMax });
+    this.db
+      .prepare("UPDATE characters SET hp_current = ?, hp_max = ? WHERE id = ?")
+      .run(nextHp.hpCurrent, nextHp.hpMax, characterId);
+    const character = this.getCharacter(characterId);
+    if (!character) {
+      throw new Error("Failed to persist HP");
     }
     return character;
   }
@@ -856,7 +917,7 @@ export class RoomStore {
       map: this.getActiveMap(roomId),
       maps: this.listMaps(roomId),
       tokens: this.listVisibleTokens(roomId),
-      characters: this.listCharacters(roomId),
+      characters: this.listCharactersForRole(roomId, role),
       visibility: this.getVisibility(roomId),
       camera: this.getCamera(roomId),
       initiative: this.getInitiative(roomId),
@@ -910,6 +971,45 @@ function toCharacterState(row: CharacterRow, mapIds: string[]): CharacterState {
     notes: row.notes ?? null,
     sizeCells: row.size_cells,
     mapIds,
+    hpCurrent: row.hp_current ?? null,
+    hpMax: row.hp_max ?? null,
+    ac: row.ac ?? null,
+  };
+}
+
+function normalizeHp(input: {
+  hpCurrent: number | null;
+  hpMax: number | null;
+}): { hpCurrent: number | null; hpMax: number | null } {
+  let hpMax = input.hpMax;
+  let hpCurrent = input.hpCurrent;
+  if (hpMax !== null && hpMax < 0) {
+    hpMax = 0;
+  }
+  if (hpMax !== null && hpCurrent === null) {
+    hpCurrent = hpMax;
+  }
+  if (hpCurrent !== null && hpCurrent < 0) {
+    hpCurrent = 0;
+  }
+  if (hpMax !== null && hpCurrent !== null && hpCurrent > hpMax) {
+    hpCurrent = hpMax;
+  }
+  return { hpCurrent, hpMax };
+}
+
+export function redactCharacterStatsForRole(
+  character: CharacterState,
+  role: Role,
+): CharacterState {
+  if (role === "gm" || character.kind === "pc") {
+    return character;
+  }
+  return {
+    ...character,
+    hpCurrent: null,
+    hpMax: null,
+    ac: null,
   };
 }
 

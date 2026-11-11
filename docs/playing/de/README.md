@@ -15,16 +15,16 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 1. Raum auf der Startseite erstellen und GM-Link öffnen.
 2. Eine oder mehrere Karten hochladen: PNG/JPG/WebP (`grid_px` setzen) oder Universal VTT `.dd2vtt` (Raster und Wände kommen aus der Datei). In der GM-Ansicht erscheinen importierte Wände als bernsteinfarbene Overlay-Linien.
 3. Screen-/Player-Links teilen.
-4. PCs und NPCs anlegen (Anzeigename, optionale Notizen, Portrait); Häkchen setzen, auf welchen Karten sie erscheinen.
-5. Für die Session auf **Play** wechseln. Portraits erscheinen in der Initiative, wenn gesetzt.
+4. PCs und NPCs anlegen (Anzeigename, optionale TP/RK, kurze Notizen, Portrait); Häkchen setzen, auf welchen Karten sie erscheinen.
+5. Für die Session auf **Play** wechseln. Portraits und TP-Chips erscheinen in der Initiative, wenn gesetzt.
 
 ## GM-Spiel
 
 Schwebende Inseln um die Karte:
 
 - **Map** — aktive Karte wechseln; PCs/NPCs gruppenweise ein-/ausblenden.
-- **Initiative** — Werte, Reihenfolge, Next Turn (Runde steigt beim Überlauf).
-- **NPCs** — NPCs spawnen oder aus dem Roster auf die aktuelle Karte setzen.
+- **Initiative** — Werte, Reihenfolge, Next Turn (Runde steigt beim Überlauf). Kompakte TP auf den Karten; ±1 beim aktiven Charakter, wenn verknüpft.
+- **NPCs** — NPCs spawnen oder platzieren; auswählen, um TP anzupassen (−5/−1/+1/+5) und RK/Notizen zu sehen.
 - **Log** — Session-Events und Kampftimer; Kampf **Start** / **Ende**. Das erste **Next** startet automatisch einen Kampf, falls keiner läuft.
 - **Dice** — Ausdrücke wie `2d6+3` eingeben (oder Quick-Chips), serverseitig würfeln, Summe und letzte Rolls sehen. Ergebnisse werden gebroadcastet und erscheinen im Session-Log.
 
@@ -34,7 +34,7 @@ Kartenwechsel lädt die verknüpften Charaktere und entfernt die übrigen. Token
 
 ## Screen / Player
 
-Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Würfelwürfe erscheinen kurz als Toast über der Karte. Pan/Zoom folgt dem GM.
+Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. TP von PCs können auf den Initiativkarten erscheinen; **Monster-TP bleiben standardmäßig nur für die GM sichtbar**. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Würfelwürfe erscheinen kurz als Toast über der Karte. Pan/Zoom folgt dem GM.
 
 ## Look & Laterne
 
@@ -57,4 +57,5 @@ Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**
 - Tavernen-Theme-ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
 - Dice-Insel-ADR: [../../decisions/0007-dice-play-island.md](../../decisions/0007-dice-play-island.md)
 - dd2vtt-Import-ADR: [../../decisions/0008-dd2vtt-map-import.md](../../decisions/0008-dd2vtt-map-import.md)
+- TP-Sichtbarkeit-ADR: [../../decisions/0009-hp-screen-visibility.md](../../decisions/0009-hp-screen-visibility.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

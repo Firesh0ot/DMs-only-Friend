@@ -47,3 +47,4 @@ What becomes easier, harder, or out of scope.
 | [0006](0006-character-portraits-notes.md) | Character portraits and notes | accepted |
 | [0007](0007-dice-play-island.md) | Dice Play island | accepted |
 | [0008](0008-dd2vtt-map-import.md) | Universal VTT (.dd2vtt) map import | accepted |
+| [0009](0009-hp-screen-visibility.md) | HP / monster stats screen visibility | accepted |
