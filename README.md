@@ -8,6 +8,12 @@ Normally DMs have no friends. But this web app doesn't judge good throws.
 
 Phase 1 playable cut: rooms, PNG map + tokens, Follow-GM camera, and minimal initiative. Spec: [docs/phase-1.md](docs/phase-1.md).
 
+## Documentation
+
+- **Playing** — GM + remote player how-to: [EN](docs/playing/en/README.md) · [DE](docs/playing/de/README.md)
+- **Developing** — setup, monorepo, architecture pointers: [docs/developing/README.md](docs/developing/README.md)
+- **Decisions** — ADR index: [docs/decisions/README.md](docs/decisions/README.md)
+
 ## Dev
 
 ```bash

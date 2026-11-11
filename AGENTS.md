@@ -41,3 +41,13 @@ Dieses Dokument ist der verbindliche Kontext für alle Coding-Agenten (Cursor et
 - Immer nur die aktuelle Phase umsetzen; Abgrenzungen der Phase respektieren (kein Feature-Creep in frühe Phasen).
 - Nach jedem abgeschlossenen Schritt: `npm run lint`, `npm run test`, `npm run build` müssen grün sein.
 - Abnahmekriterien der Phasen-Spec als Checkliste abhaken.
+
+## Documentation
+
+- **When to write:** Update manuals/ADRs on preference or architecture changes and at phase/milestone closes — not every merge.
+- **Where:**
+  - Playing (EN+DE): `docs/playing/en/`, `docs/playing/de/`
+  - Developing (EN): `docs/developing/`
+  - ADRs (EN): `docs/decisions/`
+- **ADR naming:** `NNNN-short-kebab-title.md` (see [docs/decisions/README.md](docs/decisions/README.md)).
+- Project Context may hold pointers to these paths; do not duplicate manuals there.
