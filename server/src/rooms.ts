@@ -40,6 +40,7 @@ type MapRow = {
   grid_px: number;
   offset_x: number;
   offset_y: number;
+  walls_json: string | null;
 };
 type TokenRow = {
   id: string;
@@ -182,13 +183,14 @@ export class RoomStore {
       gridPx: number;
       offsetX?: number;
       offsetY?: number;
+      walls?: MapState["walls"];
     },
   ): MapState {
     const id = makeId();
     this.db
       .prepare(
-        `INSERT INTO maps (id, room_id, name, filename, width, height, grid_px, offset_x, offset_y)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO maps (id, room_id, name, filename, width, height, grid_px, offset_x, offset_y, walls_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -200,6 +202,7 @@ export class RoomStore {
         input.gridPx,
         input.offsetX ?? 0,
         input.offsetY ?? 0,
+        JSON.stringify(input.walls ?? []),
       );
     const room = this.getRoomRow(roomId);
     if (!room?.active_map_id) {
@@ -921,7 +924,36 @@ function mapRowToState(row: MapRow): MapState {
     gridPx: row.grid_px,
     offsetX: row.offset_x,
     offsetY: row.offset_y,
+    walls: parseWallsJson(row.walls_json),
   };
+}
+
+function parseWallsJson(raw: string | null | undefined): MapState["walls"] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed
+      .filter((polyline): polyline is Array<{ x: number; y: number }> => Array.isArray(polyline))
+      .map((polyline) =>
+        polyline
+          .filter(
+            (point): point is { x: number; y: number } =>
+              !!point &&
+              typeof point === "object" &&
+              typeof point.x === "number" &&
+              typeof point.y === "number",
+          )
+          .map((point) => ({ x: point.x, y: point.y })),
+      )
+      .filter((polyline) => polyline.length >= 2);
+  } catch {
+    return [];
+  }
 }
 
 function tokenRowToState(row: TokenRow): TokenState {

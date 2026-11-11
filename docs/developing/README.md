@@ -13,7 +13,7 @@ npm run dev
 
 - Client: http://localhost:5173
 - Server: http://localhost:3001
-- Test map fixture: `fixtures/dungeon-map-for-testing.png`
+- Test map fixtures: `fixtures/dungeon-map-for-testing.png`, `fixtures/dungeon-map-for-testing.dd2vtt`, `fixtures/tiny-map-for-unit-tests.dd2vtt`
 
 Quality gates (must stay green):
 
@@ -60,7 +60,16 @@ See [ADR 0004](../decisions/0004-session-battle-log.md).
 
 See [ADR 0007](../decisions/0007-dice-play-island.md). GM island emits `dice:roll`; server uses `parseExpr`/`roll`, persists `dice_log`, broadcasts `dice:rolled`, and appends `dice_roll` to the session log. Screen/player show a short toast.
 
-Out of scope: Fog, `.dd2vtt` import, full monster stats, replay/video.
+### Map import (.dd2vtt)
+
+See [ADR 0008](../decisions/0008-dd2vtt-map-import.md).
+
+- Parser: `server/src/dd2vtt.ts` (pure); upload path in `server/src/http.ts`.
+- Persistence: `maps.walls_json` (grid-cell polylines from `line_of_sight`); embedded image written under `server/uploads/`.
+- Client: GM-only wall overlay in `useMapScene`; Settings Maps accepts `.dd2vtt` beside PNG/JPG/WebP.
+- Not yet: portals/lights rendering, automatic LoS fog, animated WebM packages.
+
+Out of scope here: automatic LoS fog, full monster stats, replay/video, WebM animated map layers.
 
 ### Visual theme
 

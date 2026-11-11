@@ -119,6 +119,7 @@ function migrate(db: Db): void {
   `);
 
   ensureColumn(db, "characters", "notes", "TEXT");
+  ensureColumn(db, "maps", "walls_json", "TEXT NOT NULL DEFAULT '[]'");
 
   backfillActiveMaps(db);
   backfillTokenMaps(db);

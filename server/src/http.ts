@@ -5,10 +5,11 @@ import multer from "multer";
 import fs from "node:fs";
 import path from "node:path";
 import type { Server as IoServer } from "socket.io";
+import { isDd2vttUpload, parseDd2vtt } from "./dd2vtt.js";
 import { readImageSize } from "./imageSize.js";
 import { roomChannel, type RoomStore } from "./rooms.js";
 
-const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
+const ALLOWED_IMAGE_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 export type HttpDeps = {
   rooms: RoomStore;
@@ -36,11 +37,11 @@ export function createHttpApp(deps: HttpDeps): Express {
     storage,
     limits: { fileSize: 50 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
-      if (!ALLOWED_MIME.has(file.mimetype)) {
-        cb(new Error("Only png/jpg/webp uploads are allowed"));
+      if (isDd2vttUpload(file) || ALLOWED_IMAGE_MIME.has(file.mimetype)) {
+        cb(null, true);
         return;
       }
-      cb(null, true);
+      cb(new Error("Only png/jpg/webp or .dd2vtt uploads are allowed"));
     },
   });
 
@@ -102,14 +103,6 @@ export function createHttpApp(deps: HttpDeps): Express {
         return;
       }
 
-      const gridPxRaw = req.body?.gridPx ?? req.body?.grid_px ?? "70";
-      const gridPx = Number(gridPxRaw);
-      if (!Number.isInteger(gridPx) || gridPx < 8 || gridPx > 512) {
-        fs.unlinkSync(req.file.path);
-        res.status(400).json({ error: "gridPx must be an integer between 8 and 512" });
-        return;
-      }
-
       const displayName =
         typeof req.body?.name === "string" && req.body.name.trim()
           ? req.body.name.trim()
@@ -117,13 +110,16 @@ export function createHttpApp(deps: HttpDeps): Express {
 
       try {
         const previousActive = deps.rooms.getActiveMap(room.id);
-        const size = readImageSize(req.file.path, req.file.mimetype);
+        const stored = materializeUploadedMap(req.file, deps.uploadsDir, req.body);
         const map = deps.rooms.addMap(room.id, {
           name: displayName,
-          filename: req.file.filename,
-          width: size.width,
-          height: size.height,
-          gridPx,
+          filename: stored.filename,
+          width: stored.width,
+          height: stored.height,
+          gridPx: stored.gridPx,
+          offsetX: stored.offsetX,
+          offsetY: stored.offsetY,
+          walls: stored.walls,
         });
         deps.rooms.syncTokensForActiveMap(room.id);
         const active = deps.rooms.getActiveMap(room.id);
@@ -143,7 +139,9 @@ export function createHttpApp(deps: HttpDeps): Express {
         }
         res.status(201).json({ map, maps: deps.rooms.listMaps(room.id) });
       } catch (error) {
-        fs.unlinkSync(req.file.path);
+        if (req.file && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
         const message = error instanceof Error ? error.message : "Upload failed";
         res.status(400).json({ error: message });
       }
@@ -154,7 +152,7 @@ export function createHttpApp(deps: HttpDeps): Express {
     storage,
     limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
-      if (!ALLOWED_MIME.has(file.mimetype)) {
+      if (!ALLOWED_IMAGE_MIME.has(file.mimetype)) {
         cb(new Error("Only png/jpg/webp uploads are allowed"));
         return;
       }
@@ -230,4 +228,52 @@ function mimeToExt(mime: string): string {
     default:
       return "";
   }
+}
+
+function materializeUploadedMap(
+  file: { path: string; filename: string; originalname: string; mimetype: string },
+  uploadsDir: string,
+  body: { gridPx?: string; grid_px?: string },
+): {
+  filename: string;
+  width: number;
+  height: number;
+  gridPx: number;
+  offsetX: number;
+  offsetY: number;
+  walls: Array<Array<{ x: number; y: number }>>;
+} {
+  if (isDd2vttUpload(file)) {
+    const parsed = parseDd2vtt(fs.readFileSync(file.path));
+    const imageName = `${path.parse(file.filename).name}${parsed.imageExt}`;
+    const imagePath = path.join(uploadsDir, imageName);
+    fs.writeFileSync(imagePath, parsed.imageBuffer);
+    fs.unlinkSync(file.path);
+    const size = readImageSize(imagePath, parsed.mime);
+    return {
+      filename: imageName,
+      width: size.width,
+      height: size.height,
+      gridPx: parsed.gridPx,
+      offsetX: parsed.offsetX,
+      offsetY: parsed.offsetY,
+      walls: parsed.walls,
+    };
+  }
+
+  const gridPxRaw = body?.gridPx ?? body?.grid_px ?? "70";
+  const gridPx = Number(gridPxRaw);
+  if (!Number.isInteger(gridPx) || gridPx < 8 || gridPx > 512) {
+    throw new Error("gridPx must be an integer between 8 and 512");
+  }
+  const size = readImageSize(file.path, file.mimetype);
+  return {
+    filename: file.filename,
+    width: size.width,
+    height: size.height,
+    gridPx,
+    offsetX: 0,
+    offsetY: 0,
+    walls: [],
+  };
 }

@@ -1,0 +1,46 @@
+import fs from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+import { isDd2vttUpload, parseDd2vtt } from "./dd2vtt.js";
+
+describe("parseDd2vtt", () => {
+  it("extracts image, grid, offsets, and walls from a tiny fixture", () => {
+    const fixture = path.resolve(process.cwd(), "../fixtures/tiny-map-for-unit-tests.dd2vtt");
+    const parsed = parseDd2vtt(fs.readFileSync(fixture));
+    expect(parsed.gridPx).toBe(70);
+    expect(parsed.offsetX).toBe(0);
+    expect(parsed.offsetY).toBe(0);
+    expect(parsed.imageExt).toBe(".png");
+    expect(parsed.mime).toBe("image/png");
+    expect(parsed.imageBuffer.toString("ascii", 1, 4)).toBe("PNG");
+    expect(parsed.walls).toHaveLength(2);
+    expect(parsed.walls[0]?.[0]).toEqual({ x: 0, y: 0 });
+    expect(parsed.mapSizeCells).toEqual({ x: 2, y: 1 });
+  });
+
+  it("reads grid and walls from the dungeon testing fixture", () => {
+    const fixture = path.resolve(process.cwd(), "../fixtures/dungeon-map-for-testing.dd2vtt");
+    const parsed = parseDd2vtt(fs.readFileSync(fixture));
+    expect(parsed.gridPx).toBe(72);
+    expect(parsed.walls.length).toBeGreaterThan(0);
+    expect(parsed.walls.every((wall) => wall.length >= 2)).toBe(true);
+    expect(parsed.imageExt).toBe(".png");
+    expect(parsed.mapSizeCells).toEqual({ x: 50, y: 36 });
+  });
+
+  it("rejects malformed JSON", () => {
+    expect(() => parseDd2vtt("{nope")).toThrow(/not valid JSON/);
+  });
+});
+
+describe("isDd2vttUpload", () => {
+  it("detects dd2vtt and uvtt extensions", () => {
+    expect(isDd2vttUpload({ originalname: "map.dd2vtt", mimetype: "application/json" })).toBe(
+      true,
+    );
+    expect(isDd2vttUpload({ originalname: "map.uvtt", mimetype: "application/octet-stream" })).toBe(
+      true,
+    );
+    expect(isDd2vttUpload({ originalname: "map.png", mimetype: "image/png" })).toBe(false);
+  });
+});

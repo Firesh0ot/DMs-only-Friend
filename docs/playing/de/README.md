@@ -13,7 +13,7 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 ## GM-Vorbereitung (Settings)
 
 1. Raum auf der Startseite erstellen und GM-Link öffnen.
-2. Eine oder mehrere Karten hochladen; je Karte `grid_px` setzen.
+2. Eine oder mehrere Karten hochladen: PNG/JPG/WebP (`grid_px` setzen) oder Universal VTT `.dd2vtt` (Raster und Wände kommen aus der Datei). In der GM-Ansicht erscheinen importierte Wände als bernsteinfarbene Overlay-Linien.
 3. Screen-/Player-Links teilen.
 4. PCs und NPCs anlegen (Anzeigename, optionale Notizen, Portrait); Häkchen setzen, auf welchen Karten sie erscheinen.
 5. Für die Session auf **Play** wechseln. Portraits erscheinen in der Initiative, wenn gesetzt.
@@ -56,4 +56,5 @@ Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**
 - Session-Log-ADR: [../../decisions/0004-session-battle-log.md](../../decisions/0004-session-battle-log.md)
 - Tavernen-Theme-ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
 - Dice-Insel-ADR: [../../decisions/0007-dice-play-island.md](../../decisions/0007-dice-play-island.md)
+- dd2vtt-Import-ADR: [../../decisions/0008-dd2vtt-map-import.md](../../decisions/0008-dd2vtt-map-import.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

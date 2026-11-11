@@ -25,7 +25,7 @@ Dieses Dokument ist der verbindliche Kontext für alle Coding-Agenten (Cursor et
 - Lint/Format: ESLint + Prettier. Tests: Vitest.
 - Würfel werden **auf dem Server** gewürfelt (Dice-Parser als isolierte, pure Funktion: `parseExpr`, `roll`) – unit-testbar, nicht manipulierbar.
 - PixiJS v8 API (async `application.init()`), nicht v7 mischen.
-- Uploads: Größenlimit 50 MB, Whitelist png/jpg/webp/webm.
+- Uploads: Größenlimit 50 MB, Whitelist png/jpg/webp/webm; Karten zusätzlich `.dd2vtt` (Server extrahiert Bild + Grid + Wände).
 - State im Client: Zustand (Zustand-Store) + Snapshot bei Join.
 
 ## Roadmap
