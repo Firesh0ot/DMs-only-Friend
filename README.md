@@ -6,7 +6,7 @@ Normally DMs have no friends. But this web app doesn't judge good throws.
 
 ## Status
 
-Phase 1 table plus Prep/Play UX: multi-map Settings, Play control islands, player initiative rail, Follow-GM camera. Specs: [docs/phase-1.md](docs/phase-1.md), [docs/decisions/0003-prep-play-ux.md](docs/decisions/0003-prep-play-ux.md). Playing: [docs/playing/en.md](docs/playing/en.md) · [docs/playing/de.md](docs/playing/de.md). Developing: [docs/developing/en.md](docs/developing/en.md).
+Phase 1 table plus Prep/Play UX: multi-map Settings, Play control islands, player initiative rail, Follow-GM camera. Specs: [docs/phase-1.md](docs/phase-1.md), [docs/decisions/0003-prep-play-ux.md](docs/decisions/0003-prep-play-ux.md). Playing: [docs/playing/en/README.md](docs/playing/en/README.md) · [docs/playing/de/README.md](docs/playing/de/README.md). Developing: [docs/developing/README.md](docs/developing/README.md).
 
 ## Documentation
 
