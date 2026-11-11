@@ -6,6 +6,15 @@ export type Role = z.infer<typeof RoleSchema>;
 export const CharacterKindSchema = z.enum(["pc", "npc"]);
 export type CharacterKind = z.infer<typeof CharacterKindSchema>;
 
+export const WallPointSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+});
+export type WallPoint = z.infer<typeof WallPointSchema>;
+
+export const WallPolylineSchema = z.array(WallPointSchema).min(2);
+export type WallPolyline = z.infer<typeof WallPolylineSchema>;
+
 export const MapStateSchema = z.object({
   id: z.string(),
   roomId: z.string(),
@@ -16,6 +25,7 @@ export const MapStateSchema = z.object({
   gridPx: z.number().int().positive(),
   offsetX: z.number().int(),
   offsetY: z.number().int(),
+  walls: z.array(WallPolylineSchema).default([]),
 });
 export type MapState = z.infer<typeof MapStateSchema>;
 

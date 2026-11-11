@@ -45,3 +45,4 @@ What becomes easier, harder, or out of scope.
 | [0004](0004-session-battle-log.md) | Session / battle event log | accepted |
 | [0005](0005-tavern-theme-lantern.md) | Medieval tavern theme and lantern modes | accepted |
 | [0006](0006-character-portraits-notes.md) | Character portraits and notes | accepted |
+| [0007](0007-dd2vtt-map-import.md) | Universal VTT (.dd2vtt) map import | accepted |

@@ -40,6 +40,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
   const worldRef = useRef<Container | null>(null);
   const mapLayerRef = useRef<Container | null>(null);
   const gridLayerRef = useRef<Graphics | null>(null);
+  const wallLayerRef = useRef<Graphics | null>(null);
   const tokenLayerRef = useRef<Container | null>(null);
   const tokenViewsRef = useRef<Map<string, TokenView>>(new Map());
   const cameraRef = useRef<CameraState>(props.camera ?? DEFAULT_CAMERA);
@@ -61,9 +62,11 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     const world = new Container();
     const mapLayer = new Container();
     const gridLayer = new Graphics();
+    const wallLayer = new Graphics();
     const tokenLayer = new Container();
     world.addChild(mapLayer);
     world.addChild(gridLayer);
+    world.addChild(wallLayer);
     world.addChild(tokenLayer);
 
     void (async () => {
@@ -88,6 +91,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       worldRef.current = world;
       mapLayerRef.current = mapLayer;
       gridLayerRef.current = gridLayer;
+      wallLayerRef.current = wallLayer;
       tokenLayerRef.current = tokenLayer;
 
       applyCamera(world, cameraRef.current);
@@ -237,12 +241,14 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
   async function syncMap(map: MapState | null): Promise<void> {
     const mapLayer = mapLayerRef.current;
     const gridLayer = gridLayerRef.current;
-    if (!mapLayer || !gridLayer) {
+    const wallLayer = wallLayerRef.current;
+    if (!mapLayer || !gridLayer || !wallLayer) {
       return;
     }
 
     mapLayer.removeChildren();
     gridLayer.clear();
+    wallLayer.clear();
 
     if (!map) {
       return;
@@ -257,6 +263,9 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     sprite.height = map.height;
     mapLayer.addChild(sprite);
     drawGrid(gridLayer, map);
+    if (propsRef.current.role === "gm") {
+      drawWalls(wallLayer, map);
+    }
 
     if (propsRef.current.role === "gm" && !propsRef.current.camera) {
       const application = appRef.current;
@@ -374,6 +383,26 @@ function drawGrid(graphics: Graphics, map: MapState): void {
   for (let y = map.offsetY; y <= map.height; y += map.gridPx) {
     graphics.moveTo(0, y);
     graphics.lineTo(map.width, y);
+  }
+  graphics.stroke();
+}
+
+function drawWalls(graphics: Graphics, map: MapState): void {
+  graphics.clear();
+  if (map.walls.length === 0) {
+    return;
+  }
+  graphics.setStrokeStyle({ width: 2, color: 0xd97706, alpha: 0.85 });
+  for (const polyline of map.walls) {
+    const first = polyline[0];
+    if (!first) {
+      continue;
+    }
+    graphics.moveTo(map.offsetX + first.x * map.gridPx, map.offsetY + first.y * map.gridPx);
+    for (let index = 1; index < polyline.length; index += 1) {
+      const point = polyline[index]!;
+      graphics.lineTo(map.offsetX + point.x * map.gridPx, map.offsetY + point.y * map.gridPx);
+    }
   }
   graphics.stroke();
 }

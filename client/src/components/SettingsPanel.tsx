@@ -305,9 +305,13 @@ export function SettingsPanel({
             autoComplete="off"
           />
         </label>
+        <p className="muted">
+          Upload PNG/JPG/WebP (set grid_px) or Universal VTT <code>.dd2vtt</code> (grid and walls
+          come from the file).
+        </p>
         <div className="row settings-upload-row">
           <label className="stack" htmlFor={`${baseId}-grid`}>
-            <span className="muted">grid_px</span>
+            <span className="muted">grid_px (PNG)</span>
             <input
               id={`${baseId}-grid`}
               style={{ maxWidth: "6rem" }}
@@ -317,11 +321,11 @@ export function SettingsPanel({
             />
           </label>
           <label className="stack" htmlFor={`${baseId}-map-file`}>
-            <span className="muted">Map image</span>
+            <span className="muted">Map file</span>
             <input
               id={`${baseId}-map-file`}
               type="file"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/png,image/jpeg,image/webp,.dd2vtt,application/json"
               disabled={busy}
               onChange={(event) => void onUploadMap(event.target.files?.[0] ?? null)}
             />
@@ -336,7 +340,8 @@ export function SettingsPanel({
                 <div className="stack" style={{ flex: 1, gap: "0.35rem" }}>
                   <strong>{map.name}</strong>
                   <span className="muted">
-                    {map.width}×{map.height}
+                    {map.width}×{map.height} · grid {map.gridPx}
+                    {map.walls.length > 0 ? ` · ${map.walls.length} walls` : ""}
                     {map.id === activeMapId ? " · active" : ""}
                   </span>
                   <div className="row">
