@@ -33,7 +33,6 @@ export function LanternToggle({ className }: Props) {
           <path d="M10 33h12v3H10v-3Z" className="lantern-toggle__cage" />
         </svg>
       </span>
-      <span className="lantern-toggle__label">{lit ? "Lantern" : "Smoky"}</span>
     </button>
   );
 }
