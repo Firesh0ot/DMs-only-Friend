@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LanternToggle } from "../components/LanternToggle";
 
 type CreatedRoom = {
   code: string;
@@ -51,6 +52,9 @@ export function HomePage() {
 
   return (
     <main className="app-shell">
+      <div className="chrome-bar">
+        <LanternToggle />
+      </div>
       <p className="muted">Self-hosted tabletop board</p>
       <h1 className="brand">DMs-only-Friend</h1>
       <p className="lede">

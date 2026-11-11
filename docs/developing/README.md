@@ -58,6 +58,10 @@ See [ADR 0004](../decisions/0004-session-battle-log.md).
 
 Out of scope: Fog, `.dd2vtt` import, full monster stats, replay/video. Dice remain on the wire / `dice_log` but are not a Play island priority.
 
+### Visual theme
+
+See [ADR 0005](../decisions/0005-tavern-theme-lantern.md). CSS tokens + textures in `client/public/theme/`; lantern mode in `localStorage` (`dms-lantern`) via `document.documentElement.dataset.lantern`.
+
 ## Architecture pointers
 
 - Binding agent/architecture context: [AGENTS.md](../../AGENTS.md)

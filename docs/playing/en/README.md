@@ -35,6 +35,10 @@ Changing the active map brings in characters linked to that map (and drops the o
 
 No GM islands. Use the side rail for round, turn order, and whose turn it is. A small strip shows battle elapsed time and the latest events when present. Follow the GM’s pan/zoom.
 
+## Look & lantern
+
+The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings, Play, and Screen) to switch between candlelit cozy and a darker smoky dungeon look. The choice is remembered in this browser.
+
 ## Quick start (table)
 
 1. Start the app (self-hosted or local `npm run dev`).
@@ -49,4 +53,5 @@ No GM islands. Use the side rail for round, turn order, and whose turn it is. A 
 - Phase 1 spec: [../../phase-1.md](../../phase-1.md)
 - Prep/Play ADR: [../../decisions/0003-prep-play-ux.md](../../decisions/0003-prep-play-ux.md)
 - Session log ADR: [../../decisions/0004-session-battle-log.md](../../decisions/0004-session-battle-log.md)
+- Tavern theme ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

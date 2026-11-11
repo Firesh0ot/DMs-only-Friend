@@ -43,3 +43,4 @@ What becomes easier, harder, or out of scope.
 | [0002](0002-phase1-table-core.md) | Phase 1 table-core decisions | accepted |
 | [0003](0003-prep-play-ux.md) | Prep Settings and Play control islands | accepted |
 | [0004](0004-session-battle-log.md) | Session / battle event log | accepted |
+| [0005](0005-tavern-theme-lantern.md) | Medieval tavern theme and lantern modes | accepted |
