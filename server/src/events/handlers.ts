@@ -17,6 +17,7 @@ import {
   roll,
   type ClientToServerEvents,
   type ServerToClientEvents,
+  type SessionEvent,
 } from "@dms/shared";
 import type { Server, Socket } from "socket.io";
 import { roomChannel, type RoomStore } from "../rooms.js";
@@ -130,6 +131,14 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         }
         const moved = rooms.moveToken(data.tokenId, data.x, data.y);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.TokenMoved, moved);
+        const moveEvent = rooms.logTokenMove({
+          roomId: session.roomId,
+          tokenId: moved.id,
+          label: moved.label,
+          x: moved.x,
+          y: moved.y,
+        });
+        emitLog(io, session.roomId, moveEvent);
       } catch (error) {
         emitError(socket, error);
       }
@@ -216,6 +225,16 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           round: previous?.round ?? 1,
         });
         io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+        emitLog(
+          io,
+          session.roomId,
+          rooms.appendEvent({
+            roomId: session.roomId,
+            type: "initiative_set",
+            summary: `Initiative set (${order.length})`,
+            payload: { count: order.length },
+          }),
+        );
       } catch (error) {
         emitError(socket, error);
       }
@@ -232,6 +251,11 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           emitError(socket, new Error("No initiative order"));
           return;
         }
+        const ensured = rooms.ensureBattleForNextTurn(session.roomId);
+        if (ensured.started) {
+          io.to(roomChannel(session.roomId)).emit(ServerEvents.BattleUpdated, ensured.battle);
+          emitLog(io, session.roomId, ensured.startEvent);
+        }
         const wrapping = current.activeIndex + 1 >= current.order.length;
         const activeIndex = wrapping ? 0 : current.activeIndex + 1;
         const round = wrapping ? current.round + 1 : current.round;
@@ -241,6 +265,34 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           round,
         });
         io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+        const active = initiative.order[activeIndex];
+        emitLog(
+          io,
+          session.roomId,
+          rooms.appendEvent({
+            roomId: session.roomId,
+            type: "initiative_next",
+            summary: active ? `Turn: ${active.label}` : "Next turn",
+            payload: {
+              activeIndex,
+              round,
+              tokenId: active?.tokenId ?? null,
+              label: active?.label ?? null,
+            },
+          }),
+        );
+        if (wrapping) {
+          emitLog(
+            io,
+            session.roomId,
+            rooms.appendEvent({
+              roomId: session.roomId,
+              type: "round_advance",
+              summary: `Round ${round}`,
+              payload: { round },
+            }),
+          );
+        }
       } catch (error) {
         emitError(socket, error);
       }
@@ -253,8 +305,21 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       }
       try {
         const data = MapActivatePayloadSchema.parse(payload);
+        const previous = rooms.getActiveMap(session.roomId);
         const map = rooms.setActiveMap(session.roomId, data.mapId);
         broadcastMapView(io, rooms, session.roomId, map);
+        if (previous?.id !== map.id) {
+          emitLog(
+            io,
+            session.roomId,
+            rooms.appendEvent({
+              roomId: session.roomId,
+              type: "map_change",
+              summary: `Map: ${map.name}`,
+              payload: { mapId: map.id, name: map.name },
+            }),
+          );
+        }
       } catch (error) {
         emitError(socket, error);
       }
@@ -373,6 +438,51 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           ServerEvents.TokensSynced,
           rooms.listVisibleTokens(session.roomId),
         );
+        const parts: string[] = [];
+        if (data.showPcs !== undefined) {
+          parts.push(`PCs ${visibility.showPcs ? "shown" : "hidden"}`);
+        }
+        if (data.showNpcs !== undefined) {
+          parts.push(`NPCs ${visibility.showNpcs ? "shown" : "hidden"}`);
+        }
+        emitLog(
+          io,
+          session.roomId,
+          rooms.appendEvent({
+            roomId: session.roomId,
+            type: "visibility_set",
+            summary: parts.join(", ") || "Visibility updated",
+            payload: { ...visibility },
+          }),
+        );
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.BattleStart, () => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const { battle, event } = rooms.startBattle(session.roomId);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.BattleUpdated, battle);
+        emitLog(io, session.roomId, event);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.BattleEnd, () => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const { event } = rooms.endBattle(session.roomId);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.BattleUpdated, null);
+        emitLog(io, session.roomId, event);
       } catch (error) {
         emitError(socket, error);
       }
@@ -406,6 +516,13 @@ function requireGm(socket: AppSocket, rooms: RoomStore) {
     return null;
   }
   return session;
+}
+
+function emitLog(io: AppServer, roomId: string, event: SessionEvent | null): void {
+  if (!event) {
+    return;
+  }
+  io.to(roomChannel(roomId)).emit(ServerEvents.LogAppended, event);
 }
 
 function emitError(socket: AppSocket, error: unknown): void {

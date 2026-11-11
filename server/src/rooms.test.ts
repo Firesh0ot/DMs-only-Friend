@@ -34,6 +34,8 @@ describe("RoomStore", () => {
     expect(snapshot.characters).toEqual([]);
     expect(snapshot.visibility).toEqual({ showPcs: true, showNpcs: true });
     expect(snapshot.tokens).toEqual([]);
+    expect(snapshot.eventLog).toEqual([]);
+    expect(snapshot.battle).toBeNull();
   });
 
   it("persists tokens and camera", () => {

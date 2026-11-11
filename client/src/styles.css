@@ -240,6 +240,61 @@ a {
   outline: 2px solid var(--signal);
 }
 
+.play-stage__side {
+  min-width: 0;
+}
+
+.session-strip {
+  background: rgba(236, 244, 241, 0.88);
+  border: 1px solid rgba(28, 24, 18, 0.12);
+  border-radius: 12px;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.82rem;
+}
+
+.session-strip__time {
+  display: block;
+  font-family: var(--font-display);
+  margin-bottom: 0.35rem;
+}
+
+.session-strip__events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.2rem;
+  color: rgba(20, 32, 40, 0.78);
+}
+
+.event-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  max-height: 12rem;
+  overflow: auto;
+  font-size: 0.82rem;
+}
+
+.event-log li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.45rem;
+  align-items: start;
+}
+
+.event-log time {
+  color: rgba(20, 32, 40, 0.55);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.log-island__battle {
+  justify-content: space-between;
+}
+
 .play-island {
   position: absolute;
   z-index: 5;

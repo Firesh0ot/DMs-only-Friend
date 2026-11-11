@@ -3,8 +3,10 @@ import { ClientEvents, type CameraState, type Role } from "@dms/shared";
 import { MapCanvas } from "../canvas/MapCanvas";
 import { InitiativeIsland } from "../components/InitiativeIsland";
 import { InitiativeRail } from "../components/InitiativeRail";
+import { LogIsland } from "../components/LogIsland";
 import { MapControlIsland } from "../components/MapControlIsland";
 import { NpcIsland } from "../components/NpcIsland";
+import { SessionStrip } from "../components/SessionStrip";
 import { SettingsPanel } from "../components/SettingsPanel";
 import {
   loadIslandLayout,
@@ -134,7 +136,12 @@ export function RoomPage({ code, role, name }: Props) {
 
       {snapshot && !showSettings ? (
         <div className={`play-stage ${role !== "gm" ? "play-stage--with-rail" : ""}`}>
-          {role !== "gm" ? <InitiativeRail initiative={snapshot.initiative} /> : null}
+          {role !== "gm" ? (
+            <div className="play-stage__side stack">
+              <InitiativeRail initiative={snapshot.initiative} />
+              <SessionStrip battle={snapshot.battle} events={snapshot.eventLog} />
+            </div>
+          ) : null}
 
           <div className="play-stage__map">
             {!snapshot.map ? (
@@ -172,6 +179,12 @@ export function RoomPage({ code, role, name }: Props) {
                   activeMapId={snapshot.map?.id ?? null}
                   corner={islandLayout.npcs}
                   onCycleCorner={() => cycleIsland("npcs")}
+                />
+                <LogIsland
+                  events={snapshot.eventLog}
+                  battle={snapshot.battle}
+                  corner={islandLayout.log}
+                  onCycleCorner={() => cycleIsland("log")}
                 />
               </>
             ) : null}
