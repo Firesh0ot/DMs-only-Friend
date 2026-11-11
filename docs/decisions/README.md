@@ -41,3 +41,4 @@ What becomes easier, harder, or out of scope.
 |---|---|---|
 | [0001](0001-docs-strategy.md) | Docs strategy (repo manuals + Context pointers) | accepted |
 | [0002](0002-phase1-table-core.md) | Phase 1 table-core decisions | accepted |
+| [0003](0003-prep-play-ux.md) | Prep Settings and Play control islands | accepted |

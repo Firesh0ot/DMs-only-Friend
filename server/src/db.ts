@@ -69,4 +69,73 @@ function migrate(db: Db): void {
       active_index INT NOT NULL DEFAULT 0
     );
   `);
+
+  ensureColumn(db, "maps", "name", "TEXT NOT NULL DEFAULT 'Map'");
+  ensureColumn(db, "rooms", "active_map_id", "TEXT");
+  ensureColumn(db, "rooms", "show_pcs", "INT NOT NULL DEFAULT 1");
+  ensureColumn(db, "rooms", "show_npcs", "INT NOT NULL DEFAULT 1");
+  ensureColumn(db, "tokens", "map_id", "TEXT");
+  ensureColumn(db, "tokens", "character_id", "TEXT");
+  ensureColumn(db, "room_initiative", "round", "INT NOT NULL DEFAULT 1");
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS characters (
+      id TEXT PRIMARY KEY,
+      room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      image TEXT,
+      size_cells REAL NOT NULL DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS character_maps (
+      character_id TEXT NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+      map_id TEXT NOT NULL REFERENCES maps(id) ON DELETE CASCADE,
+      x REAL NOT NULL DEFAULT 1,
+      y REAL NOT NULL DEFAULT 1,
+      PRIMARY KEY (character_id, map_id)
+    );
+  `);
+
+  backfillActiveMaps(db);
+  backfillTokenMaps(db);
+}
+
+function ensureColumn(db: Db, table: string, column: string, definition: string): void {
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (rows.some((row) => row.name === column)) {
+    return;
+  }
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+function backfillActiveMaps(db: Db): void {
+  const rooms = db
+    .prepare("SELECT id, active_map_id FROM rooms WHERE active_map_id IS NULL")
+    .all() as Array<{ id: string; active_map_id: string | null }>;
+  const findMap = db.prepare("SELECT id FROM maps WHERE room_id = ? ORDER BY rowid ASC LIMIT 1");
+  const setActive = db.prepare("UPDATE rooms SET active_map_id = ? WHERE id = ?");
+  for (const room of rooms) {
+    const map = findMap.get(room.id) as { id: string } | undefined;
+    if (map) {
+      setActive.run(map.id, room.id);
+    }
+  }
+}
+
+function backfillTokenMaps(db: Db): void {
+  const tokens = db
+    .prepare("SELECT id, room_id FROM tokens WHERE map_id IS NULL")
+    .all() as Array<{ id: string; room_id: string }>;
+  if (tokens.length === 0) {
+    return;
+  }
+  const active = db.prepare("SELECT active_map_id FROM rooms WHERE id = ?");
+  const update = db.prepare("UPDATE tokens SET map_id = ? WHERE id = ?");
+  for (const token of tokens) {
+    const room = active.get(token.room_id) as { active_map_id: string | null } | undefined;
+    if (room?.active_map_id) {
+      update.run(room.active_map_id, token.id);
+    }
+  }
 }

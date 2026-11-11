@@ -49,9 +49,10 @@ export function createHttpApp(deps: HttpDeps): Express {
   });
 
   app.post("/api/rooms", (req, res) => {
-    const name = typeof req.body?.name === "string" && req.body.name.trim()
-      ? req.body.name.trim()
-      : "Table";
+    const name =
+      typeof req.body?.name === "string" && req.body.name.trim()
+        ? req.body.name.trim()
+        : "Table";
     const { room, code } = deps.rooms.createRoom(name);
     const origin = deps.publicOrigin.replace(/\/$/, "");
     res.status(201).json({
@@ -61,6 +62,21 @@ export function createHttpApp(deps: HttpDeps): Express {
       gmUrl: `${origin}/#/room/${code}?role=gm`,
       screenUrl: `${origin}/#/room/${code}?role=screen`,
       playerUrl: `${origin}/#/room/${code}?role=player`,
+    });
+  });
+
+  app.get("/api/rooms/:code/links", (req, res) => {
+    const room = deps.rooms.getRoomByCode(req.params.code ?? "");
+    if (!room) {
+      res.status(404).json({ error: "Room not found" });
+      return;
+    }
+    const origin = deps.publicOrigin.replace(/\/$/, "");
+    res.json({
+      code: room.code,
+      gmUrl: `${origin}/#/room/${room.code}?role=gm`,
+      screenUrl: `${origin}/#/room/${room.code}?role=screen`,
+      playerUrl: `${origin}/#/room/${room.code}?role=player`,
     });
   });
 
@@ -94,16 +110,27 @@ export function createHttpApp(deps: HttpDeps): Express {
         return;
       }
 
+      const displayName =
+        typeof req.body?.name === "string" && req.body.name.trim()
+          ? req.body.name.trim()
+          : path.parse(req.file.originalname).name || "Map";
+
       try {
         const size = readImageSize(req.file.path, req.file.mimetype);
-        const map = deps.rooms.setMap(room.id, {
+        const map = deps.rooms.addMap(room.id, {
+          name: displayName,
           filename: req.file.filename,
           width: size.width,
           height: size.height,
           gridPx,
         });
-        deps.io.to(roomChannel(room.id)).emit(ServerEvents.MapSet, map);
-        res.status(201).json({ map });
+        deps.rooms.syncTokensForActiveMap(room.id);
+        deps.io.to(roomChannel(room.id)).emit(ServerEvents.MapsUpdated, deps.rooms.listMaps(room.id));
+        deps.io.to(roomChannel(room.id)).emit(ServerEvents.MapSet, deps.rooms.getActiveMap(room.id));
+        deps.io
+          .to(roomChannel(room.id))
+          .emit(ServerEvents.TokensSynced, deps.rooms.listVisibleTokens(room.id));
+        res.status(201).json({ map, maps: deps.rooms.listMaps(room.id) });
       } catch (error) {
         fs.unlinkSync(req.file.path);
         const message = error instanceof Error ? error.message : "Upload failed";

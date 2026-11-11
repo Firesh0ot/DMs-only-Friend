@@ -2,43 +2,49 @@
 
 How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) is the primary target; remote players join via links.
 
-> Stub: expand with screenshots and step-by-step flows as the UX settles.
-
 ## Roles
 
 | Role | What you see |
 |---|---|
-| **GM** | Map, tokens, initiative, dice, room links |
-| **Player screen** | Full-screen map + tokens; camera follows the GM; initiative banner |
-| **Remote player** | Like the player screen, plus control of your own token |
+| **GM** | **Settings** for prep; **Play** with floating islands (Map, Initiative, NPCs) |
+| **Player screen** | Full-screen map + TCG-style initiative rail; camera follows the GM |
+| **Remote player** | Like the player screen, plus control of your own token (label = your name) |
 
-## Phase 1 — what works today
+## GM prep (Settings)
 
-- Create a room from the home page; open the GM link.
-- Share the **screen** link for the TV/tablet at the table.
-- Share a **player** join link (code + role) for remote players.
-- Upload a PNG/JPG map; set grid size (`grid_px`) manually.
-- Place and drag tokens; snaps to grid; syncs live over the room.
-- Player-screen camera **follows the GM** (no independent pan/zoom).
-- Minimal initiative / turn marker.
-- Simple dice rolls (`NdM+K`), rolled on the server, visible to everyone.
+1. Create a room from the home page and open the GM link.
+2. Upload one or more maps; set each map’s `grid_px`.
+3. Copy Screen / Player links for the table.
+4. Add PCs and NPCs; tick which maps each character appears on.
+5. Switch to **Play** when the session starts.
 
-## Upcoming (not shipped yet)
+## GM play
 
-- **Settings** island for prep: maps, grid, links, PC/NPC roster.
-- **Play** mode floating control islands (map control, initiative + next turn, NPCs; snap to corners; persist per room).
-- Player screen stays island-free; TCG-style side UI for round/initiative later.
+Floating islands around the map:
+
+- **Map** — change active map; show/hide PCs or NPCs as groups.
+- **Initiative** — enter scores, set order, next turn (round advances when the order wraps).
+- **NPCs** — spawn or place roster NPCs on the current map.
+
+Use **Snap** on an island to cycle corners. Positions are remembered for this room in the browser.
+
+Changing the active map brings in characters linked to that map (and drops the others). Tokens snap to grid and sync live. Camera pan/zoom on the GM side is followed by screen and players.
+
+## Screen / player
+
+No GM islands. Use the side rail for round, turn order, and whose turn it is. Follow the GM’s pan/zoom.
 
 ## Quick start (table)
 
 1. Start the app (self-hosted or local `npm run dev`).
 2. GM creates a room → open the GM URL.
 3. Open the screen URL on the TV/tablet.
-4. Upload a map, place tokens, run initiative and dice as needed.
+4. In Settings: upload maps, set roster links; then Play.
 5. Optional: send remote players their join links.
 
 ## Related
 
-- German stub: [../de/README.md](../de/README.md)
+- German: [../de/README.md](../de/README.md)
 - Phase 1 spec: [../../phase-1.md](../../phase-1.md)
+- Prep/Play ADR: [../../decisions/0003-prep-play-ux.md](../../decisions/0003-prep-play-ux.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

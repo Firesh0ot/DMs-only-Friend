@@ -1,11 +1,14 @@
 import {
   type CameraState,
+  type CharacterKind,
+  type CharacterState,
   type InitiativeState,
   type MapState,
   type Role,
   type RoomState,
   type Snapshot,
   type TokenState,
+  type VisibilityState,
 } from "@dms/shared";
 import { customAlphabet } from "nanoid";
 import type { Db } from "./db.js";
@@ -13,10 +16,19 @@ import type { Db } from "./db.js";
 const makeCode = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
 const makeId = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 16);
 
-type RoomRow = { id: string; code: string; name: string; created_at: string };
+type RoomRow = {
+  id: string;
+  code: string;
+  name: string;
+  created_at: string;
+  active_map_id: string | null;
+  show_pcs: number;
+  show_npcs: number;
+};
 type MapRow = {
   id: string;
   room_id: string;
+  name: string;
   filename: string;
   width: number;
   height: number;
@@ -33,9 +45,24 @@ type TokenRow = {
   y: number;
   size_cells: number;
   is_player: number;
+  map_id: string | null;
+  character_id: string | null;
+};
+type CharacterRow = {
+  id: string;
+  room_id: string;
+  name: string;
+  kind: string;
+  image: string | null;
+  size_cells: number;
 };
 type CameraRow = { room_id: string; x: number; y: number; zoom: number };
-type InitiativeRow = { room_id: string; order_json: string; active_index: number };
+type InitiativeRow = {
+  room_id: string;
+  order_json: string;
+  active_index: number;
+  round: number;
+};
 
 export type Session = {
   socketId: string;
@@ -54,7 +81,10 @@ export class RoomStore {
     const code = makeCode();
     const createdAt = new Date().toISOString();
     this.db
-      .prepare("INSERT INTO rooms (id, code, name, created_at) VALUES (?, ?, ?, ?)")
+      .prepare(
+        `INSERT INTO rooms (id, code, name, created_at, show_pcs, show_npcs)
+         VALUES (?, ?, ?, ?, 1, 1)`,
+      )
       .run(id, code, name, createdAt);
     return { room: { id, code, name }, code };
   }
@@ -73,6 +103,13 @@ export class RoomStore {
     return row ? { id: row.id, code: row.code, name: row.name } : null;
   }
 
+  private getRoomRow(roomId: string): RoomRow | null {
+    const row = this.db.prepare("SELECT * FROM rooms WHERE id = ?").get(roomId) as
+      | RoomRow
+      | undefined;
+    return row ?? null;
+  }
+
   bindSession(socketId: string, session: Omit<Session, "socketId">): Session {
     const full: Session = { socketId, ...session };
     this.sessions.set(socketId, full);
@@ -87,11 +124,70 @@ export class RoomStore {
     this.sessions.delete(socketId);
   }
 
-  getMap(roomId: string): MapState | null {
-    const row = this.db.prepare("SELECT * FROM maps WHERE room_id = ?").get(roomId) as
+  listMaps(roomId: string): MapState[] {
+    const rows = this.db
+      .prepare("SELECT * FROM maps WHERE room_id = ? ORDER BY rowid ASC")
+      .all(roomId) as MapRow[];
+    return rows.map(mapRowToState);
+  }
+
+  getMapById(mapId: string): MapState | null {
+    const row = this.db.prepare("SELECT * FROM maps WHERE id = ?").get(mapId) as
       | MapRow
       | undefined;
     return row ? mapRowToState(row) : null;
+  }
+
+  getActiveMap(roomId: string): MapState | null {
+    const room = this.getRoomRow(roomId);
+    if (!room?.active_map_id) {
+      return null;
+    }
+    return this.getMapById(room.active_map_id);
+  }
+
+  getMap(roomId: string): MapState | null {
+    return this.getActiveMap(roomId);
+  }
+
+  addMap(
+    roomId: string,
+    input: {
+      name: string;
+      filename: string;
+      width: number;
+      height: number;
+      gridPx: number;
+      offsetX?: number;
+      offsetY?: number;
+    },
+  ): MapState {
+    const id = makeId();
+    this.db
+      .prepare(
+        `INSERT INTO maps (id, room_id, name, filename, width, height, grid_px, offset_x, offset_y)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        roomId,
+        input.name,
+        input.filename,
+        input.width,
+        input.height,
+        input.gridPx,
+        input.offsetX ?? 0,
+        input.offsetY ?? 0,
+      );
+    const room = this.getRoomRow(roomId);
+    if (!room?.active_map_id) {
+      this.db.prepare("UPDATE rooms SET active_map_id = ? WHERE id = ?").run(id, roomId);
+    }
+    const map = this.getMapById(id);
+    if (!map) {
+      throw new Error("Failed to persist map");
+    }
+    return map;
   }
 
   setMap(
@@ -103,37 +199,322 @@ export class RoomStore {
       gridPx: number;
       offsetX?: number;
       offsetY?: number;
+      name?: string;
     },
   ): MapState {
-    const existing = this.getMap(roomId);
-    const id = existing?.id ?? makeId();
-    this.db.prepare("DELETE FROM maps WHERE room_id = ?").run(roomId);
-    this.db
-      .prepare(
-        `INSERT INTO maps (id, room_id, filename, width, height, grid_px, offset_x, offset_y)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        id,
-        roomId,
-        input.filename,
-        input.width,
-        input.height,
-        input.gridPx,
-        input.offsetX ?? 0,
-        input.offsetY ?? 0,
-      );
-    const map = this.getMap(roomId);
+    return this.addMap(roomId, {
+      name: input.name ?? deriveMapName(input.filename),
+      filename: input.filename,
+      width: input.width,
+      height: input.height,
+      gridPx: input.gridPx,
+      offsetX: input.offsetX,
+      offsetY: input.offsetY,
+    });
+  }
+
+  updateMapGrid(mapId: string, gridPx: number): MapState {
+    this.db.prepare("UPDATE maps SET grid_px = ? WHERE id = ?").run(gridPx, mapId);
+    const map = this.getMapById(mapId);
     if (!map) {
-      throw new Error("Failed to persist map");
+      throw new Error("Map not found");
     }
     return map;
   }
 
-  listTokens(roomId: string): TokenState[] {
+  setActiveMap(roomId: string, mapId: string): MapState {
+    const map = this.getMapById(mapId);
+    if (!map || map.roomId !== roomId) {
+      throw new Error("Map not found");
+    }
+    this.db.prepare("UPDATE rooms SET active_map_id = ? WHERE id = ?").run(mapId, roomId);
+    this.syncTokensForActiveMap(roomId);
+    return map;
+  }
+
+  removeMap(roomId: string, mapId: string): { maps: MapState[]; active: MapState | null } {
+    const map = this.getMapById(mapId);
+    if (!map || map.roomId !== roomId) {
+      throw new Error("Map not found");
+    }
+    this.db.prepare("DELETE FROM character_maps WHERE map_id = ?").run(mapId);
+    this.db.prepare("DELETE FROM tokens WHERE map_id = ?").run(mapId);
+    this.db.prepare("DELETE FROM maps WHERE id = ?").run(mapId);
+    const room = this.getRoomRow(roomId);
+    if (room?.active_map_id === mapId) {
+      const remaining = this.listMaps(roomId);
+      const next = remaining[0] ?? null;
+      this.db
+        .prepare("UPDATE rooms SET active_map_id = ? WHERE id = ?")
+        .run(next?.id ?? null, roomId);
+      if (next) {
+        this.syncTokensForActiveMap(roomId);
+      }
+    }
+    return { maps: this.listMaps(roomId), active: this.getActiveMap(roomId) };
+  }
+
+  getVisibility(roomId: string): VisibilityState {
+    const room = this.getRoomRow(roomId);
+    return {
+      showPcs: room ? room.show_pcs === 1 : true,
+      showNpcs: room ? room.show_npcs === 1 : true,
+    };
+  }
+
+  setVisibility(roomId: string, input: Partial<VisibilityState>): VisibilityState {
+    const current = this.getVisibility(roomId);
+    const next = {
+      showPcs: input.showPcs ?? current.showPcs,
+      showNpcs: input.showNpcs ?? current.showNpcs,
+    };
+    this.db
+      .prepare("UPDATE rooms SET show_pcs = ?, show_npcs = ? WHERE id = ?")
+      .run(next.showPcs ? 1 : 0, next.showNpcs ? 1 : 0, roomId);
+    return next;
+  }
+
+  listCharacters(roomId: string): CharacterState[] {
     const rows = this.db
-      .prepare("SELECT * FROM tokens WHERE room_id = ? ORDER BY label ASC")
-      .all(roomId) as TokenRow[];
+      .prepare("SELECT * FROM characters WHERE room_id = ? ORDER BY kind ASC, name ASC")
+      .all(roomId) as CharacterRow[];
+    const links = this.db
+      .prepare(
+        `SELECT character_id, map_id FROM character_maps
+         WHERE character_id IN (SELECT id FROM characters WHERE room_id = ?)`,
+      )
+      .all(roomId) as Array<{ character_id: string; map_id: string }>;
+    const byCharacter = new Map<string, string[]>();
+    for (const link of links) {
+      const list = byCharacter.get(link.character_id) ?? [];
+      list.push(link.map_id);
+      byCharacter.set(link.character_id, list);
+    }
+    return rows.map((row) => ({
+      id: row.id,
+      roomId: row.room_id,
+      name: row.name,
+      kind: row.kind as CharacterKind,
+      image: row.image,
+      sizeCells: row.size_cells,
+      mapIds: byCharacter.get(row.id) ?? [],
+    }));
+  }
+
+  getCharacter(characterId: string): CharacterState | null {
+    const row = this.db.prepare("SELECT * FROM characters WHERE id = ?").get(characterId) as
+      | CharacterRow
+      | undefined;
+    if (!row) {
+      return null;
+    }
+    const mapIds = (
+      this.db
+        .prepare("SELECT map_id FROM character_maps WHERE character_id = ?")
+        .all(characterId) as Array<{ map_id: string }>
+    ).map((entry) => entry.map_id);
+    return {
+      id: row.id,
+      roomId: row.room_id,
+      name: row.name,
+      kind: row.kind as CharacterKind,
+      image: row.image,
+      sizeCells: row.size_cells,
+      mapIds,
+    };
+  }
+
+  upsertCharacter(input: {
+    id?: string;
+    roomId: string;
+    name: string;
+    kind: CharacterKind;
+    image?: string | null;
+    sizeCells?: number;
+    mapIds?: string[];
+  }): CharacterState {
+    const id = input.id ?? makeId();
+    const existing = input.id ? this.getCharacter(input.id) : null;
+    if (existing && existing.roomId !== input.roomId) {
+      throw new Error("Character not found");
+    }
+    if (existing) {
+      this.db
+        .prepare(
+          `UPDATE characters SET name = ?, kind = ?, image = ?, size_cells = ? WHERE id = ?`,
+        )
+        .run(
+          input.name,
+          input.kind,
+          input.image ?? existing.image,
+          input.sizeCells ?? existing.sizeCells,
+          id,
+        );
+    } else {
+      this.db
+        .prepare(
+          `INSERT INTO characters (id, room_id, name, kind, image, size_cells)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          input.roomId,
+          input.name,
+          input.kind,
+          input.image ?? null,
+          input.sizeCells ?? 1,
+        );
+    }
+
+    if (input.mapIds) {
+      this.setCharacterMaps(id, input.roomId, input.mapIds);
+    }
+
+    this.syncTokensForActiveMap(input.roomId);
+    const character = this.getCharacter(id);
+    if (!character) {
+      throw new Error("Failed to persist character");
+    }
+    return character;
+  }
+
+  removeCharacter(characterId: string): { roomId: string } {
+    const character = this.getCharacter(characterId);
+    if (!character) {
+      throw new Error("Character not found");
+    }
+    this.db.prepare("DELETE FROM tokens WHERE character_id = ?").run(characterId);
+    this.db.prepare("DELETE FROM character_maps WHERE character_id = ?").run(characterId);
+    this.db.prepare("DELETE FROM characters WHERE id = ?").run(characterId);
+    return { roomId: character.roomId };
+  }
+
+  private setCharacterMaps(characterId: string, roomId: string, mapIds: string[]): void {
+    const roomMaps = new Set(this.listMaps(roomId).map((map) => map.id));
+    const valid = [...new Set(mapIds)].filter((mapId) => roomMaps.has(mapId));
+    const existing = this.db
+      .prepare("SELECT map_id, x, y FROM character_maps WHERE character_id = ?")
+      .all(characterId) as Array<{ map_id: string; x: number; y: number }>;
+    const positions = new Map(existing.map((row) => [row.map_id, { x: row.x, y: row.y }]));
+    this.db.prepare("DELETE FROM character_maps WHERE character_id = ?").run(characterId);
+    const insert = this.db.prepare(
+      `INSERT INTO character_maps (character_id, map_id, x, y) VALUES (?, ?, ?, ?)`,
+    );
+    for (const mapId of valid) {
+      const pos = positions.get(mapId) ?? { x: 1, y: 1 };
+      insert.run(characterId, mapId, pos.x, pos.y);
+    }
+    if (valid.length === 0) {
+      this.db.prepare("DELETE FROM tokens WHERE character_id = ?").run(characterId);
+      return;
+    }
+    this.db
+      .prepare(
+        `DELETE FROM tokens WHERE character_id = ? AND (map_id IS NULL OR map_id NOT IN (${valid
+          .map(() => "?")
+          .join(",")}))`,
+      )
+      .run(characterId, ...valid);
+  }
+
+  syncTokensForActiveMap(roomId: string): TokenState[] {
+    const active = this.getActiveMap(roomId);
+    if (!active) {
+      return this.listVisibleTokens(roomId);
+    }
+    const characters = this.listCharacters(roomId);
+    const placements = this.db
+      .prepare("SELECT character_id, map_id, x, y FROM character_maps WHERE map_id = ?")
+      .all(active.id) as Array<{ character_id: string; map_id: string; x: number; y: number }>;
+    const byId = new Map(characters.map((character) => [character.id, character]));
+    const existing = this.db
+      .prepare("SELECT * FROM tokens WHERE room_id = ? AND map_id = ?")
+      .all(roomId, active.id) as TokenRow[];
+    const byCharacter = new Map(
+      existing
+        .filter((row) => row.character_id)
+        .map((row) => [row.character_id as string, row]),
+    );
+
+    for (const placement of placements) {
+      const character = byId.get(placement.character_id);
+      if (!character) {
+        continue;
+      }
+      const tokenRow = byCharacter.get(character.id);
+      if (tokenRow) {
+        this.db
+          .prepare(
+            `UPDATE tokens SET label = ?, image = ?, size_cells = ?, is_player = ?, x = ?, y = ?
+             WHERE id = ?`,
+          )
+          .run(
+            character.name,
+            character.image,
+            character.sizeCells,
+            character.kind === "pc" ? 1 : 0,
+            placement.x,
+            placement.y,
+            tokenRow.id,
+          );
+      } else {
+        this.createToken({
+          roomId,
+          label: character.name,
+          image: character.image,
+          x: placement.x,
+          y: placement.y,
+          sizeCells: character.sizeCells,
+          isPlayer: character.kind === "pc",
+          mapId: active.id,
+          characterId: character.id,
+        });
+      }
+    }
+
+    const linkedIds = new Set(placements.map((placement) => placement.character_id));
+    for (const row of existing) {
+      if (row.character_id && !linkedIds.has(row.character_id)) {
+        this.db.prepare("DELETE FROM tokens WHERE id = ?").run(row.id);
+      }
+    }
+
+    return this.listVisibleTokens(roomId);
+  }
+
+  listTokens(roomId: string): TokenState[] {
+    return this.listVisibleTokens(roomId);
+  }
+
+  listVisibleTokens(roomId: string): TokenState[] {
+    const active = this.getActiveMap(roomId);
+    const visibility = this.getVisibility(roomId);
+    let rows: TokenRow[];
+    if (active) {
+      rows = this.db
+        .prepare("SELECT * FROM tokens WHERE room_id = ? AND map_id = ? ORDER BY label ASC")
+        .all(roomId, active.id) as TokenRow[];
+    } else {
+      rows = this.db
+        .prepare("SELECT * FROM tokens WHERE room_id = ? ORDER BY label ASC")
+        .all(roomId) as TokenRow[];
+    }
+    return rows
+      .map(tokenRowToState)
+      .filter((token) => (token.isPlayer ? visibility.showPcs : visibility.showNpcs));
+  }
+
+  listAllTokensOnActiveMap(roomId: string): TokenState[] {
+    const active = this.getActiveMap(roomId);
+    if (!active) {
+      const rows = this.db
+        .prepare("SELECT * FROM tokens WHERE room_id = ? ORDER BY label ASC")
+        .all(roomId) as TokenRow[];
+      return rows.map(tokenRowToState);
+    }
+    const rows = this.db
+      .prepare("SELECT * FROM tokens WHERE room_id = ? AND map_id = ? ORDER BY label ASC")
+      .all(roomId, active.id) as TokenRow[];
     return rows.map(tokenRowToState);
   }
 
@@ -152,12 +533,15 @@ export class RoomStore {
     y: number;
     sizeCells?: number;
     isPlayer?: boolean;
+    mapId?: string | null;
+    characterId?: string | null;
   }): TokenState {
     const id = makeId();
+    const mapId = input.mapId ?? this.getActiveMap(input.roomId)?.id ?? null;
     this.db
       .prepare(
-        `INSERT INTO tokens (id, room_id, label, image, x, y, size_cells, is_player)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO tokens (id, room_id, label, image, x, y, size_cells, is_player, map_id, character_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -168,7 +552,18 @@ export class RoomStore {
         input.y,
         input.sizeCells ?? 1,
         input.isPlayer ? 1 : 0,
+        mapId,
+        input.characterId ?? null,
       );
+    if (input.characterId && mapId) {
+      this.db
+        .prepare(
+          `INSERT INTO character_maps (character_id, map_id, x, y)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(character_id, map_id) DO UPDATE SET x = excluded.x, y = excluded.y`,
+        )
+        .run(input.characterId, mapId, input.x, input.y);
+    }
     const token = this.getToken(id);
     if (!token) {
       throw new Error("Failed to persist token");
@@ -182,11 +577,24 @@ export class RoomStore {
     if (!token) {
       throw new Error("Token not found");
     }
+    if (token.characterId && token.mapId) {
+      this.db
+        .prepare(
+          `UPDATE character_maps SET x = ?, y = ? WHERE character_id = ? AND map_id = ?`,
+        )
+        .run(x, y, token.characterId, token.mapId);
+    }
     return token;
   }
 
   removeToken(tokenId: string): void {
+    const token = this.getToken(tokenId);
     this.db.prepare("DELETE FROM tokens WHERE id = ?").run(tokenId);
+    if (token?.characterId && token.mapId) {
+      this.db
+        .prepare("DELETE FROM character_maps WHERE character_id = ? AND map_id = ?")
+        .run(token.characterId, token.mapId);
+    }
   }
 
   getCamera(roomId: string): CameraState | null {
@@ -214,18 +622,24 @@ export class RoomStore {
       return null;
     }
     const order = JSON.parse(row.order_json) as InitiativeState["order"];
-    return { order, activeIndex: row.active_index };
+    return { order, activeIndex: row.active_index, round: row.round || 1 };
   }
 
   setInitiative(roomId: string, initiative: InitiativeState): InitiativeState {
     this.db
       .prepare(
-        `INSERT INTO room_initiative (room_id, order_json, active_index) VALUES (?, ?, ?)
+        `INSERT INTO room_initiative (room_id, order_json, active_index, round) VALUES (?, ?, ?, ?)
          ON CONFLICT(room_id) DO UPDATE SET
            order_json = excluded.order_json,
-           active_index = excluded.active_index`,
+           active_index = excluded.active_index,
+           round = excluded.round`,
       )
-      .run(roomId, JSON.stringify(initiative.order), initiative.activeIndex);
+      .run(
+        roomId,
+        JSON.stringify(initiative.order),
+        initiative.activeIndex,
+        initiative.round,
+      );
     return initiative;
   }
 
@@ -260,8 +674,11 @@ export class RoomStore {
     }
     return {
       room,
-      map: this.getMap(roomId),
-      tokens: this.listTokens(roomId),
+      map: this.getActiveMap(roomId),
+      maps: this.listMaps(roomId),
+      tokens: this.listVisibleTokens(roomId),
+      characters: this.listCharacters(roomId),
+      visibility: this.getVisibility(roomId),
       camera: this.getCamera(roomId),
       initiative: this.getInitiative(roomId),
       role,
@@ -274,6 +691,7 @@ function mapRowToState(row: MapRow): MapState {
   return {
     id: row.id,
     roomId: row.room_id,
+    name: row.name || deriveMapName(row.filename),
     filename: row.filename,
     width: row.width,
     height: row.height,
@@ -293,7 +711,14 @@ function tokenRowToState(row: TokenRow): TokenState {
     y: row.y,
     sizeCells: row.size_cells,
     isPlayer: row.is_player === 1,
+    mapId: row.map_id,
+    characterId: row.character_id,
   };
+}
+
+function deriveMapName(filename: string): string {
+  const base = filename.replace(/^\d+-[\w]+-?/, "").replace(/\.[^.]+$/, "");
+  return base || "Map";
 }
 
 export function roomChannel(roomId: string): string {

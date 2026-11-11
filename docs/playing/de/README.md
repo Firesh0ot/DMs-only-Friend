@@ -2,43 +2,49 @@
 
 Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (GM-Laptop + TV/Tablet als Spielbrett); Remote-Spieler joinen per Link.
 
-> Stub: Screenshots und detaillierte Abläufe folgen, sobald die UX feststeht.
-
 ## Rollen
 
 | Rolle | Sicht |
 |---|---|
-| **GM** | Karte, Tokens, Initiative, Würfel, Raum-Links |
-| **Player-Screen** | Vollbild-Karte + Tokens; Kamera folgt dem GM; Initiative-Banner |
-| **Remote-Spieler** | Wie Player-Screen, plus Steuerung des eigenen Tokens |
+| **GM** | **Settings** für Vorbereitung; **Play** mit schwebenden Inseln (Map, Initiative, NPCs) |
+| **Player-Screen** | Vollbild-Karte + TCG-Initiative-Leiste; Kamera folgt dem GM |
+| **Remote-Spieler** | Wie Player-Screen, plus Steuerung des eigenen Tokens (Label = Name) |
 
-## Phase 1 — was heute funktioniert
+## GM-Vorbereitung (Settings)
 
-- Raum auf der Startseite erstellen; GM-Link öffnen.
-- **Screen**-Link für TV/Tablet am Tisch teilen.
-- **Spieler**-Join-Link (Code + Rolle) für Remote-Spieler teilen.
-- PNG/JPG-Karte hochladen; Rastergröße (`grid_px`) manuell setzen.
-- Tokens platzieren und ziehen; Snap aufs Raster; Live-Sync im Raum.
-- Player-Screen-Kamera **folgt dem GM** (kein eigenes Pan/Zoom).
-- Minimale Initiative / Zugmarkierung.
-- Einfache Würfelwürfe (`NdM+K`), serverseitig gewürfelt, für alle sichtbar.
+1. Raum auf der Startseite erstellen und GM-Link öffnen.
+2. Eine oder mehrere Karten hochladen; je Karte `grid_px` setzen.
+3. Screen-/Player-Links teilen.
+4. PCs und NPCs anlegen; Häkchen setzen, auf welchen Karten sie erscheinen.
+5. Für die Session auf **Play** wechseln.
 
-## Geplant (noch nicht ausgeliefert)
+## GM-Spiel
 
-- **Settings**-Insel für Prep: Karten, Raster, Links, PC/NPC-Roster.
-- **Play**-Modus mit schwebenden Control-Inseln (Kartensteuerung, Initiative + nächster Zug, NPCs; Ecken-Snap; Persistenz pro Raum).
-- Player-Screen bleibt ohne Inseln; später TCG-artige Seiten-UI für Runde/Initiative.
+Schwebende Inseln um die Karte:
+
+- **Map** — aktive Karte wechseln; PCs/NPCs gruppenweise ein-/ausblenden.
+- **Initiative** — Werte, Reihenfolge, Next Turn (Runde steigt beim Überlauf).
+- **NPCs** — NPCs spawnen oder aus dem Roster auf die aktuelle Karte setzen.
+
+**Snap** verschiebt eine Insel zur nächsten Ecke. Positionen bleiben pro Raum im Browser erhalten.
+
+Kartenwechsel lädt die verknüpften Charaktere und entfernt die übrigen. Tokens snappen aufs Raster und syncen live. Pan/Zoom der GM-Ansicht folgen Screen und Spieler.
+
+## Screen / Player
+
+Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Pan/Zoom folgt dem GM.
 
 ## Schnellstart (Tisch)
 
 1. App starten (Self-Hosting oder lokal `npm run dev`).
 2. GM erstellt einen Raum → GM-URL öffnen.
 3. Screen-URL auf dem TV/Tablet öffnen.
-4. Karte hochladen, Tokens setzen, Initiative und Würfel nach Bedarf nutzen.
+4. In Settings: Karten und Roster pflegen; dann Play.
 5. Optional: Remote-Spielern ihre Join-Links schicken.
 
 ## Weiteres
 
-- English stub: [../en/README.md](../en/README.md)
+- English: [../en/README.md](../en/README.md)
 - Phase-1-Spezifikation: [../../phase-1.md](../../phase-1.md)
+- Prep/Play-ADR: [../../decisions/0003-prep-play-ux.md](../../decisions/0003-prep-play-ux.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

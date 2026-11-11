@@ -1,9 +1,18 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ClientEvents, type CameraState, type Role } from "@dms/shared";
 import { MapCanvas } from "../canvas/MapCanvas";
-import { GmToolbar } from "../components/GmToolbar";
-import { InitiativeBanner } from "../components/InitiativeBanner";
-import { InitiativePanel } from "../components/InitiativePanel";
+import { InitiativeIsland } from "../components/InitiativeIsland";
+import { InitiativeRail } from "../components/InitiativeRail";
+import { MapControlIsland } from "../components/MapControlIsland";
+import { NpcIsland } from "../components/NpcIsland";
+import { SettingsPanel } from "../components/SettingsPanel";
+import {
+  loadIslandLayout,
+  nextCorner,
+  saveIslandLayout,
+  type IslandId,
+  type IslandLayout,
+} from "../lib/islandLayout";
 import { getSocket } from "../socket/socket";
 import { useRoomStore } from "../state/roomStore";
 
@@ -13,6 +22,8 @@ type Props = {
   name: string | null;
 };
 
+type GmMode = "play" | "settings";
+
 export function RoomPage({ code, role, name }: Props) {
   const joinRoom = useRoomStore((state) => state.joinRoom);
   const snapshot = useRoomStore((state) => state.snapshot);
@@ -21,6 +32,9 @@ export function RoomPage({ code, role, name }: Props) {
   const error = useRoomStore((state) => state.error);
   const connected = useRoomStore((state) => state.connected);
   const moveTokenOptimistic = useRoomStore((state) => state.moveTokenOptimistic);
+
+  const [gmMode, setGmMode] = useState<GmMode>("play");
+  const [islandLayout, setIslandLayout] = useState<IslandLayout | null>(null);
 
   const tokens = useMemo(() => {
     if (!snapshot) {
@@ -32,6 +46,13 @@ export function RoomPage({ code, role, name }: Props) {
   useEffect(() => {
     void joinRoom(code, role, name ?? undefined);
   }, [code, role, name, joinRoom]);
+
+  useEffect(() => {
+    if (!snapshot?.room.id || role !== "gm") {
+      return;
+    }
+    setIslandLayout(loadIslandLayout(snapshot.room.id));
+  }, [snapshot?.room.id, role]);
 
   const activeTokenId = useMemo(() => {
     const initiative = snapshot?.initiative;
@@ -53,42 +74,71 @@ export function RoomPage({ code, role, name }: Props) {
     getSocket().emit(ClientEvents.CameraSet, camera);
   }
 
+  function cycleIsland(id: IslandId) {
+    if (!snapshot || !islandLayout) {
+      return;
+    }
+    const next = { ...islandLayout, [id]: nextCorner(islandLayout[id]) };
+    setIslandLayout(next);
+    saveIslandLayout(snapshot.room.id, next);
+  }
+
+  const isGm = role === "gm";
+  const showSettings = isGm && gmMode === "settings";
+  const showPlayChrome = isGm && gmMode === "play" && islandLayout;
+
   return (
-    <main className="app-shell">
-      <p className="muted">
-        {connected ? "Connected" : "Connecting…"} · role <strong>{role}</strong>
-        {snapshot?.playerName ? ` · ${snapshot.playerName}` : ""}
-      </p>
-      <h1 className="brand">Room {code}</h1>
+    <main className={isGm || role === "screen" || role === "player" ? "play-shell" : "app-shell"}>
+      <header className="play-topbar">
+        <div>
+          <p className="muted">
+            {connected ? "Connected" : "Connecting…"} · {role}
+            {snapshot?.playerName ? ` · ${snapshot.playerName}` : ""}
+          </p>
+          <h1 className="brand brand--compact">Room {code}</h1>
+        </div>
+        <div className="row">
+          {isGm ? (
+            <>
+              <button
+                className={gmMode === "play" ? undefined : "secondary"}
+                onClick={() => setGmMode("play")}
+              >
+                Play
+              </button>
+              <button
+                className={gmMode === "settings" ? undefined : "secondary"}
+                onClick={() => setGmMode("settings")}
+              >
+                Settings
+              </button>
+            </>
+          ) : (
+            <a href="#/">Home</a>
+          )}
+        </div>
+      </header>
+
       {joining ? <p className="lede">Joining room…</p> : null}
       {error ? <p className="error">{error}</p> : null}
 
-      {snapshot ? (
-        <div className="room-layout">
-          <div className="stack">
-            {role === "gm" ? (
-              <>
-                <GmToolbar code={code} tokens={tokens} gridPx={snapshot.map?.gridPx ?? 70} />
-                <InitiativePanel tokens={tokens} initiative={snapshot.initiative} />
-              </>
-            ) : (
-              <section className="panel stack">
-                <h2>{role === "screen" ? "Player screen" : "Player view"}</h2>
-                <p className="muted">
-                  Camera follows the GM.{" "}
-                  {role === "player"
-                    ? "Drag only your own token (matching your name)."
-                    : "Watch-only tokens."}
-                </p>
-                <a href="#/">Back home</a>
-              </section>
-            )}
-          </div>
+      {snapshot && showSettings ? (
+        <SettingsPanel
+          code={code}
+          maps={snapshot.maps}
+          activeMapId={snapshot.map?.id ?? null}
+          characters={snapshot.characters}
+          onClose={() => setGmMode("play")}
+        />
+      ) : null}
 
-          <section className="stack">
-            <InitiativeBanner initiative={snapshot.initiative} />
+      {snapshot && !showSettings ? (
+        <div className={`play-stage ${role !== "gm" ? "play-stage--with-rail" : ""}`}>
+          {role !== "gm" ? <InitiativeRail initiative={snapshot.initiative} /> : null}
+
+          <div className="play-stage__map">
             {!snapshot.map ? (
-              <p className="lede">Waiting for the GM to upload a map…</p>
+              <p className="lede play-stage__empty">Waiting for the GM to upload a map…</p>
             ) : null}
             <MapCanvas
               map={snapshot.map}
@@ -100,7 +150,32 @@ export function RoomPage({ code, role, name }: Props) {
               onTokenMove={onTokenMove}
               onCameraChange={onCameraChange}
             />
-          </section>
+
+            {showPlayChrome ? (
+              <>
+                <MapControlIsland
+                  maps={snapshot.maps}
+                  activeMap={snapshot.map}
+                  visibility={snapshot.visibility}
+                  corner={islandLayout.map}
+                  onCycleCorner={() => cycleIsland("map")}
+                />
+                <InitiativeIsland
+                  tokens={tokens}
+                  initiative={snapshot.initiative}
+                  corner={islandLayout.initiative}
+                  onCycleCorner={() => cycleIsland("initiative")}
+                />
+                <NpcIsland
+                  characters={snapshot.characters}
+                  tokens={tokens}
+                  activeMapId={snapshot.map?.id ?? null}
+                  corner={islandLayout.npcs}
+                  onCycleCorner={() => cycleIsland("npcs")}
+                />
+              </>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </main>

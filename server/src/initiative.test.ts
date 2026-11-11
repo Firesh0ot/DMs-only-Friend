@@ -28,13 +28,16 @@ describe("initiative persistence", () => {
         { tokenId: goblin.id, label: "Goblin", initiative: 12 },
       ],
       activeIndex: 0,
+      round: 1,
     });
     expect(first.activeIndex).toBe(0);
+    expect(first.round).toBe(1);
 
     const nextIndex = (first.activeIndex + 1) % first.order.length;
     const second = store.setInitiative(room.id, {
       order: first.order,
       activeIndex: nextIndex,
+      round: 1,
     });
     expect(second.activeIndex).toBe(1);
     expect(store.getInitiative(room.id)?.order[1]?.label).toBe("Goblin");

@@ -2,12 +2,14 @@ import {
   ClientEvents,
   ServerEvents,
   type CameraState,
+  type CharacterState,
   type DiceRolled,
   type InitiativeState,
   type MapState,
   type Role,
   type Snapshot,
   type TokenState,
+  type VisibilityState,
 } from "@dms/shared";
 import { create } from "zustand";
 import { getSocket } from "../socket/socket";
@@ -21,7 +23,11 @@ type RoomStore = {
   optimisticTokens: Record<string, TokenState>;
   joinRoom: (code: string, role: Role, name?: string) => Promise<void>;
   applySnapshot: (snapshot: Snapshot) => void;
-  setMap: (map: MapState) => void;
+  setMap: (map: MapState | null) => void;
+  setMaps: (maps: MapState[]) => void;
+  setTokens: (tokens: TokenState[]) => void;
+  setCharacters: (characters: CharacterState[]) => void;
+  setVisibility: (visibility: VisibilityState) => void;
   upsertToken: (token: TokenState) => void;
   removeToken: (tokenId: string) => void;
   setCamera: (camera: CameraState) => void;
@@ -54,6 +60,38 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       return;
     }
     set({ snapshot: { ...snapshot, map } });
+  },
+
+  setMaps: (maps) => {
+    const snapshot = get().snapshot;
+    if (!snapshot) {
+      return;
+    }
+    set({ snapshot: { ...snapshot, maps } });
+  },
+
+  setTokens: (tokens) => {
+    const snapshot = get().snapshot;
+    if (!snapshot) {
+      return;
+    }
+    set({ snapshot: { ...snapshot, tokens }, optimisticTokens: {} });
+  },
+
+  setCharacters: (characters) => {
+    const snapshot = get().snapshot;
+    if (!snapshot) {
+      return;
+    }
+    set({ snapshot: { ...snapshot, characters } });
+  },
+
+  setVisibility: (visibility) => {
+    const snapshot = get().snapshot;
+    if (!snapshot) {
+      return;
+    }
+    set({ snapshot: { ...snapshot, visibility } });
   },
 
   upsertToken: (token) => {
@@ -155,6 +193,10 @@ export function bindSocketListeners(): void {
 
   socket.on(ServerEvents.Snapshot, (snapshot) => store().applySnapshot(snapshot));
   socket.on(ServerEvents.MapSet, (map) => store().setMap(map));
+  socket.on(ServerEvents.MapsUpdated, (maps) => store().setMaps(maps));
+  socket.on(ServerEvents.TokensSynced, (tokens) => store().setTokens(tokens));
+  socket.on(ServerEvents.CharactersUpdated, (characters) => store().setCharacters(characters));
+  socket.on(ServerEvents.VisibilityUpdated, (visibility) => store().setVisibility(visibility));
   socket.on(ServerEvents.TokenCreated, (token) => store().upsertToken(token));
   socket.on(ServerEvents.TokenMoved, (token) => store().upsertToken(token));
   socket.on(ServerEvents.TokenRemoved, ({ tokenId }) => store().removeToken(tokenId));

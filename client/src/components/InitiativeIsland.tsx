@@ -1,13 +1,17 @@
 import { useMemo, useState } from "react";
 import { ClientEvents, type InitiativeState, type TokenState } from "@dms/shared";
 import { getSocket } from "../socket/socket";
+import { PlayIsland } from "./PlayIsland";
+import type { Corner } from "../lib/islandLayout";
 
 type Props = {
   tokens: TokenState[];
   initiative: InitiativeState | null;
+  corner: Corner;
+  onCycleCorner: () => void;
 };
 
-export function InitiativePanel({ tokens, initiative }: Props) {
+export function InitiativeIsland({ tokens, initiative, corner, onCycleCorner }: Props) {
   const [draft, setDraft] = useState<Record<string, string>>({});
 
   const rows = useMemo(() => {
@@ -37,24 +41,24 @@ export function InitiativePanel({ tokens, initiative }: Props) {
   const active = initiative?.order[initiative.activeIndex] ?? null;
 
   return (
-    <section className="panel stack">
-      <h2>Initiative</h2>
-      {active ? (
-        <p>
-          Active: <strong>{active.label}</strong> ({active.initiative})
-        </p>
-      ) : (
-        <p className="muted">No order yet</p>
-      )}
-
-      <ul className="token-list">
+    <PlayIsland title="Initiative" corner={corner} onCycleCorner={onCycleCorner}>
+      <p>
+        Round <strong>{initiative?.round ?? 1}</strong>
+        {active ? (
+          <>
+            {" "}
+            · <strong>{active.label}</strong>
+          </>
+        ) : null}
+      </p>
+      <ul className="token-list compact">
         {rows.map((row) => {
           const isActive = active?.tokenId === row.token.id;
           return (
             <li key={row.token.id} className={isActive ? "active" : undefined}>
               <span>{row.token.label}</span>
               <input
-                style={{ maxWidth: "5rem" }}
+                style={{ maxWidth: "4.5rem" }}
                 inputMode="numeric"
                 value={row.value}
                 placeholder="init"
@@ -66,15 +70,14 @@ export function InitiativePanel({ tokens, initiative }: Props) {
           );
         })}
       </ul>
-
       <div className="row">
         <button onClick={setOrder} disabled={tokens.length === 0}>
-          Set order
+          Set
         </button>
         <button className="secondary" onClick={nextTurn} disabled={!initiative?.order.length}>
-          Next turn
+          Next
         </button>
       </div>
-    </section>
+    </PlayIsland>
   );
 }

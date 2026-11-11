@@ -1,6 +1,6 @@
 # Developing — DMs-only-Friend
 
-English developer guide: local setup, monorepo layout, and pointers into architecture docs.
+English developer guide: local setup, monorepo layout, Prep/Play architecture notes, and pointers into ADRs.
 
 ## Setup
 
@@ -36,6 +36,18 @@ npm workspaces:
 | `client/` | Vite + React + TypeScript, PixiJS v8 map canvas, Zustand |
 
 Uploads land under `server/uploads/`. Persistence is SQLite.
+
+## Prep / Play architecture
+
+See [ADR 0003](../decisions/0003-prep-play-ux.md).
+
+- Multi-map: `maps` rows + `rooms.active_map_id`; upload **adds** a map.
+- Roster: `characters` + `character_maps`; activating a map syncs tokens for linked characters.
+- Visibility: `rooms.show_pcs` / `show_npcs`; snapshot tokens are filtered server-side.
+- Initiative: `room_initiative` includes `round`.
+- Island layout: client-only `localStorage` key `dms-islands:<roomId>`.
+
+Out of scope in that cut: Fog, `.dd2vtt` import, battle log, full monster stats. Dice remain on the wire but are not a Play island priority.
 
 ## Architecture pointers
 
