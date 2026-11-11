@@ -6,7 +6,24 @@ Normally DMs have no friends. But this web app doesn't judge good throws.
 
 ## Status
 
-Planungsphase – Umsetzung via [docs/phase-1.md](docs/phase-1.md).
+Phase 1 in progress – monorepo + room create/join/snapshot are live. Map/tokens and initiative follow in stacked PRs. Spec: [docs/phase-1.md](docs/phase-1.md).
+
+## Dev
+
+```bash
+npm install
+npm run dev
+```
+
+- Client: http://localhost:5173
+- Server: http://localhost:3001
+- Test map fixture: `fixtures/dungeon-map-for-testing.png`
+
+```bash
+npm run lint
+npm run test
+npm run build
+```
 
 ## Kernentscheidungen
 
