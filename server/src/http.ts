@@ -182,6 +182,7 @@ export function createHttpApp(deps: HttpDeps): Express {
           offsetY: stored.offsetY,
           walls: stored.walls,
           portals: stored.portals,
+          lights: stored.lights,
         });
         deps.rooms.syncTokensForActiveMap(room.id);
         const active = deps.rooms.getActiveMap(room.id);
@@ -332,6 +333,14 @@ function materializeUploadedMap(
     closed: boolean;
     freestanding: boolean;
   }>;
+  lights: Array<{
+    id: string;
+    position: { x: number; y: number };
+    range: number;
+    intensity: number;
+    color: string;
+    shadows: boolean;
+  }>;
 } {
   if (isDd2vttUpload(file)) {
     const parsed = parseDd2vtt(fs.readFileSync(file.path));
@@ -349,6 +358,7 @@ function materializeUploadedMap(
       offsetY: parsed.offsetY,
       walls: parsed.walls,
       portals: parsed.portals,
+      lights: parsed.lights,
     };
   }
 
@@ -367,5 +377,6 @@ function materializeUploadedMap(
     offsetY: 0,
     walls: [],
     portals: [],
+    lights: [],
   };
 }

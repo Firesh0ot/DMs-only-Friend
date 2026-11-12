@@ -235,9 +235,20 @@ describe("event schemas", () => {
           closed: true,
         },
       ],
+      lights: [
+        {
+          id: "light-0",
+          position: { x: 2, y: 2 },
+          range: 3,
+          intensity: 0.75,
+          color: "ffcc88",
+        },
+      ],
     });
     expect(map.portals[0]?.freestanding).toBe(false);
     expect(map.portals[0]?.closed).toBe(true);
+    expect(map.lights[0]?.shadows).toBe(true);
+    expect(map.lights[0]?.color).toBe("ffcc88");
 
     const payload = PortalSetClosedPayloadSchema.parse({
       mapId: "map-1",

@@ -59,6 +59,7 @@ type MapRow = {
   offset_y: number;
   walls_json: string | null;
   portals_json: string | null;
+  lights_json: string | null;
 };
 type TokenRow = {
   id: string;
@@ -240,13 +241,14 @@ export class RoomStore {
       offsetY?: number;
       walls?: MapState["walls"];
       portals?: MapState["portals"];
+      lights?: MapState["lights"];
     },
   ): MapState {
     const id = makeId();
     this.db
       .prepare(
-        `INSERT INTO maps (id, room_id, name, filename, width, height, grid_px, offset_x, offset_y, walls_json, portals_json)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO maps (id, room_id, name, filename, width, height, grid_px, offset_x, offset_y, walls_json, portals_json, lights_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -260,6 +262,7 @@ export class RoomStore {
         input.offsetY ?? 0,
         JSON.stringify(input.walls ?? []),
         JSON.stringify(input.portals ?? []),
+        JSON.stringify(input.lights ?? []),
       );
     const room = this.getRoomRow(roomId);
     if (!room?.active_map_id) {
@@ -1548,6 +1551,7 @@ function mapRowToState(row: MapRow): MapState {
     offsetY: row.offset_y,
     walls: parseWallsJson(row.walls_json),
     portals: parsePortalsJson(row.portals_json),
+    lights: parseLightsJson(row.lights_json),
   };
 }
 
@@ -1630,6 +1634,61 @@ function parsePortalsJson(raw: string | null | undefined): MapState["portals"] {
       });
     }
     return portals;
+  } catch {
+    return [];
+  }
+}
+
+function parseLightsJson(raw: string | null | undefined): MapState["lights"] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    const lights: MapState["lights"] = [];
+    for (const entry of parsed) {
+      if (!entry || typeof entry !== "object") {
+        continue;
+      }
+      const record = entry as {
+        id?: unknown;
+        position?: unknown;
+        range?: unknown;
+        intensity?: unknown;
+        color?: unknown;
+        shadows?: unknown;
+      };
+      if (typeof record.id !== "string" || record.id.length === 0) {
+        continue;
+      }
+      if (!record.position || typeof record.position !== "object") {
+        continue;
+      }
+      const position = record.position as { x?: unknown; y?: unknown };
+      if (typeof position.x !== "number" || typeof position.y !== "number") {
+        continue;
+      }
+      if (typeof record.range !== "number" || !(record.range > 0)) {
+        continue;
+      }
+      if (typeof record.color !== "string" || !/^[0-9a-fA-F]{6}$/.test(record.color)) {
+        continue;
+      }
+      const intensity =
+        typeof record.intensity === "number" ? Math.min(1, Math.max(0, record.intensity)) : 1;
+      lights.push({
+        id: record.id,
+        position: { x: position.x, y: position.y },
+        range: record.range,
+        intensity,
+        color: record.color.toLowerCase(),
+        shadows: record.shadows !== false,
+      });
+    }
+    return lights;
   } catch {
     return [];
   }

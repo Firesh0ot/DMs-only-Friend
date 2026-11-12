@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { isDd2vttUpload, parseDd2vtt } from "./dd2vtt.js";
+import { isDd2vttUpload, normalizeLightColor, parseDd2vtt } from "./dd2vtt.js";
 
 describe("parseDd2vtt", () => {
   it("extracts image, grid, offsets, and walls from a tiny fixture", () => {
@@ -16,6 +16,15 @@ describe("parseDd2vtt", () => {
     expect(parsed.walls).toHaveLength(2);
     expect(parsed.walls[0]?.[0]).toEqual({ x: 0, y: 0 });
     expect(parsed.portals).toEqual([]);
+    expect(parsed.lights).toHaveLength(1);
+    expect(parsed.lights[0]).toMatchObject({
+      id: "light-0",
+      position: { x: 1, y: 0.5 },
+      range: 1.5,
+      intensity: 0.8,
+      color: "eccd8b",
+      shadows: true,
+    });
     expect(parsed.mapSizeCells).toEqual({ x: 2, y: 1 });
   });
 
@@ -29,12 +38,21 @@ describe("parseDd2vtt", () => {
     expect(parsed.portals[0]?.id).toBe("portal-0");
     expect(parsed.portals[0]?.closed).toBe(true);
     expect(parsed.portals[0]?.bounds).toHaveLength(2);
+    expect(parsed.lights).toEqual([]);
     expect(parsed.imageExt).toBe(".png");
     expect(parsed.mapSizeCells).toEqual({ x: 50, y: 36 });
   });
 
   it("rejects malformed JSON", () => {
     expect(() => parseDd2vtt("{nope")).toThrow(/not valid JSON/);
+  });
+});
+
+describe("normalizeLightColor", () => {
+  it("strips UVTT ARGB alpha and accepts RRGGBB", () => {
+    expect(normalizeLightColor("ffeccd8b")).toBe("eccd8b");
+    expect(normalizeLightColor("#AABBCC")).toBe("aabbcc");
+    expect(normalizeLightColor("nope")).toBeNull();
   });
 });
 

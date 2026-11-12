@@ -22,6 +22,12 @@ import type {
 } from "@dms/shared";
 import { downsamplePoints } from "./fogPoints";
 import { drawFogStroke, renderFogMask } from "./fogRender";
+import {
+  createSoftLightTexture,
+  lightTintFromColor,
+  lightWorldPosition,
+  softLightAlpha,
+} from "./mapLights";
 
 export type FogToolMode = "off" | "brush" | "rect";
 
@@ -60,6 +66,8 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
   const appRef = useRef<Application | null>(null);
   const worldRef = useRef<Container | null>(null);
   const mapLayerRef = useRef<Container | null>(null);
+  const lightLayerRef = useRef<Container | null>(null);
+  const softLightTextureRef = useRef<Texture | null>(null);
   const gridLayerRef = useRef<Graphics | null>(null);
   const wallLayerRef = useRef<Graphics | null>(null);
   const tokenLayerRef = useRef<Container | null>(null);
@@ -88,6 +96,8 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     const app = new Application();
     const world = new Container();
     const mapLayer = new Container();
+    const lightLayer = new Container();
+    lightLayer.eventMode = "none";
     const gridLayer = new Graphics();
     const wallLayer = new Graphics();
     const tokenLayer = new Container();
@@ -95,6 +105,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     const fogPreview = new Graphics();
     fogPreview.eventMode = "none";
     world.addChild(mapLayer);
+    world.addChild(lightLayer);
     world.addChild(gridLayer);
     world.addChild(wallLayer);
     world.addChild(tokenLayer);
@@ -122,6 +133,8 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       appRef.current = app;
       worldRef.current = world;
       mapLayerRef.current = mapLayer;
+      lightLayerRef.current = lightLayer;
+      softLightTextureRef.current = createSoftLightTexture();
       gridLayerRef.current = gridLayer;
       wallLayerRef.current = wallLayer;
       tokenLayerRef.current = tokenLayer;
@@ -322,6 +335,9 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       fogTextureRef.current?.destroy(true);
       fogTextureRef.current = null;
       fogSpriteRef.current = null;
+      softLightTextureRef.current?.destroy(true);
+      softLightTextureRef.current = null;
+      lightLayerRef.current = null;
       if (appRef.current) {
         appRef.current.destroy(true);
         appRef.current = null;
@@ -367,13 +383,15 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
 
   async function syncMap(map: MapState | null): Promise<void> {
     const mapLayer = mapLayerRef.current;
+    const lightLayer = lightLayerRef.current;
     const gridLayer = gridLayerRef.current;
     const wallLayer = wallLayerRef.current;
-    if (!mapLayer || !gridLayer || !wallLayer) {
+    if (!mapLayer || !lightLayer || !gridLayer || !wallLayer) {
       return;
     }
 
     mapLayer.removeChildren();
+    lightLayer.removeChildren();
     gridLayer.clear();
     wallLayer.clear();
 
@@ -390,6 +408,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     sprite.width = map.width;
     sprite.height = map.height;
     mapLayer.addChild(sprite);
+    drawLights(lightLayer, softLightTextureRef.current, map);
     drawGrid(gridLayer, map);
     if (propsRef.current.role === "gm") {
       drawWallsAndPortals(wallLayer, map, propsRef.current.role === "gm");
@@ -637,6 +656,26 @@ function drawGrid(graphics: Graphics, map: MapState): void {
     graphics.lineTo(map.width, y);
   }
   graphics.stroke();
+}
+
+function drawLights(layer: Container, texture: Texture | null, map: MapState): void {
+  layer.removeChildren();
+  if (!texture || map.lights.length === 0) {
+    return;
+  }
+  for (const light of map.lights) {
+    const placed = lightWorldPosition(light, map);
+    const sprite = new Sprite(texture);
+    sprite.anchor.set(0.5);
+    sprite.position.set(placed.x, placed.y);
+    sprite.width = placed.diameter;
+    sprite.height = placed.diameter;
+    sprite.tint = lightTintFromColor(light.color);
+    sprite.alpha = softLightAlpha(light.intensity);
+    sprite.blendMode = "add";
+    sprite.eventMode = "none";
+    layer.addChild(sprite);
+  }
 }
 
 function drawWallsAndPortals(graphics: Graphics, map: MapState, showOverlay: boolean): void {

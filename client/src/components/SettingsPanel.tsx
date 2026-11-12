@@ -526,8 +526,8 @@ export function SettingsPanel({
           />
         </label>
         <p className="muted">
-          Upload PNG/JPG/WebP (set grid_px) or Universal VTT <code>.dd2vtt</code> (grid and walls
-          come from the file).
+          Upload PNG/JPG/WebP (set grid_px) or Universal VTT <code>.dd2vtt</code> (grid, walls, doors,
+          and lights come from the file when present).
         </p>
         <div className="row settings-upload-row">
           <label className="stack" htmlFor={`${baseId}-grid`}>
@@ -563,6 +563,7 @@ export function SettingsPanel({
                     {map.width}×{map.height} · grid {map.gridPx}
                     {map.walls.length > 0 ? ` · ${map.walls.length} walls` : ""}
                     {map.portals.length > 0 ? ` · ${map.portals.length} doors` : ""}
+                    {map.lights.length > 0 ? ` · ${map.lights.length} lights` : ""}
                     {map.id === activeMapId ? " · active" : ""}
                   </span>
                   <div className="row">
