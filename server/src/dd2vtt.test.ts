@@ -15,15 +15,20 @@ describe("parseDd2vtt", () => {
     expect(parsed.imageBuffer.toString("ascii", 1, 4)).toBe("PNG");
     expect(parsed.walls).toHaveLength(2);
     expect(parsed.walls[0]?.[0]).toEqual({ x: 0, y: 0 });
+    expect(parsed.portals).toEqual([]);
     expect(parsed.mapSizeCells).toEqual({ x: 2, y: 1 });
   });
 
-  it("reads grid and walls from the dungeon testing fixture", () => {
+  it("reads grid, walls, and portals from the dungeon testing fixture", () => {
     const fixture = path.resolve(process.cwd(), "../fixtures/dungeon-map-for-testing.dd2vtt");
     const parsed = parseDd2vtt(fs.readFileSync(fixture));
     expect(parsed.gridPx).toBe(72);
     expect(parsed.walls.length).toBeGreaterThan(0);
     expect(parsed.walls.every((wall) => wall.length >= 2)).toBe(true);
+    expect(parsed.portals.length).toBe(5);
+    expect(parsed.portals[0]?.id).toBe("portal-0");
+    expect(parsed.portals[0]?.closed).toBe(true);
+    expect(parsed.portals[0]?.bounds).toHaveLength(2);
     expect(parsed.imageExt).toBe(".png");
     expect(parsed.mapSizeCells).toEqual({ x: 50, y: 36 });
   });

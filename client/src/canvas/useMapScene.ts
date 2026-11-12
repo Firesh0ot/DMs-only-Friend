@@ -38,6 +38,7 @@ export type MapSceneProps = {
   onTokenMove: (tokenId: string, x: number, y: number) => void;
   onCameraChange: (camera: CameraState) => void;
   onFogPaint: (stroke: FogStrokeInput) => void;
+  onPortalToggle?: (portalId: string, closed: boolean) => void;
 };
 
 type TokenView = {
@@ -165,6 +166,15 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
             startWorld: worldPoint,
           };
           return;
+        }
+
+        if (map && fogTool === "off" && event.button === 0 && propsRef.current.onPortalToggle) {
+          const worldPoint = screenToWorld(event.global.x, event.global.y);
+          const hit = hitTestPortal(map, worldPoint);
+          if (hit) {
+            propsRef.current.onPortalToggle(hit.id, !hit.closed);
+            return;
+          }
         }
 
         dragRef.current = {
@@ -381,7 +391,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     mapLayer.addChild(sprite);
     drawGrid(gridLayer, map);
     if (propsRef.current.role === "gm") {
-      drawWalls(wallLayer, map);
+      drawWallsAndPortals(wallLayer, map, propsRef.current.role === "gm");
     }
     ensureFogTexture(map);
     syncFog(propsRef.current.fog, map, propsRef.current.tokens, propsRef.current.role);
@@ -628,24 +638,87 @@ function drawGrid(graphics: Graphics, map: MapState): void {
   graphics.stroke();
 }
 
-function drawWalls(graphics: Graphics, map: MapState): void {
+function drawWallsAndPortals(graphics: Graphics, map: MapState, showOverlay: boolean): void {
   graphics.clear();
-  if (map.walls.length === 0) {
+  if (!showOverlay) {
     return;
   }
-  graphics.setStrokeStyle({ width: 2, color: 0xd97706, alpha: 0.85 });
-  for (const polyline of map.walls) {
-    const first = polyline[0];
-    if (!first) {
-      continue;
+  if (map.walls.length > 0) {
+    graphics.setStrokeStyle({ width: 2, color: 0xd97706, alpha: 0.85 });
+    for (const polyline of map.walls) {
+      const first = polyline[0];
+      if (!first) {
+        continue;
+      }
+      graphics.moveTo(map.offsetX + first.x * map.gridPx, map.offsetY + first.y * map.gridPx);
+      for (let index = 1; index < polyline.length; index += 1) {
+        const point = polyline[index]!;
+        graphics.lineTo(map.offsetX + point.x * map.gridPx, map.offsetY + point.y * map.gridPx);
+      }
     }
-    graphics.moveTo(map.offsetX + first.x * map.gridPx, map.offsetY + first.y * map.gridPx);
-    for (let index = 1; index < polyline.length; index += 1) {
-      const point = polyline[index]!;
-      graphics.lineTo(map.offsetX + point.x * map.gridPx, map.offsetY + point.y * map.gridPx);
+    graphics.stroke();
+  }
+
+  for (const portal of map.portals) {
+    const a = {
+      x: map.offsetX + portal.bounds[0].x * map.gridPx,
+      y: map.offsetY + portal.bounds[0].y * map.gridPx,
+    };
+    const b = {
+      x: map.offsetX + portal.bounds[1].x * map.gridPx,
+      y: map.offsetY + portal.bounds[1].y * map.gridPx,
+    };
+    graphics.setStrokeStyle({
+      width: 4,
+      color: portal.closed ? 0xb45309 : 0x4d7c0f,
+      alpha: 0.95,
+    });
+    graphics.moveTo(a.x, a.y);
+    graphics.lineTo(b.x, b.y);
+    graphics.stroke();
+  }
+}
+
+function hitTestPortal(
+  map: MapState,
+  worldPoint: { x: number; y: number },
+): MapState["portals"][number] | null {
+  const threshold = Math.max(10, map.gridPx * 0.2);
+  let best: MapState["portals"][number] | null = null;
+  let bestDistance = threshold;
+  for (const portal of map.portals) {
+    const a = {
+      x: map.offsetX + portal.bounds[0].x * map.gridPx,
+      y: map.offsetY + portal.bounds[0].y * map.gridPx,
+    };
+    const b = {
+      x: map.offsetX + portal.bounds[1].x * map.gridPx,
+      y: map.offsetY + portal.bounds[1].y * map.gridPx,
+    };
+    const distance = distanceToSegment(worldPoint, a, b);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = portal;
     }
   }
-  graphics.stroke();
+  return best;
+}
+
+function distanceToSegment(
+  point: { x: number; y: number },
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lengthSq = dx * dx + dy * dy;
+  if (lengthSq < 1e-8) {
+    return Math.hypot(point.x - a.x, point.y - a.y);
+  }
+  const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSq));
+  const projX = a.x + t * dx;
+  const projY = a.y + t * dy;
+  return Math.hypot(point.x - projX, point.y - projY);
 }
 
 function createTokenView(tokenId: string, label: string): TokenView {

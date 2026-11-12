@@ -147,9 +147,9 @@ See [ADR 0007](../decisions/0007-dice-play-island.md). GM island emits `dice:rol
 See [ADR 0008](../decisions/0008-dd2vtt-map-import.md).
 
 - Parser: `server/src/dd2vtt.ts` (pure); upload path in `server/src/http.ts`.
-- Persistence: `maps.walls_json` (grid-cell polylines from `line_of_sight`); embedded image written under `server/uploads/`.
-- Client: GM-only wall overlay in `useMapScene`; Settings Maps accepts `.dd2vtt` beside PNG/JPG/WebP.
-- Automatic LoS fog: see below / [ADR 0016](../decisions/0016-los-fog-from-walls.md). Not yet: portals/lights rendering, animated WebM packages.
+- Persistence: `maps.walls_json` (grid-cell polylines from `line_of_sight`) and `maps.portals_json` (doors from `portals`); embedded image written under `server/uploads/`.
+- Client: GM-only wall + door overlay in `useMapScene`; Settings Maps accepts `.dd2vtt` beside PNG/JPG/WebP.
+- Automatic LoS fog: see below / [ADR 0016](../decisions/0016-los-fog-from-walls.md). Doors: [ADR 0017](../decisions/0017-dd2vtt-doors-portals.md). Not yet: lights rendering, animated WebM packages.
 
 ### Manual fog of war
 
@@ -164,9 +164,10 @@ See [ADR 0010](../decisions/0010-manual-fog-of-war.md).
 
 See [ADR 0016](../decisions/0016-los-fog-from-walls.md).
 
-- Vision from PC tokens against `maps.walls_json` (grid-cell polylines → pixel segments).
+- Vision from PC tokens against `maps.walls_json` plus **closed** portals from `maps.portals_json`.
 - Client: `losVisibility.ts` ray cast; composed with manual fog (visible only if both allow).
-- Out of scope here: portals/doors, lights, vision radius, replay/video, WebM animated map layers.
+- Door toggle: GM `portal:setClosed` → map broadcast; Fog island door buttons + click door overlay.
+- Out of scope here: lights, vision radius, replay/video, WebM animated map layers.
 
 ### Character conditions
 

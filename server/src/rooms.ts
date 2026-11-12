@@ -58,6 +58,7 @@ type MapRow = {
   offset_x: number;
   offset_y: number;
   walls_json: string | null;
+  portals_json: string | null;
 };
 type TokenRow = {
   id: string;
@@ -238,13 +239,14 @@ export class RoomStore {
       offsetX?: number;
       offsetY?: number;
       walls?: MapState["walls"];
+      portals?: MapState["portals"];
     },
   ): MapState {
     const id = makeId();
     this.db
       .prepare(
-        `INSERT INTO maps (id, room_id, name, filename, width, height, grid_px, offset_x, offset_y, walls_json)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO maps (id, room_id, name, filename, width, height, grid_px, offset_x, offset_y, walls_json, portals_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -257,6 +259,7 @@ export class RoomStore {
         input.offsetX ?? 0,
         input.offsetY ?? 0,
         JSON.stringify(input.walls ?? []),
+        JSON.stringify(input.portals ?? []),
       );
     const room = this.getRoomRow(roomId);
     if (!room?.active_map_id) {
@@ -1265,8 +1268,8 @@ export class RoomStore {
     if (!map || map.roomId !== roomId) {
       throw new Error("Map not found");
     }
-    if (enabled && map.walls.length === 0) {
-      throw new Error("Line of sight needs wall data from a .dd2vtt map");
+    if (enabled && map.walls.length === 0 && map.portals.length === 0) {
+      throw new Error("Line of sight needs wall or portal data from a .dd2vtt map");
     }
     const current = this.getFog(mapId);
     this.db
@@ -1285,6 +1288,28 @@ export class RoomStore {
         enabled ? 1 : 0,
       );
     return { mapId, baseCovered: current.baseCovered, strokes: current.strokes, losEnabled: enabled };
+  }
+
+  setPortalClosed(roomId: string, mapId: string, portalId: string, closed: boolean): MapState {
+    const map = this.getMapById(mapId);
+    if (!map || map.roomId !== roomId) {
+      throw new Error("Map not found");
+    }
+    const portalIndex = map.portals.findIndex((portal) => portal.id === portalId);
+    if (portalIndex < 0) {
+      throw new Error("Portal not found");
+    }
+    const portals = map.portals.map((portal) =>
+      portal.id === portalId ? { ...portal, closed } : portal,
+    );
+    this.db
+      .prepare("UPDATE maps SET portals_json = ? WHERE id = ?")
+      .run(JSON.stringify(portals), mapId);
+    const updated = this.getMapById(mapId);
+    if (!updated) {
+      throw new Error("Map not found");
+    }
+    return updated;
   }
 
   claimCharacterForPlayer(
@@ -1522,6 +1547,7 @@ function mapRowToState(row: MapRow): MapState {
     offsetX: row.offset_x,
     offsetY: row.offset_y,
     walls: parseWallsJson(row.walls_json),
+    portals: parsePortalsJson(row.portals_json),
   };
 }
 
@@ -1548,6 +1574,62 @@ function parseWallsJson(raw: string | null | undefined): MapState["walls"] {
           .map((point) => ({ x: point.x, y: point.y })),
       )
       .filter((polyline) => polyline.length >= 2);
+  } catch {
+    return [];
+  }
+}
+
+function parsePortalsJson(raw: string | null | undefined): MapState["portals"] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    const portals: MapState["portals"] = [];
+    for (const entry of parsed) {
+      if (!entry || typeof entry !== "object") {
+        continue;
+      }
+      const record = entry as {
+        id?: unknown;
+        bounds?: unknown;
+        closed?: unknown;
+        freestanding?: unknown;
+      };
+      if (typeof record.id !== "string" || record.id.length === 0) {
+        continue;
+      }
+      if (!Array.isArray(record.bounds) || record.bounds.length < 2) {
+        continue;
+      }
+      const a = record.bounds[0];
+      const b = record.bounds[1];
+      if (
+        !a ||
+        !b ||
+        typeof a !== "object" ||
+        typeof b !== "object" ||
+        typeof (a as { x?: unknown }).x !== "number" ||
+        typeof (a as { y?: unknown }).y !== "number" ||
+        typeof (b as { x?: unknown }).x !== "number" ||
+        typeof (b as { y?: unknown }).y !== "number"
+      ) {
+        continue;
+      }
+      portals.push({
+        id: record.id,
+        bounds: [
+          { x: (a as { x: number }).x, y: (a as { y: number }).y },
+          { x: (b as { x: number }).x, y: (b as { y: number }).y },
+        ],
+        closed: record.closed !== false,
+        freestanding: record.freestanding === true,
+      });
+    }
+    return portals;
   } catch {
     return [];
   }

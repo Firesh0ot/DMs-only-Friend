@@ -9,6 +9,7 @@ import {
   FogPaintPayloadSchema,
   FogResetPayloadSchema,
   FogSetLosPayloadSchema,
+  PortalSetClosedPayloadSchema,
   GmChangePinPayloadSchema,
   InitiativeSetPayloadSchema,
   MapActivatePayloadSchema,
@@ -683,6 +684,29 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         const data = FogSetLosPayloadSchema.parse(payload);
         const fog = rooms.setFogLos(session.roomId, data.mapId, data.enabled);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.FogUpdated, fog);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.PortalSetClosed, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = PortalSetClosedPayloadSchema.parse(payload);
+        const map = rooms.setPortalClosed(
+          session.roomId,
+          data.mapId,
+          data.portalId,
+          data.closed,
+        );
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.MapsUpdated, rooms.listMaps(session.roomId));
+        const active = rooms.getActiveMap(session.roomId);
+        if (active?.id === map.id) {
+          io.to(roomChannel(session.roomId)).emit(ServerEvents.MapSet, map);
+        }
       } catch (error) {
         emitError(socket, error);
       }

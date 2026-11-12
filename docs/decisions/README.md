@@ -55,3 +55,4 @@ What becomes easier, harder, or out of scope.
 | [0014](0014-player-token-character-bind.md) | Player token ownership by character id | accepted |
 | [0015](0015-docker-ghcr-packaging.md) | Docker and GHCR packaging | accepted |
 | [0016](0016-los-fog-from-walls.md) | Automatic LoS fog from dd2vtt walls | accepted |
+| [0017](0017-dd2vtt-doors-portals.md) | dd2vtt doors / portals and LoS | accepted |

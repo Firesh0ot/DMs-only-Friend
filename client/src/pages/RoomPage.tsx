@@ -116,6 +116,17 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
     getSocket().emit(ClientEvents.CameraSet, camera);
   }
 
+  function onPortalToggle(portalId: string, closed: boolean) {
+    if (!snapshot?.map) {
+      return;
+    }
+    getSocket().emit(ClientEvents.PortalSetClosed, {
+      mapId: snapshot.map.id,
+      portalId,
+      closed,
+    });
+  }
+
   function onFogPaint(stroke: FogStrokeInput) {
     if (role !== "gm" || !snapshot?.map) {
       return;
@@ -264,6 +275,7 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                   onTokenMove={onTokenMove}
                   onCameraChange={onCameraChange}
                   onFogPaint={onFogPaint}
+                  onPortalToggle={isGm ? onPortalToggle : undefined}
                 />
               </div>
             </div>
@@ -305,7 +317,11 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                 />
                 <FogIsland
                   mapId={snapshot.map?.id ?? null}
-                  hasWalls={(snapshot.map?.walls.length ?? 0) > 0}
+                  hasLosGeometry={
+                    (snapshot.map?.walls.length ?? 0) > 0 ||
+                    (snapshot.map?.portals.length ?? 0) > 0
+                  }
+                  portals={snapshot.map?.portals ?? []}
                   losEnabled={snapshot.fog?.losEnabled ?? false}
                   tool={fogTool}
                   paintMode={fogPaintMode}
@@ -315,6 +331,7 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                   onPaintModeChange={setFogPaintMode}
                   onBrushRadiusChange={setFogBrushRadius}
                   onCycleCorner={() => cycleIsland("fog")}
+                  onPortalToggle={onPortalToggle}
                 />
               </>
             ) : null}

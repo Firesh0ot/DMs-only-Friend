@@ -5,6 +5,14 @@ const PointSchema = z.object({
   y: z.number(),
 });
 
+const PortalSchema = z.object({
+  position: PointSchema.optional(),
+  bounds: z.tuple([PointSchema, PointSchema]),
+  rotation: z.number().optional(),
+  closed: z.boolean().default(true),
+  freestanding: z.boolean().default(false),
+});
+
 const Dd2vttSchema = z.object({
   format: z.number().optional(),
   resolution: z.object({
@@ -13,8 +21,16 @@ const Dd2vttSchema = z.object({
     pixels_per_grid: z.number().positive(),
   }),
   line_of_sight: z.array(z.array(PointSchema)).default([]),
+  portals: z.array(PortalSchema).default([]),
   image: z.string().min(1),
 });
+
+export type ParsedPortal = {
+  id: string;
+  bounds: [{ x: number; y: number }, { x: number; y: number }];
+  closed: boolean;
+  freestanding: boolean;
+};
 
 export type ParsedDd2vtt = {
   imageBuffer: Buffer;
@@ -24,6 +40,7 @@ export type ParsedDd2vtt = {
   offsetX: number;
   offsetY: number;
   walls: Array<Array<{ x: number; y: number }>>;
+  portals: ParsedPortal[];
   mapSizeCells: { x: number; y: number };
 };
 
@@ -46,6 +63,24 @@ export function parseDd2vtt(raw: string | Buffer): ParsedDd2vtt {
   const walls = doc.line_of_sight
     .map((polyline) => polyline.map((point) => ({ x: point.x, y: point.y })))
     .filter((polyline) => polyline.length >= 2);
+  const portals = doc.portals
+    .map((portal, index) => {
+      const a = portal.bounds[0];
+      const b = portal.bounds[1];
+      if (a.x === b.x && a.y === b.y) {
+        return null;
+      }
+      return {
+        id: `portal-${index}`,
+        bounds: [
+          { x: a.x, y: a.y },
+          { x: b.x, y: b.y },
+        ] as [{ x: number; y: number }, { x: number; y: number }],
+        closed: portal.closed,
+        freestanding: portal.freestanding,
+      };
+    })
+    .filter((portal): portal is ParsedPortal => portal !== null);
 
   return {
     imageBuffer: image.buffer,
@@ -55,6 +90,7 @@ export function parseDd2vtt(raw: string | Buffer): ParsedDd2vtt {
     offsetX: Math.round(origin.x * gridPx),
     offsetY: Math.round(origin.y * gridPx),
     walls,
+    portals,
     mapSizeCells: {
       x: doc.resolution.map_size.x,
       y: doc.resolution.map_size.y,

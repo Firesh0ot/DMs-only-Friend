@@ -182,7 +182,7 @@ describe("manual fog of war", () => {
     expect(disabled.losEnabled).toBe(false);
   });
 
-  it("rejects LoS enable without walls", () => {
+  it("rejects LoS enable without walls or portals", () => {
     const store = createStore();
     const { room } = store.createRoom();
     const map = store.addMap(room.id, {
@@ -192,6 +192,31 @@ describe("manual fog of war", () => {
       height: 200,
       gridPx: 50,
     });
-    expect(() => store.setFogLos(room.id, map.id, true)).toThrow(/wall data/i);
+    expect(() => store.setFogLos(room.id, map.id, true)).toThrow(/wall or portal/i);
+  });
+
+  it("allows LoS enable with portals only", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+    const map = store.addMap(room.id, {
+      name: "Doors",
+      filename: "doors.png",
+      width: 200,
+      height: 200,
+      gridPx: 50,
+      portals: [
+        {
+          id: "portal-0",
+          bounds: [
+            { x: 1, y: 0 },
+            { x: 1, y: 1 },
+          ],
+          closed: true,
+          freestanding: true,
+        },
+      ],
+    });
+    expect(() => store.setFogLos(room.id, map.id, true)).not.toThrow();
+    expect(store.getFog(map.id).losEnabled).toBe(true);
   });
 });

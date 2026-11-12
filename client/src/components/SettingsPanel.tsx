@@ -562,6 +562,7 @@ export function SettingsPanel({
                   <span className="muted">
                     {map.width}×{map.height} · grid {map.gridPx}
                     {map.walls.length > 0 ? ` · ${map.walls.length} walls` : ""}
+                    {map.portals.length > 0 ? ` · ${map.portals.length} doors` : ""}
                     {map.id === activeMapId ? " · active" : ""}
                   </span>
                   <div className="row">
