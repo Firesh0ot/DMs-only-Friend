@@ -6,6 +6,7 @@ import {
   CharacterUpsertPayloadSchema,
   FogPaintPayloadSchema,
   FogStateSchema,
+  GmChangePinPayloadSchema,
   MapActivatePayloadSchema,
   RoomCodeSchema,
   RoomCreatePayloadSchema,
@@ -52,6 +53,19 @@ describe("event schemas", () => {
     expect(() => RoomCodeSchema.parse("code/slash")).toThrow();
     expect(() => RoomCodeSchema.parse("emoji😀")).toThrow();
     expect(() => RoomCodeSchema.parse("xx")).toThrow();
+  });
+
+  it("accepts GM PIN change payloads", () => {
+    const parsed = GmChangePinPayloadSchema.parse({
+      currentPin: "1234",
+      newPin: "987654",
+      invalidateInvites: true,
+    });
+    expect(parsed.newPin).toBe("987654");
+    expect(parsed.invalidateInvites).toBe(true);
+    expect(() =>
+      GmChangePinPayloadSchema.parse({ currentPin: "12", newPin: "3456" }),
+    ).toThrow();
   });
 
   it("maps HP into quarter steps", () => {

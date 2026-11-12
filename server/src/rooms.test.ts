@@ -90,6 +90,48 @@ describe("RoomStore", () => {
     expect(store.validateUploadToken("nope", room.id)).toBe(false);
   });
 
+  it("lets an authenticated flow change the PIN and optionally clear invites", () => {
+    const store = createStore();
+    const { room, gmInviteToken } = store.createRoom({
+      name: "PinChange",
+      code: "PIN-ROOM",
+      pin: "1111",
+    });
+    expect(store.hasPendingGmInvite(room.id)).toBe(true);
+
+    expect(() =>
+      store.changeGmPin(room.id, {
+        currentPin: "0000",
+        newPin: "2222",
+      }),
+    ).toThrow(/Invalid GM PIN/);
+
+    const kept = store.changeGmPin(room.id, {
+      currentPin: "1111",
+      newPin: "2222",
+      invalidateInvites: false,
+    });
+    expect(kept.inviteInvalidated).toBe(false);
+    expect(store.hasPendingGmInvite(room.id)).toBe(true);
+    expect(store.verifyGmPin(room.id, "1111")).toBe(false);
+    expect(store.verifyGmPin(room.id, "2222")).toBe(true);
+    store.assertGmJoin(room.id, "2222", gmInviteToken);
+    expect(store.hasPendingGmInvite(room.id)).toBe(false);
+
+    store.mintGmInvite(room.id);
+    expect(store.hasPendingGmInvite(room.id)).toBe(true);
+    const cleared = store.changeGmPin(room.id, {
+      currentPin: "2222",
+      newPin: "3333",
+      invalidateInvites: true,
+    });
+    expect(cleared.inviteInvalidated).toBe(true);
+    expect(store.hasPendingGmInvite(room.id)).toBe(false);
+    expect(store.verifyGmPin(room.id, "3333")).toBe(true);
+    expect(store.verifyGmPin(room.id, "2222")).toBe(false);
+    store.assertGmJoin(room.id, "3333", undefined);
+  });
+
   it("persists tokens and camera", () => {
     const store = createStore();
     const { room } = store.createRoom();

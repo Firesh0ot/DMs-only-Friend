@@ -14,7 +14,7 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 
 1. Raum auf der Startseite erstellen: **Raumcode**, Tischname und **GM-PIN** (4–8 Ziffern) wählen. Raumcodes: 3–24 Zeichen nach Normalisierung — Unicode-Buchstaben (inkl. ä/ö/ü und ß), Ziffern, `_` und `-`. Speicherung NFC-normalisiert und in Großbuchstaben (`ß` wird zu `SS`, daher kollidieren `straße` und `strasse`). Den **einmaligen GM-Invite** sofort kopieren, öffnen und PIN eingeben.
 2. Eine oder mehrere Karten hochladen: PNG/JPG/WebP (`grid_px` setzen) oder Universal VTT `.dd2vtt` (Raster und Wände kommen aus der Datei). Uploads brauchen eine aktive GM-Session. In der GM-Ansicht erscheinen importierte Wände als bernsteinfarbene Overlay-Linien.
-3. In Settings → **Room links** mit **Copy** neben Room join / Screen / Player (und einem geminteten GM-Invite) teilen. Es gibt keine dauerhafte GM-URL — bei Bedarf neuen einmaligen Invite in Settings (oder Startseite mit PIN) erzeugen.
+3. In Settings → **Room links** mit **Copy** neben Room join / Screen / Player (und einem geminteten GM-Invite) teilen. Es gibt keine dauerhafte GM-URL — bei Bedarf neuen einmaligen Invite in Settings (oder Startseite mit PIN) erzeugen. Solange eine GM-Session offen ist, kannst du dort die **GM-PIN ändern** (optional ausstehenden Invite invalidieren). Geht die PIN verloren und es gibt keine aktive GM-Session, ist der Tisch nicht wiederherstellbar — es gibt keinen Recovery-Code.
 4. PCs und NPCs anlegen (Anzeigename, optionale TP/RK, kurze Notizen, Portrait); Häkchen setzen, auf welchen Karten sie erscheinen.
 5. Optional unter **Screen**: Viertel-TP-Balken (25/50/75/100 %) auf dem Player-Screen — standardmäßig aus (genaue PC-TP; Monster verborgen).
 6. Für die Session auf **Play** wechseln. Portraits und TP-Chips erscheinen in der Initiative, wenn gesetzt.
@@ -48,7 +48,7 @@ Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**
 2. GM erstellt einen Raum (Code + PIN) → einmaligen GM-Invite öffnen und PIN eingeben.
 3. Screen-URL auf dem TV/Tablet öffnen (nur Code; kein PIN).
 4. In Settings: Karten und Roster pflegen; dann Play.
-5. Optional: Remote-Spielern Join-Links mit `characterId` (oder eindeutigem PC-`name`) schicken, damit sie diesen Roster-PC beanspruchen. GM später mit Code + PIN erneut joinen.
+5. Optional: Remote-Spielern Join-Links mit `characterId` (oder eindeutigem PC-`name`) schicken, damit sie diesen Roster-PC beanspruchen. GM später mit Code + PIN erneut joinen. PIN sicher aufbewahren, solange du nicht als GM verbunden bist.
 
 ### Self-Hosting / Join-Links
 

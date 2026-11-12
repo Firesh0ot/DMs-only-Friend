@@ -8,6 +8,7 @@ import {
   DiceRollPayloadSchema,
   FogPaintPayloadSchema,
   FogResetPayloadSchema,
+  GmChangePinPayloadSchema,
   InitiativeSetPayloadSchema,
   MapActivatePayloadSchema,
   MapRemovePayloadSchema,
@@ -543,6 +544,26 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Could not mint invite";
+        callback?.({ ok: false, error: message });
+      }
+    });
+
+    socket.on(ClientEvents.GmChangePin, (payload, callback) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        callback?.({ ok: false, error: "GM only" });
+        return;
+      }
+      try {
+        const data = GmChangePinPayloadSchema.parse(payload);
+        const result = rooms.changeGmPin(session.roomId, {
+          currentPin: data.currentPin,
+          newPin: data.newPin,
+          invalidateInvites: data.invalidateInvites,
+        });
+        callback?.({ ok: true, inviteInvalidated: result.inviteInvalidated });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Could not change PIN";
         callback?.({ ok: false, error: message });
       }
     });

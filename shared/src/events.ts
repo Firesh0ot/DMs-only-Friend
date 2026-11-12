@@ -294,6 +294,13 @@ export const SettingsSetPayloadSchema = z.object({
 });
 export type SettingsSetPayload = z.infer<typeof SettingsSetPayloadSchema>;
 
+export const GmChangePinPayloadSchema = z.object({
+  currentPin: GmPinSchema,
+  newPin: GmPinSchema,
+  invalidateInvites: z.boolean().optional(),
+});
+export type GmChangePinPayload = z.infer<typeof GmChangePinPayloadSchema>;
+
 export const TokenMovePayloadSchema = z.object({
   tokenId: z.string().min(1),
   x: z.number(),
@@ -438,6 +445,7 @@ export const ClientEvents = {
   VisibilitySet: "visibility:set",
   SettingsSet: "settings:set",
   GmMintInvite: "gm:mintInvite",
+  GmChangePin: "gm:changePin",
   BattleStart: "battle:start",
   BattleEnd: "battle:end",
   FogPaint: "fog:paint",
@@ -472,6 +480,10 @@ export type GmMintInviteResult =
   | { ok: true; invite: string; gmInviteUrl: string }
   | { ok: false; error: string };
 
+export type GmChangePinResult =
+  | { ok: true; inviteInvalidated: boolean }
+  | { ok: false; error: string };
+
 export type ClientToServerEvents = {
   [ClientEvents.RoomJoin]: (
     payload: RoomJoinPayload,
@@ -495,6 +507,10 @@ export type ClientToServerEvents = {
   [ClientEvents.SettingsSet]: (payload: SettingsSetPayload) => void;
   [ClientEvents.GmMintInvite]: (
     callback?: (result: GmMintInviteResult) => void,
+  ) => void;
+  [ClientEvents.GmChangePin]: (
+    payload: GmChangePinPayload,
+    callback?: (result: GmChangePinResult) => void,
   ) => void;
   [ClientEvents.BattleStart]: () => void;
   [ClientEvents.BattleEnd]: () => void;

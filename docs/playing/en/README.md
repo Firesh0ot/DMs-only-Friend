@@ -14,7 +14,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 
 1. Create a room from the home page: choose a **room code**, table name, and **GM PIN** (4–8 digits). Room codes are 3–24 characters after normalization: Unicode letters (including German ä/ö/ü and ß), digits, `_`, and `-`. Codes are NFC-normalized and stored uppercased (`ß` becomes `SS`, so `straße` and `strasse` collide). Copy the **single-use GM invite** immediately, then open it and enter the PIN.
 2. Upload one or more maps: PNG/JPG/WebP (set `grid_px`) or Universal VTT `.dd2vtt` (grid and walls come from the file). Uploads require a joined GM session. On the GM view, imported walls show as an amber overlay.
-3. In Settings → **Room links**, use **Copy** next to Room join / Screen / Player (and a minted GM invite). There is no forever GM URL — mint a new single-use invite from Settings (or home with PIN) if you need another GM device.
+3. In Settings → **Room links**, use **Copy** next to Room join / Screen / Player (and a minted GM invite). There is no forever GM URL — mint a new single-use invite from Settings (or home with PIN) if you need another GM device. While a GM session is open, you can **change the GM PIN** there (optionally invalidate a pending invite). If you lose the PIN with no active GM session, the table cannot be recovered — there is no recovery code.
 4. Add PCs and NPCs (display name, optional HP/AC, short notes, portrait); tick which maps each character appears on.
 5. Optional **Screen** setting: show quarter HP bars (25/50/75/100%) on the player screen — default off (exact PC HP; monsters hidden).
 6. Switch to **Play** when the session starts. Portraits and HP chips appear on initiative cards when set.
@@ -48,7 +48,7 @@ The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings
 2. GM creates a room (code + PIN) → open the single-use GM invite and enter the PIN.
 3. Open the screen URL on the TV/tablet (code only; no PIN).
 4. In Settings: upload maps, set roster links; then Play.
-5. Optional: send remote players join links with `characterId` (or a unique PC `name`) so they claim that roster PC. Rejoin as GM later with code + PIN.
+5. Optional: send remote players join links with `characterId` (or a unique PC `name`) so they claim that roster PC. Rejoin as GM later with code + PIN. Keep the PIN somewhere safe while you are not joined as GM.
 
 ### Self-host / join links
 
