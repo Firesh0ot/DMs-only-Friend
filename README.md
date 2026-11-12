@@ -6,7 +6,7 @@ Normally DMs have no friends. But this web app doesn't judge good throws.
 
 ## Status
 
-Phase 1 table plus Prep/Play UX: multi-map Settings, Play control islands, player initiative rail, Follow-GM camera. Docker/GHCR table deploy is available (`ghcr.io/firesh0ot/dms-only-friend`, host port **8042** → container **3001**); FQDN/TLS stay on your reverse proxy via `PUBLIC_ORIGIN` / `.env`, with optional Traefik labels. Specs: [docs/phase-1.md](docs/phase-1.md), [docs/decisions/0003-prep-play-ux.md](docs/decisions/0003-prep-play-ux.md), [ADR 0015](docs/decisions/0015-docker-ghcr-packaging.md). Playing: [docs/playing/en/README.md](docs/playing/en/README.md) · [docs/playing/de/README.md](docs/playing/de/README.md). Developing: [docs/developing/README.md](docs/developing/README.md).
+Phase 1–2 table core is on main: rooms (PIN + single-use GM invite), multi-map Settings / Play islands, tokens + Follow-GM camera, initiative / HP / conditions, manual fog, `.dd2vtt` import, session log, dice island, tavern theme with self-hosted fonts, one-click link copy, player-token bind. **Docker / GHCR** table deploy is ready (`ghcr.io/firesh0ot/dms-only-friend`, host port **8042** → container **3001**); FQDN/TLS stay on your reverse proxy via `PUBLIC_ORIGIN` / `.env`, with optional Traefik labels (no bundled Caddy). Phase 3 (LoS fog from walls, WebM map packages) is next. Specs: [docs/phase-1.md](docs/phase-1.md), [ADR 0015](docs/decisions/0015-docker-ghcr-packaging.md). Playing: [EN](docs/playing/en/README.md) · [DE](docs/playing/de/README.md). Developing: [docs/developing/README.md](docs/developing/README.md).
 
 ## Documentation
 
@@ -33,7 +33,7 @@ npm run build
 
 ## Deploy (Docker / GHCR)
 
-Image: `ghcr.io/firesh0ot/dms-only-friend` (published from `main` / `v*` tags). Full notes: [Developing — Docker / table deploy](docs/developing/README.md#docker--table-deploy).
+Image: `ghcr.io/firesh0ot/dms-only-friend` (GitHub Actions publishes on `main` / `v*` — [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml)). Full notes: [Developing — Docker / table deploy](docs/developing/README.md#docker--table-deploy).
 
 ```bash
 cp .env.example .env   # edit PUBLIC_ORIGIN (and optional Traefik vars)

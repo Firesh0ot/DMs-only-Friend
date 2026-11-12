@@ -25,7 +25,7 @@ npm run build
 
 ## Docker / table deploy
 
-Production image: `ghcr.io/firesh0ot/dms-only-friend` (published from `main` / `v*` tags). See [ADR 0015](../decisions/0015-docker-ghcr-packaging.md). Copy [`.env.example`](../../.env.example) to `.env` and edit as needed.
+Production image: `ghcr.io/firesh0ot/dms-only-friend` (published from `main` / `v*` tags via [`.github/workflows/docker-publish.yml`](../../.github/workflows/docker-publish.yml)). See [ADR 0015](../decisions/0015-docker-ghcr-packaging.md). Copy [`.env.example`](../../.env.example) to `.env` and edit as needed.
 
 **Pull and run (compose):**
 
