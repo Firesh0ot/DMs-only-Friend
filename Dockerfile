@@ -35,7 +35,7 @@ ENV NODE_ENV=production \
     PORT=3001 \
     HOST=0.0.0.0 \
     DATA_DIR=/data \
-    PUBLIC_ORIGIN=http://localhost:3001 \
+    PUBLIC_ORIGIN=http://localhost:8042 \
     CLIENT_DIST=/app/client/dist
 
 COPY --from=build /app/package.json /app/package-lock.json ./

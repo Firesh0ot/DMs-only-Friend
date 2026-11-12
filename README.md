@@ -36,11 +36,11 @@ npm run build
 Image: `ghcr.io/firesh0ot/dms-only-friend`. Details: [docs/developing/README.md](docs/developing/README.md#docker--table-deploy).
 
 ```bash
-export PUBLIC_ORIGIN=http://192.168.1.10:3001   # your LAN IP or public URL
+export PUBLIC_ORIGIN=http://192.168.1.10:8042   # your LAN IP or public URL
 docker compose pull && docker compose up -d
 ```
 
-Set `PUBLIC_ORIGIN` to the address browsers actually open (invite links). Data (SQLite + uploads) lives in the `dms-data` volume.
+Default publish is **8042** → container **3001**. Set `PUBLIC_ORIGIN` to the address browsers actually open (invite links). Data (SQLite + uploads) lives in the `dms-data` volume.
 
 ## Kernentscheidungen
 
