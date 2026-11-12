@@ -30,7 +30,7 @@ Production image: `ghcr.io/firesh0ot/dms-only-friend` (published from `main` / `
 **Pull and run (compose):**
 
 ```bash
-export PUBLIC_ORIGIN=http://192.168.1.10:3001   # LAN IP or public URL clients will open
+export PUBLIC_ORIGIN=http://192.168.1.10:8042   # LAN IP or public URL clients will open
 docker compose pull
 docker compose up -d
 ```
@@ -38,18 +38,18 @@ docker compose up -d
 Or build locally:
 
 ```bash
-PUBLIC_ORIGIN=http://localhost:3001 docker compose up -d --build
+PUBLIC_ORIGIN=http://localhost:8042 docker compose up -d --build
 ```
 
-Open `PUBLIC_ORIGIN` in the browser (default port **3001**). SQLite + uploads persist in the `dms-data` volume (`DATA_DIR=/data` → `/data/dms.sqlite`, `/data/uploads`).
+Open `PUBLIC_ORIGIN` in the browser (default host port **8042**, container listens on **3001**). SQLite + uploads persist in the `dms-data` volume (`DATA_DIR=/data` → `/data/dms.sqlite`, `/data/uploads`).
 
 **`PUBLIC_ORIGIN`:** must match the URL players/TV use (scheme + host + port, no trailing slash). The server embeds it in GM invite / room links from the HTTP API. Screen/player links built in the browser already use `window.location.origin`.
 
 **One-liner without compose:**
 
 ```bash
-docker run --rm -p 3001:3001 \
-  -e PUBLIC_ORIGIN=http://192.168.1.10:3001 \
+docker run --rm -p 8042:3001 \
+  -e PUBLIC_ORIGIN=http://192.168.1.10:8042 \
   -v dms-data:/data \
   ghcr.io/firesh0ot/dms-only-friend:latest
 ```

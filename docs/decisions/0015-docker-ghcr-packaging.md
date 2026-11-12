@@ -11,7 +11,7 @@ Table deploy should be a pull-and-run path for LAN sessions (GM laptop + TV/tabl
 
 - Ship a multi-stage `Dockerfile` that builds the npm workspaces monorepo and runs the production Node server, which also serves the Vite client build.
 - Persist SQLite and uploads under `DATA_DIR` (default `/data` in the image): `dms.sqlite` + `uploads/`.
-- Provide `docker-compose.yml` for local/LAN deploy with a named volume and `PUBLIC_ORIGIN` for invite-link generation.
+- Provide `docker-compose.yml` for local/LAN deploy with a named volume, default host publish **8042→3001**, and `PUBLIC_ORIGIN` for invite-link generation.
 - Publish images to `ghcr.io/firesh0ot/dms-only-friend` on pushes to `main` and `v*` tags via GitHub Actions (`packages: write` + `GITHUB_TOKEN`).
 
 ## Consequences
