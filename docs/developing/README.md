@@ -25,7 +25,7 @@ npm run build
 
 ## Docker / table deploy
 
-Production image: `ghcr.io/firesh0ot/dms-only-friend` (published from `main` / `v*` tags). See [ADR 0015](../decisions/0015-docker-ghcr-packaging.md).
+Production image: `ghcr.io/firesh0ot/dms-only-friend` (published from `main` / `v*` tags). See [ADR 0015](../decisions/0015-docker-ghcr-packaging.md). Copy [`.env.example`](../../.env.example) to `.env` and edit as needed.
 
 **Pull and run (compose):**
 
@@ -43,7 +43,30 @@ PUBLIC_ORIGIN=http://localhost:8042 docker compose up -d --build
 
 Open `PUBLIC_ORIGIN` in the browser (default host port **8042**, container listens on **3001**). SQLite + uploads persist in the `dms-data` volume (`DATA_DIR=/data` → `/data/dms.sqlite`, `/data/uploads`).
 
-**`PUBLIC_ORIGIN`:** must match the URL players/TV use (scheme + host + port, no trailing slash). The server embeds it in GM invite / room links from the HTTP API. Screen/player links built in the browser already use `window.location.origin`.
+**`PUBLIC_ORIGIN`:** must match the URL players/TV use (scheme + host + port, no trailing slash). The server embeds it in GM invite / room links from the HTTP API (`server/src/index.ts` → `createHttpApp`). Screen/player links built in the browser already use `window.location.origin`.
+
+### Behind your reverse proxy
+
+TLS and the public FQDN stay on your existing reverse proxy — compose does **not** ship Caddy/Traefik as a service. Set `PUBLIC_ORIGIN` to the public HTTPS origin so invite/screen links are correct:
+
+```bash
+# .env
+PUBLIC_ORIGIN=https://vtt.example.com
+PORT=8042
+```
+
+Point the proxy at the published host port (default **8042**) or at container **3001** on a shared Docker network.
+
+**Optional Traefik labels** (disabled by default so plain compose stays unchanged):
+
+```bash
+# .env — attach this service to an existing Traefik
+TRAEFIK_ENABLE=true
+FQDN=vtt.example.com
+PUBLIC_ORIGIN=https://vtt.example.com
+```
+
+Labels applied when enabled: `traefik.enable`, `traefik.http.routers.dms.rule=Host(…)`, `traefik.http.routers.dms.entrypoints` (default `websecure`), `traefik.http.routers.dms.tls`, `traefik.http.services.dms.loadbalancer.server.port=3001`. Put the container on the same Docker network as Traefik (external network) if needed — no bundled proxy stack.
 
 **One-liner without compose:**
 
@@ -54,7 +77,7 @@ docker run --rm -p 8042:3001 \
   ghcr.io/firesh0ot/dms-only-friend:latest
 ```
 
-Env knobs: `PORT`, `HOST` (default `0.0.0.0`), `DATA_DIR`, `UPLOADS_DIR`, `DMS_DB_PATH`, `PUBLIC_ORIGIN`, `CLIENT_DIST`.
+Env knobs: `PORT`, `HOST` (default `0.0.0.0`), `DATA_DIR`, `UPLOADS_DIR`, `DMS_DB_PATH`, `PUBLIC_ORIGIN`, `CLIENT_DIST`, plus compose-only `TRAEFIK_ENABLE`, `FQDN`, `TRAEFIK_ENTRYPOINTS`, `TRAEFIK_TLS`, `DMS_IMAGE_TAG`.
 
 Local `npm run dev` remains the day-to-day path; Docker is for self-host / table deploy.
 

@@ -6,12 +6,12 @@ Normally DMs have no friends. But this web app doesn't judge good throws.
 
 ## Status
 
-Phase 1 table plus Prep/Play UX: multi-map Settings, Play control islands, player initiative rail, Follow-GM camera. Specs: [docs/phase-1.md](docs/phase-1.md), [docs/decisions/0003-prep-play-ux.md](docs/decisions/0003-prep-play-ux.md). Playing: [docs/playing/en/README.md](docs/playing/en/README.md) · [docs/playing/de/README.md](docs/playing/de/README.md). Developing: [docs/developing/README.md](docs/developing/README.md).
+Phase 1 table plus Prep/Play UX: multi-map Settings, Play control islands, player initiative rail, Follow-GM camera. Docker/GHCR table deploy is available (`ghcr.io/firesh0ot/dms-only-friend`, host port **8042** → container **3001**); FQDN/TLS stay on your reverse proxy via `PUBLIC_ORIGIN` / `.env`, with optional Traefik labels. Specs: [docs/phase-1.md](docs/phase-1.md), [docs/decisions/0003-prep-play-ux.md](docs/decisions/0003-prep-play-ux.md), [ADR 0015](docs/decisions/0015-docker-ghcr-packaging.md). Playing: [docs/playing/en/README.md](docs/playing/en/README.md) · [docs/playing/de/README.md](docs/playing/de/README.md). Developing: [docs/developing/README.md](docs/developing/README.md).
 
 ## Documentation
 
 - **Playing** — GM + remote player how-to: [EN](docs/playing/en/README.md) · [DE](docs/playing/de/README.md)
-- **Developing** — setup, monorepo, architecture pointers: [docs/developing/README.md](docs/developing/README.md)
+- **Developing** — setup, Docker/GHCR deploy, monorepo, architecture pointers: [docs/developing/README.md](docs/developing/README.md)
 - **Decisions** — ADR index: [docs/decisions/README.md](docs/decisions/README.md)
 
 ## Dev
@@ -31,16 +31,27 @@ npm run test
 npm run build
 ```
 
-## Docker (table deploy)
+## Deploy (Docker / GHCR)
 
-Image: `ghcr.io/firesh0ot/dms-only-friend`. Details: [docs/developing/README.md](docs/developing/README.md#docker--table-deploy).
+Image: `ghcr.io/firesh0ot/dms-only-friend` (published from `main` / `v*` tags). Full notes: [Developing — Docker / table deploy](docs/developing/README.md#docker--table-deploy).
 
 ```bash
-export PUBLIC_ORIGIN=http://192.168.1.10:8042   # your LAN IP or public URL
+cp .env.example .env   # edit PUBLIC_ORIGIN (and optional Traefik vars)
 docker compose pull && docker compose up -d
 ```
 
-Default publish is **8042** → container **3001**. Set `PUBLIC_ORIGIN` to the address browsers actually open (invite links). Data (SQLite + uploads) lives in the `dms-data` volume.
+LAN example without a `.env` file:
+
+```bash
+export PUBLIC_ORIGIN=http://192.168.1.10:8042
+docker compose pull && docker compose up -d
+```
+
+- Default publish: host **8042** → container **3001** (`PORT` overrides the host side).
+- Set `PUBLIC_ORIGIN` to the URL browsers actually open (scheme + host + port, no trailing slash) so GM invite / room links from the API are correct.
+- Behind an existing reverse proxy: put the public HTTPS origin in `.env` (e.g. `PUBLIC_ORIGIN=https://vtt.example.com`). TLS and FQDN stay on the proxy — this compose file does **not** ship Caddy or Traefik as a service.
+- Optional Traefik: `TRAEFIK_ENABLE=true` and `FQDN=vtt.example.com` enable Docker labels (`traefik.enable`, Host rule, `websecure`, service port **3001**). Defaults leave Traefik off so plain compose still works.
+- Data (SQLite + uploads) lives in the `dms-data` volume.
 
 ## Kernentscheidungen
 
