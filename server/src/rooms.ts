@@ -1,4 +1,6 @@
 import {
+  hpToQuarter,
+  normalizeRoomCode,
   type BattleState,
   type CameraState,
   type CharacterKind,
@@ -11,6 +13,7 @@ import {
   type InitiativeState,
   type MapState,
   type Role,
+  type RoomSettings,
   type RoomState,
   type SessionEvent,
   type SessionEventType,
@@ -19,6 +22,7 @@ import {
   type VisibilityState,
 } from "@dms/shared";
 import { customAlphabet } from "nanoid";
+import { hashSecret, hashToken, randomToken, verifySecret } from "./authCrypto.js";
 import type { Db } from "./db.js";
 
 const makeCode = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
@@ -26,6 +30,7 @@ const makeId = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 16);
 const EVENT_LOG_LIMIT = 80;
 const TOKEN_MOVE_LOG_MS = 3000;
 const FOG_STROKE_LIMIT = 400;
+const UPLOAD_TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
 
 type RoomRow = {
   id: string;
@@ -35,6 +40,10 @@ type RoomRow = {
   active_map_id: string | null;
   show_pcs: number;
   show_npcs: number;
+  pin_hash: string | null;
+  pin_salt: string | null;
+  gm_invite_hash: string | null;
+  screen_hp_quarters: number;
 };
 type MapRow = {
   id: string;
@@ -108,29 +117,51 @@ export type Session = {
   playerName: string | null;
 };
 
+export type CreateRoomInput = {
+  name?: string;
+  code?: string;
+  pin?: string;
+};
+
 export class RoomStore {
   private sessions = new Map<string, Session>();
   private tokenMoveLogAt = new Map<string, number>();
+  private uploadTokens = new Map<string, { roomId: string; expiresAt: number }>();
 
   constructor(private readonly db: Db) {}
 
-  createRoom(name = "Table"): { room: RoomState; code: string } {
+  createRoom(input: CreateRoomInput | string = {}): {
+    room: RoomState;
+    code: string;
+    gmInviteToken: string;
+  } {
+    const options = typeof input === "string" ? { name: input } : input;
+    const name = options.name?.trim() || "Table";
+    const code = options.code ? normalizeRoomCode(options.code) : makeCode();
+    const pin = options.pin ?? "1234";
+    if (this.getRoomByCode(code)) {
+      throw new Error("Room code already taken");
+    }
     const id = makeId();
-    const code = makeCode();
     const createdAt = new Date().toISOString();
+    const pinSecret = hashSecret(pin);
+    const gmInviteToken = randomToken();
+    const inviteHash = hashToken(gmInviteToken);
     this.db
       .prepare(
-        `INSERT INTO rooms (id, code, name, created_at, show_pcs, show_npcs)
-         VALUES (?, ?, ?, ?, 1, 1)`,
+        `INSERT INTO rooms (
+           id, code, name, created_at, show_pcs, show_npcs,
+           pin_hash, pin_salt, gm_invite_hash, screen_hp_quarters
+         ) VALUES (?, ?, ?, ?, 1, 1, ?, ?, ?, 0)`,
       )
-      .run(id, code, name, createdAt);
-    return { room: { id, code, name }, code };
+      .run(id, code, name, createdAt, pinSecret.hash, pinSecret.salt, inviteHash);
+    return { room: { id, code, name }, code, gmInviteToken };
   }
 
   getRoomByCode(code: string): RoomState | null {
     const row = this.db
       .prepare("SELECT id, code, name FROM rooms WHERE code = ?")
-      .get(code.toUpperCase()) as Pick<RoomRow, "id" | "code" | "name"> | undefined;
+      .get(normalizeRoomCode(code)) as Pick<RoomRow, "id" | "code" | "name"> | undefined;
     return row ? { id: row.id, code: row.code, name: row.name } : null;
   }
 
@@ -319,6 +350,110 @@ export class RoomStore {
     return next;
   }
 
+  getSettings(roomId: string): RoomSettings {
+    const room = this.getRoomRow(roomId);
+    return {
+      screenHpQuarters: room ? room.screen_hp_quarters === 1 : false,
+    };
+  }
+
+  setSettings(roomId: string, input: Partial<RoomSettings>): RoomSettings {
+    const current = this.getSettings(roomId);
+    const next = {
+      screenHpQuarters: input.screenHpQuarters ?? current.screenHpQuarters,
+    };
+    this.db
+      .prepare("UPDATE rooms SET screen_hp_quarters = ? WHERE id = ?")
+      .run(next.screenHpQuarters ? 1 : 0, roomId);
+    return next;
+  }
+
+  hasGmPin(roomId: string): boolean {
+    const room = this.getRoomRow(roomId);
+    return Boolean(room?.pin_hash && room.pin_salt);
+  }
+
+  hasPendingGmInvite(roomId: string): boolean {
+    const room = this.getRoomRow(roomId);
+    return Boolean(room?.gm_invite_hash);
+  }
+
+  verifyGmPin(roomId: string, pin: string): boolean {
+    const room = this.getRoomRow(roomId);
+    if (!room?.pin_hash || !room.pin_salt) {
+      return true;
+    }
+    return verifySecret(pin, room.pin_hash, room.pin_salt);
+  }
+
+  assertGmJoin(roomId: string, pin: string | undefined, invite: string | undefined): void {
+    const room = this.getRoomRow(roomId);
+    if (!room) {
+      throw new Error("Room not found");
+    }
+    const pinRequired = Boolean(room.pin_hash && room.pin_salt);
+    if (pinRequired) {
+      if (!pin) {
+        throw new Error("GM PIN required");
+      }
+      if (!verifySecret(pin, room.pin_hash!, room.pin_salt!)) {
+        throw new Error("Invalid GM PIN");
+      }
+    }
+    if (room.gm_invite_hash) {
+      if (!invite) {
+        throw new Error("Single-use GM invite required");
+      }
+      if (hashToken(invite) !== room.gm_invite_hash) {
+        throw new Error("Invalid or used GM invite");
+      }
+      this.db.prepare("UPDATE rooms SET gm_invite_hash = NULL WHERE id = ?").run(roomId);
+    }
+  }
+
+  mintGmInvite(roomId: string): string {
+    const invite = randomToken();
+    this.db
+      .prepare("UPDATE rooms SET gm_invite_hash = ? WHERE id = ?")
+      .run(hashToken(invite), roomId);
+    return invite;
+  }
+
+  mintGmInviteWithPin(roomId: string, pin: string): string {
+    if (!this.verifyGmPin(roomId, pin)) {
+      throw new Error("Invalid GM PIN");
+    }
+    if (!this.hasGmPin(roomId)) {
+      throw new Error("Room has no GM PIN");
+    }
+    return this.mintGmInvite(roomId);
+  }
+
+  issueUploadToken(roomId: string): string {
+    const token = randomToken();
+    this.uploadTokens.set(token, {
+      roomId,
+      expiresAt: Date.now() + UPLOAD_TOKEN_TTL_MS,
+    });
+    return token;
+  }
+
+  validateUploadToken(token: string, roomId: string): boolean {
+    const entry = this.uploadTokens.get(token);
+    if (!entry) {
+      return false;
+    }
+    if (entry.expiresAt < Date.now()) {
+      this.uploadTokens.delete(token);
+      return false;
+    }
+    return entry.roomId === roomId;
+  }
+
+  revokeUploadToken(token: string): void {
+    this.uploadTokens.delete(token);
+  }
+
   listCharacters(roomId: string): CharacterState[] {
     const rows = this.db
       .prepare("SELECT * FROM characters WHERE room_id = ? ORDER BY kind ASC, name ASC")
@@ -339,8 +474,9 @@ export class RoomStore {
   }
 
   listCharactersForRole(roomId: string, role: Role): CharacterState[] {
+    const screenHpQuarters = this.getSettings(roomId).screenHpQuarters;
     return this.listCharacters(roomId).map((character) =>
-      redactCharacterStatsForRole(character, role),
+      redactCharacterStatsForRole(character, role, screenHpQuarters),
     );
   }
 
@@ -1028,6 +1164,7 @@ export class RoomStore {
       tokens: this.listVisibleTokens(roomId),
       characters: this.listCharactersForRole(roomId, role),
       visibility: this.getVisibility(roomId),
+      settings: this.getSettings(roomId),
       camera: this.getCamera(roomId),
       initiative: this.getInitiative(roomId),
       eventLog: this.listRecentEvents(roomId),
@@ -1098,6 +1235,7 @@ function toCharacterState(row: CharacterRow, mapIds: string[]): CharacterState {
     hpCurrent: row.hp_current ?? null,
     hpMax: row.hp_max ?? null,
     ac: row.ac ?? null,
+    hpQuarter: null,
     conditions: parseConditionsJson(row.conditions_json),
   };
 }
@@ -1152,15 +1290,33 @@ function normalizeHp(input: {
 export function redactCharacterStatsForRole(
   character: CharacterState,
   role: Role,
+  screenHpQuarters = false,
 ): CharacterState {
-  if (role === "gm" || character.kind === "pc") {
-    return character;
+  if (role === "gm") {
+    return { ...character, hpQuarter: null };
   }
+
+  if (screenHpQuarters) {
+    const quarter = hpToQuarter(character.hpCurrent, character.hpMax);
+    return {
+      ...character,
+      hpCurrent: null,
+      hpMax: null,
+      ac: character.kind === "pc" ? character.ac : null,
+      hpQuarter: quarter,
+    };
+  }
+
+  if (character.kind === "pc") {
+    return { ...character, hpQuarter: null };
+  }
+
   return {
     ...character,
     hpCurrent: null,
     hpMax: null,
     ac: null,
+    hpQuarter: null,
   };
 }
 

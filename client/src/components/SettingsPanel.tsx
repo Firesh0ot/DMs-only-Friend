@@ -4,6 +4,7 @@ import {
   type CharacterKind,
   type CharacterState,
   type MapState,
+  type RoomSettings,
 } from "@dms/shared";
 import { parseOptionalInt } from "../lib/hp";
 import { getSocket } from "../socket/socket";
@@ -13,6 +14,8 @@ type Props = {
   maps: MapState[];
   activeMapId: string | null;
   characters: CharacterState[];
+  settings: RoomSettings;
+  uploadToken: string | null;
   onClose: () => void;
 };
 
@@ -41,6 +44,8 @@ export function SettingsPanel({
   maps,
   activeMapId,
   characters,
+  settings,
+  uploadToken,
   onClose,
 }: Props) {
   const baseId = useId();
@@ -53,11 +58,11 @@ export function SettingsPanel({
   const [editingStats, setEditingStats] = useState<
     Record<string, { hpCurrent: string; hpMax: string; ac: string }>
   >({});
+  const [gmInviteUrl, setGmInviteUrl] = useState<string | null>(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const links = useMemo(
     () => ({
-      gm: `${origin}/#/room/${code}?role=gm`,
       screen: `${origin}/#/room/${code}?role=screen`,
       player: `${origin}/#/room/${code}?role=player`,
     }),
@@ -67,8 +72,19 @@ export function SettingsPanel({
   const pcs = characters.filter((character) => character.kind === "pc");
   const npcs = characters.filter((character) => character.kind === "npc");
 
+  function uploadHeaders(): HeadersInit {
+    if (!uploadToken) {
+      return {};
+    }
+    return { "X-Dms-Upload-Token": uploadToken };
+  }
+
   async function onUploadMap(file: File | null) {
     if (!file) {
+      return;
+    }
+    if (!uploadToken) {
+      setMessage("Rejoin as GM to upload maps");
       return;
     }
     setBusy(true);
@@ -82,6 +98,7 @@ export function SettingsPanel({
       }
       const response = await fetch(`/api/rooms/${code}/map`, {
         method: "POST",
+        headers: uploadHeaders(),
         body,
       });
       if (!response.ok) {
@@ -101,6 +118,10 @@ export function SettingsPanel({
     if (!file) {
       return;
     }
+    if (!uploadToken) {
+      setMessage("Rejoin as GM to upload portraits");
+      return;
+    }
     setBusy(true);
     setMessage(null);
     try {
@@ -108,6 +129,7 @@ export function SettingsPanel({
       body.append("portrait", file);
       const response = await fetch(`/api/rooms/${code}/characters/${characterId}/portrait`, {
         method: "POST",
+        headers: uploadHeaders(),
         body,
       });
       if (!response.ok) {
@@ -120,6 +142,27 @@ export function SettingsPanel({
     } finally {
       setBusy(false);
     }
+  }
+
+  function mintGmInvite() {
+    setBusy(true);
+    setMessage(null);
+    getSocket().emit(ClientEvents.GmMintInvite, (result) => {
+      setBusy(false);
+      if (!result?.ok) {
+        setMessage(result?.error ?? "Could not mint GM invite");
+        return;
+      }
+      const hash = result.gmInviteUrl.startsWith("#")
+        ? result.gmInviteUrl
+        : `#/${result.gmInviteUrl.replace(/^\//, "")}`;
+      setGmInviteUrl(`${origin}/${hash}`);
+      setMessage("New single-use GM invite created — copy it now");
+    });
+  }
+
+  function setScreenHpQuarters(enabled: boolean) {
+    getSocket().emit(ClientEvents.SettingsSet, { screenHpQuarters: enabled });
   }
 
   function updateGrid(mapId: string, gridPx: string) {
@@ -400,6 +443,7 @@ export function SettingsPanel({
       <nav className="settings-toc" aria-label="Settings sections">
         <a href="#settings-maps">Maps</a>
         <a href="#settings-characters">Characters</a>
+        <a href="#settings-screen">Screen</a>
         <a href="#settings-links">Room links</a>
       </nav>
 
@@ -617,21 +661,50 @@ export function SettingsPanel({
         </div>
       </section>
 
+      <section className="settings-section stack" aria-labelledby="settings-screen">
+        <h3 id="settings-screen">Screen</h3>
+        <p className="muted">
+          When enabled, the player screen and remote players see HP as quarter steps only (25 / 50 /
+          75 / 100%), never exact numbers. Off keeps the current redaction (PC exact HP; NPC HP
+          hidden).
+        </p>
+        <label className="row" htmlFor={`${baseId}-hp-quarters`}>
+          <input
+            id={`${baseId}-hp-quarters`}
+            type="checkbox"
+            checked={settings.screenHpQuarters}
+            onChange={(event) => setScreenHpQuarters(event.target.checked)}
+          />
+          <span>Show quarter HP bars on screen</span>
+        </label>
+      </section>
+
       <section className="settings-section stack" aria-labelledby="settings-links">
         <h3 id="settings-links">Room links</h3>
         <p className="muted mono">
           Code <span className="visually-hidden">room code</span>
           {code}
         </p>
-        <label className="stack" htmlFor={`${baseId}-link-gm`}>
-          <span className="muted">GM</span>
-          <input
-            id={`${baseId}-link-gm`}
-            readOnly
-            value={links.gm}
-            onFocus={(event) => event.target.select()}
-          />
-        </label>
+        <p className="muted">
+          There is no forever GM URL. Mint a single-use invite when you need another GM device; PIN
+          alone rejoins after the invite is used.
+        </p>
+        <div className="row">
+          <button type="button" className="secondary" disabled={busy} onClick={mintGmInvite}>
+            Mint GM invite
+          </button>
+        </div>
+        {gmInviteUrl ? (
+          <label className="stack" htmlFor={`${baseId}-link-gm-invite`}>
+            <span className="muted">GM invite (single-use)</span>
+            <input
+              id={`${baseId}-link-gm-invite`}
+              readOnly
+              value={gmInviteUrl}
+              onFocus={(event) => event.target.select()}
+            />
+          </label>
+        ) : null}
         <label className="stack" htmlFor={`${baseId}-link-screen`}>
           <span className="muted">Screen</span>
           <input

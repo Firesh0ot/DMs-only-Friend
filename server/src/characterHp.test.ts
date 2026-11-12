@@ -74,12 +74,48 @@ describe("character HP and stats", () => {
     const screenNpc = screenSnap.characters.find((entry) => entry.id === npc.id);
     expect(screenPc?.hpCurrent).toBe(18);
     expect(screenPc?.ac).toBe(15);
+    expect(screenPc?.hpQuarter).toBeNull();
     expect(screenNpc?.hpCurrent).toBeNull();
     expect(screenNpc?.hpMax).toBeNull();
     expect(screenNpc?.ac).toBeNull();
+    expect(screenNpc?.hpQuarter).toBeNull();
     expect(screenNpc?.notes).toBe("greataxe");
 
     expect(redactCharacterStatsForRole(npc, "player").hpMax).toBeNull();
     expect(redactCharacterStatsForRole(npc, "gm").hpMax).toBe(15);
+  });
+
+  it("exposes quarter HP bands on screen when enabled", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+    const pc = store.upsertCharacter({
+      roomId: room.id,
+      name: "Aria",
+      kind: "pc",
+      hpMax: 100,
+      hpCurrent: 40,
+      ac: 15,
+    });
+    const npc = store.upsertCharacter({
+      roomId: room.id,
+      name: "Orc",
+      kind: "npc",
+      hpMax: 20,
+      hpCurrent: 5,
+      ac: 13,
+    });
+    store.setSettings(room.id, { screenHpQuarters: true });
+    const screenSnap = store.getSnapshot(room.id, "screen", null);
+    const screenPc = screenSnap.characters.find((entry) => entry.id === pc.id);
+    const screenNpc = screenSnap.characters.find((entry) => entry.id === npc.id);
+    expect(screenSnap.settings.screenHpQuarters).toBe(true);
+    expect(screenPc?.hpCurrent).toBeNull();
+    expect(screenPc?.hpMax).toBeNull();
+    expect(screenPc?.hpQuarter).toBe(2);
+    expect(screenPc?.ac).toBe(15);
+    expect(screenNpc?.hpCurrent).toBeNull();
+    expect(screenNpc?.hpMax).toBeNull();
+    expect(screenNpc?.hpQuarter).toBe(1);
+    expect(screenNpc?.ac).toBeNull();
   });
 });

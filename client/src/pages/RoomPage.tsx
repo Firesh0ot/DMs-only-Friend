@@ -33,13 +33,15 @@ type Props = {
   code: string;
   role: Role;
   name: string | null;
+  invite: string | null;
 };
 
 type GmMode = "play" | "settings";
 
-export function RoomPage({ code, role, name }: Props) {
+export function RoomPage({ code, role, name, invite }: Props) {
   const joinRoom = useRoomStore((state) => state.joinRoom);
   const snapshot = useRoomStore((state) => state.snapshot);
+  const uploadToken = useRoomStore((state) => state.uploadToken);
   const optimisticTokens = useRoomStore((state) => state.optimisticTokens);
   const joining = useRoomStore((state) => state.joining);
   const error = useRoomStore((state) => state.error);
@@ -53,6 +55,10 @@ export function RoomPage({ code, role, name }: Props) {
   const [fogTool, setFogTool] = useState<FogToolMode>("off");
   const [fogPaintMode, setFogPaintMode] = useState<FogPaintMode>("reveal");
   const [fogBrushRadius, setFogBrushRadius] = useState(36);
+  const [gmPin, setGmPin] = useState(() => sessionStorage.getItem(`dms-gm-pin:${code}`) ?? "");
+  const [pinReady, setPinReady] = useState(
+    () => role !== "gm" || /^\d{4,8}$/.test(sessionStorage.getItem(`dms-gm-pin:${code}`) ?? ""),
+  );
 
   const tokens = useMemo(() => {
     if (!snapshot) {
@@ -62,15 +68,30 @@ export function RoomPage({ code, role, name }: Props) {
   }, [snapshot, optimisticTokens]);
 
   useEffect(() => {
-    void joinRoom(code, role, name ?? undefined);
-  }, [code, role, name, joinRoom]);
-
-  useEffect(() => {
-    if (!snapshot?.room.id || role !== "gm") {
+    if (role === "gm" && !pinReady) {
       return;
     }
-    setIslandLayout(loadIslandLayout(snapshot.room.id));
-  }, [snapshot?.room.id, role]);
+    void joinRoom({
+      code,
+      role,
+      name: name ?? undefined,
+      pin: role === "gm" ? gmPin || undefined : undefined,
+      invite: role === "gm" ? invite ?? undefined : undefined,
+    })
+      .then(() => {
+        if (role === "gm" && invite) {
+          window.location.hash = `/room/${code}?role=gm`;
+        }
+      })
+      .catch(() => undefined);
+  }, [code, role, name, invite, joinRoom, pinReady, gmPin]);
+
+  useEffect(() => {
+    if (role !== "gm") {
+      return;
+    }
+    setIslandLayout(loadIslandLayout(code));
+  }, [code, role]);
 
   const activeTokenId = useMemo(() => {
     const initiative = snapshot?.initiative;
@@ -100,17 +121,60 @@ export function RoomPage({ code, role, name }: Props) {
   }
 
   function cycleIsland(id: IslandId) {
-    if (!snapshot || !islandLayout) {
+    if (!islandLayout) {
       return;
     }
     const next = { ...islandLayout, [id]: nextCorner(islandLayout[id]) };
     setIslandLayout(next);
-    saveIslandLayout(snapshot.room.id, next);
+    saveIslandLayout(code, next);
   }
 
   const isGm = role === "gm";
   const showSettings = isGm && gmMode === "settings";
   const showPlayChrome = isGm && gmMode === "play" && islandLayout;
+
+  if (isGm && !pinReady) {
+    return (
+      <main className="app-shell">
+        <header className="play-topbar">
+          <div>
+            <p className="muted">GM gate</p>
+            <h1 className="brand brand--compact">Room {code}</h1>
+          </div>
+          <a href="#/">Home</a>
+        </header>
+        <section className="panel stack" style={{ maxWidth: "24rem" }}>
+          <h2>Enter GM PIN</h2>
+          <p className="muted">
+            {invite
+              ? "Redeem this single-use invite with your PIN to become GM."
+              : "Rejoin as GM with the room PIN."}
+          </p>
+          <label className="stack">
+            <span className="muted">PIN</span>
+            <input
+              value={gmPin}
+              onChange={(event) => setGmPin(event.target.value.replace(/\D/g, "").slice(0, 8))}
+              inputMode="numeric"
+              autoComplete="current-password"
+              placeholder="••••"
+            />
+          </label>
+          <button
+            onClick={() => {
+              if (!/^\d{4,8}$/.test(gmPin)) {
+                return;
+              }
+              sessionStorage.setItem(`dms-gm-pin:${code}`, gmPin);
+              setPinReady(true);
+            }}
+          >
+            Continue as GM
+          </button>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className={isGm || role === "screen" || role === "player" ? "play-shell" : "app-shell"}>
@@ -158,6 +222,8 @@ export function RoomPage({ code, role, name }: Props) {
           maps={snapshot.maps}
           activeMapId={snapshot.map?.id ?? null}
           characters={snapshot.characters}
+          settings={snapshot.settings}
+          uploadToken={uploadToken}
           onClose={() => setGmMode("play")}
         />
       ) : null}

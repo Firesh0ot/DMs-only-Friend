@@ -7,11 +7,13 @@ import {
   FogPaintPayloadSchema,
   FogStateSchema,
   MapActivatePayloadSchema,
+  RoomCreatePayloadSchema,
   RoomJoinPayloadSchema,
   SessionEventSchema,
   SnapshotSchema,
   TokenMovePayloadSchema,
   VisibilitySetPayloadSchema,
+  hpToQuarter,
 } from "./events.js";
 
 describe("event schemas", () => {
@@ -19,8 +21,27 @@ describe("event schemas", () => {
     const parsed = RoomJoinPayloadSchema.parse({
       code: "ABC123",
       role: "gm",
+      pin: "1234",
+      invite: "invite-token-value",
     });
     expect(parsed.role).toBe("gm");
+    expect(parsed.pin).toBe("1234");
+  });
+
+  it("accepts room create payloads and rejects bad codes", () => {
+    expect(
+      RoomCreatePayloadSchema.parse({ code: "Friday-Table", pin: "2468", name: "Quest" }).code,
+    ).toBe("Friday-Table");
+    expect(() => RoomCreatePayloadSchema.parse({ code: "ab", pin: "1234" })).toThrow();
+    expect(() => RoomCreatePayloadSchema.parse({ code: "GOOD", pin: "12" })).toThrow();
+  });
+
+  it("maps HP into quarter steps", () => {
+    expect(hpToQuarter(0, 100)).toBe(0);
+    expect(hpToQuarter(25, 100)).toBe(1);
+    expect(hpToQuarter(50, 100)).toBe(2);
+    expect(hpToQuarter(75, 100)).toBe(3);
+    expect(hpToQuarter(100, 100)).toBe(4);
   });
 
   it("rejects invalid roles", () => {
@@ -93,6 +114,7 @@ describe("event schemas", () => {
       tokens: [],
       characters: [],
       visibility: { showPcs: true, showNpcs: true },
+      settings: { screenHpQuarters: false },
       camera: null,
       initiative: { order: [], activeIndex: 0, round: 1 },
       eventLog: [],
@@ -102,6 +124,7 @@ describe("event schemas", () => {
       playerName: null,
     });
     expect(snapshot.visibility.showPcs).toBe(true);
+    expect(snapshot.settings.screenHpQuarters).toBe(false);
   });
 
   it("accepts fog paint payloads and fog state", () => {

@@ -904,6 +904,37 @@ html[data-lantern="off"] .map-table {
   right: 0.75rem;
 }
 
+.island-dock--ml {
+  top: 50%;
+  left: 0.75rem;
+  transform: translateY(-50%);
+}
+
+.island-dock--mr {
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+}
+
+.hp-bar {
+  display: inline-grid;
+  grid-template-columns: repeat(4, 0.55rem);
+  gap: 0.12rem;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.hp-bar__seg {
+  display: block;
+  height: 0.55rem;
+  border-radius: 0.08rem;
+  background: rgba(60, 40, 20, 0.22);
+}
+
+.hp-bar__seg.is-filled {
+  background: var(--wood-deep);
+}
+
 .initiative-rail {
   color: var(--ink);
   padding: 0.85rem 0.7rem;

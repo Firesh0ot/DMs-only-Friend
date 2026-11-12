@@ -12,11 +12,12 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 
 ## GM prep (Settings)
 
-1. Create a room from the home page and open the GM link.
-2. Upload one or more maps: PNG/JPG/WebP (set `grid_px`) or Universal VTT `.dd2vtt` (grid and walls come from the file). On the GM view, imported walls show as an amber overlay.
-3. Copy Screen / Player links for the table.
+1. Create a room from the home page: choose a **room code**, table name, and **GM PIN** (4–8 digits). Copy the **single-use GM invite** immediately, then open it and enter the PIN.
+2. Upload one or more maps: PNG/JPG/WebP (set `grid_px`) or Universal VTT `.dd2vtt` (grid and walls come from the file). Uploads require a joined GM session. On the GM view, imported walls show as an amber overlay.
+3. Copy Screen / Player links for the table. There is no forever GM URL — mint a new single-use invite from Settings (or home with PIN) if you need another GM device.
 4. Add PCs and NPCs (display name, optional HP/AC, short notes, portrait); tick which maps each character appears on.
-5. Switch to **Play** when the session starts. Portraits and HP chips appear on initiative cards when set.
+5. Optional **Screen** setting: show quarter HP bars (25/50/75/100%) on the player screen — default off (exact PC HP; monsters hidden).
+6. Switch to **Play** when the session starts. Portraits and HP chips appear on initiative cards when set.
 
 ## GM play
 
@@ -29,13 +30,13 @@ Floating islands around the map:
 - **Dice** — enter expressions such as `2d6+3` (or use quick chips), roll on the server, see totals and recent rolls. Results are broadcast and appear in the session log.
 - **Fog** — brush or rectangle to **Reveal** / **Hide** areas; **Cover all** / **Clear all**. New maps start fully covered. Fog is translucent for you and solid for screen/players. Turn the tool **Off** to pan and move tokens again.
 
-Use **Snap** on an island to cycle corners. Positions are remembered for this room in the browser.
+Use **Snap** on an island to cycle dock slots (four corners plus mid-left/mid-right). First visit uses a non-overlapping default layout; positions are remembered per room code in the browser.
 
 Changing the active map brings in characters linked to that map (and drops the others). Tokens snap to grid and sync live. Camera pan/zoom on the GM side is followed by screen and players. Fog is stored per map.
 
 ## Screen / player
 
-No GM islands. Use the side rail for round, turn order, and whose turn it is. PC hit points may appear on initiative cards; **monster HP stays GM-only** by default. Compact condition badges (e.g. PRN, FRI) show when the GM applies them. A small strip shows battle elapsed time and the latest events when present. Dice rolls flash briefly as a toast over the map. Follow the GM’s pan/zoom. Unrevealed map areas stay under solid fog (including tokens in those areas).
+No GM islands. Use the side rail for round, turn order, and whose turn it is. By default PC hit points may appear as exact chips and **monster HP stays GM-only**. If the GM enables quarter HP bars, the rail shows coarse 25/50/75/100% bands for PCs and NPCs without exact numbers. Compact condition badges (e.g. PRN, FRI) show when the GM applies them. A small strip shows battle elapsed time and the latest events when present. Dice rolls flash briefly as a toast over the map. Follow the GM’s pan/zoom. Unrevealed map areas stay under solid fog (including tokens in those areas).
 
 ## Look & lantern
 
@@ -44,10 +45,10 @@ The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings
 ## Quick start (table)
 
 1. Start the app (self-hosted or local `npm run dev`).
-2. GM creates a room → open the GM URL.
-3. Open the screen URL on the TV/tablet.
+2. GM creates a room (code + PIN) → open the single-use GM invite and enter the PIN.
+3. Open the screen URL on the TV/tablet (code only; no PIN).
 4. In Settings: upload maps, set roster links; then Play.
-5. Optional: send remote players their join links.
+5. Optional: send remote players their join links. Rejoin as GM later with code + PIN.
 
 ## Related
 
@@ -61,4 +62,6 @@ The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings
 - HP visibility ADR: [../../decisions/0009-hp-screen-visibility.md](../../decisions/0009-hp-screen-visibility.md)
 - Manual fog ADR: [../../decisions/0010-manual-fog-of-war.md](../../decisions/0010-manual-fog-of-war.md)
 - Conditions ADR: [../../decisions/0011-token-conditions.md](../../decisions/0011-token-conditions.md)
+- Room / GM auth ADR: [../../decisions/0012-room-identity-gm-auth.md](../../decisions/0012-room-identity-gm-auth.md)
+- Screen HP quarters ADR: [../../decisions/0013-screen-hp-quarters.md](../../decisions/0013-screen-hp-quarters.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

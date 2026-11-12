@@ -10,6 +10,19 @@ export function formatHp(character: Pick<CharacterState, "hpCurrent" | "hpMax">)
   return `${character.hpCurrent ?? "–"}/${character.hpMax}`;
 }
 
+export function formatHpQuarter(quarter: number | null | undefined): string | null {
+  if (quarter === null || quarter === undefined) {
+    return null;
+  }
+  if (quarter <= 0) {
+    return "0%";
+  }
+  if (quarter >= 4) {
+    return "100%";
+  }
+  return `${quarter * 25}%`;
+}
+
 export function parseOptionalInt(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) {

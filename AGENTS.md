@@ -13,8 +13,8 @@ Dieses Dokument ist der verbindliche Kontext für alle Coding-Agenten (Cursor et
 - **Backend**: Node.js 20+, TypeScript strict, Express, **Socket.IO**, better-sqlite3, multer, `zod` für Event-Validierung.
 - **Server = Single Source of Truth**: alle Aktionen sind WebSocket-Events, Server validiert und broadcastet an `room:{id}`. Clients dürfen optimistic Updates zeigen, korrigieren aber anhand der Server-Antwort.
 - **Persistenz**: SQLite (`rooms`, `maps`, `tokens`, `dice_log`), Uploads als Dateien in `server/uploads/`.
-- **Auth**: Raum-Codes, kein Account-Zwang. Rollen: `gm`, `screen` (Player-Screen), `player` (remote).
-- **Berechtigungen**: Nur `gm` darf `map:*` und `token:create/remove`. Spieler dürfen nur ihren eigenen Token bewegen.
+- **Auth**: Selbst gewählte Raum-Codes, kein Account-Zwang. GM braucht PIN + einmaligen Invite-Link (danach PIN zum Rejoin). Rollen: `gm`, `screen` (Player-Screen), `player` (remote).
+- **Berechtigungen**: Nur `gm` darf `map:*`, HTTP-Uploads und `token:create/remove`. Spieler dürfen nur ihren eigenen Token bewegen.
 - **Karten-Import**: Universal VTT (`.dd2vtt`) als Standardformat (unterstützt Dungeon Map Builder, Dungeon Scrawl, Dungeondraft, Dungeon Alchemist). Fallback: PNG/JPG mit manuellem Grid; animiertes WebM als optionaler Hintergrund-Layer. Kein Einbetten externer Editoren.
 - **KI-Maps** (Phase 4): prozedurales Layout (BSP/WFC) → dd2vtt-konforme Daten; optionale Bild-Stilisierung (Stable Diffusion/ControlNet, grid-genau) als Hintergrund-Layer.
 - **MCP-Server** (Phase 5): separater Node-Service, spricht die Backend-API an, exponiert Tools wie `place_token`, `roll`, `next_turn`, `reveal_area`.

@@ -1,6 +1,6 @@
-import { ServerEvents } from "@dms/shared";
+import { RoomCreatePayloadSchema, ServerEvents, normalizeRoomCode } from "@dms/shared";
 import cors from "cors";
-import express, { type Express, type Request, type Response } from "express";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import multer from "multer";
 import fs from "node:fs";
 import path from "node:path";
@@ -18,6 +18,8 @@ export type HttpDeps = {
   io: IoServer;
   publicOrigin: string;
 };
+
+type AuthedRequest = Request & { dmsRoomId?: string };
 
 export function createHttpApp(deps: HttpDeps): Express {
   const app = express();
@@ -51,20 +53,27 @@ export function createHttpApp(deps: HttpDeps): Express {
   });
 
   app.post("/api/rooms", (req, res) => {
-    const name =
-      typeof req.body?.name === "string" && req.body.name.trim()
-        ? req.body.name.trim()
-        : "Table";
-    const { room, code } = deps.rooms.createRoom(name);
-    const origin = deps.publicOrigin.replace(/\/$/, "");
-    res.status(201).json({
-      id: room.id,
-      code,
-      name: room.name,
-      gmUrl: `${origin}/#/room/${code}?role=gm`,
-      screenUrl: `${origin}/#/room/${code}?role=screen`,
-      playerUrl: `${origin}/#/room/${code}?role=player`,
-    });
+    try {
+      const parsed = RoomCreatePayloadSchema.parse(req.body ?? {});
+      const { room, code, gmInviteToken } = deps.rooms.createRoom({
+        name: parsed.name?.trim() || "Table",
+        code: parsed.code,
+        pin: parsed.pin,
+      });
+      const origin = deps.publicOrigin.replace(/\/$/, "");
+      res.status(201).json({
+        id: room.id,
+        code,
+        name: room.name,
+        gmInviteUrl: `${origin}/#/room/${code}?role=gm&invite=${encodeURIComponent(gmInviteToken)}`,
+        screenUrl: `${origin}/#/room/${code}?role=screen`,
+        playerUrl: `${origin}/#/room/${code}?role=player`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not create room";
+      const status = message.includes("already taken") ? 409 : 400;
+      res.status(status).json({ error: message });
+    }
   });
 
   app.get("/api/rooms/:code/links", (req, res) => {
@@ -76,14 +85,50 @@ export function createHttpApp(deps: HttpDeps): Express {
     const origin = deps.publicOrigin.replace(/\/$/, "");
     res.json({
       code: room.code,
-      gmUrl: `${origin}/#/room/${room.code}?role=gm`,
       screenUrl: `${origin}/#/room/${room.code}?role=screen`,
       playerUrl: `${origin}/#/room/${room.code}?role=player`,
+      gmInvitePending: deps.rooms.hasPendingGmInvite(room.id),
     });
   });
 
+  app.post("/api/rooms/:code/gm-invite", (req, res) => {
+    const room = deps.rooms.getRoomByCode(req.params.code ?? "");
+    if (!room) {
+      res.status(404).json({ error: "Room not found" });
+      return;
+    }
+    const pin = typeof req.body?.pin === "string" ? req.body.pin : "";
+    try {
+      const invite = deps.rooms.mintGmInviteWithPin(room.id, pin);
+      const origin = deps.publicOrigin.replace(/\/$/, "");
+      res.status(201).json({
+        code: room.code,
+        gmInviteUrl: `${origin}/#/room/${room.code}?role=gm&invite=${encodeURIComponent(invite)}`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not mint invite";
+      res.status(401).json({ error: message });
+    }
+  });
+
+  const requireGmUpload = (req: AuthedRequest, res: Response, next: NextFunction) => {
+    const room = deps.rooms.getRoomByCode(normalizeRoomCode(req.params.code ?? ""));
+    if (!room) {
+      res.status(404).json({ error: "Room not found" });
+      return;
+    }
+    const header = req.header("x-dms-upload-token") ?? "";
+    if (!header || !deps.rooms.validateUploadToken(header, room.id)) {
+      res.status(401).json({ error: "GM upload token required" });
+      return;
+    }
+    req.dmsRoomId = room.id;
+    next();
+  };
+
   app.post(
     "/api/rooms/:code/map",
+    requireGmUpload,
     (req, res, next) => {
       upload.single("map")(req, res, (error) => {
         if (error) {
@@ -93,8 +138,13 @@ export function createHttpApp(deps: HttpDeps): Express {
         next();
       });
     },
-    (req: Request, res: Response) => {
-      const room = deps.rooms.getRoomByCode(req.params.code ?? "");
+    (req: AuthedRequest, res: Response) => {
+      const roomId = req.dmsRoomId;
+      if (!roomId) {
+        res.status(401).json({ error: "GM upload token required" });
+        return;
+      }
+      const room = deps.rooms.getRoomById(roomId);
       if (!room) {
         res.status(404).json({ error: "Room not found" });
         return;
@@ -166,6 +216,7 @@ export function createHttpApp(deps: HttpDeps): Express {
 
   app.post(
     "/api/rooms/:code/characters/:characterId/portrait",
+    requireGmUpload,
     (req, res, next) => {
       portraitUpload.single("portrait")(req, res, (error) => {
         if (error) {
@@ -175,8 +226,13 @@ export function createHttpApp(deps: HttpDeps): Express {
         next();
       });
     },
-    (req: Request, res: Response) => {
-      const room = deps.rooms.getRoomByCode(req.params.code ?? "");
+    (req: AuthedRequest, res: Response) => {
+      const roomId = req.dmsRoomId;
+      if (!roomId) {
+        res.status(401).json({ error: "GM upload token required" });
+        return;
+      }
+      const room = deps.rooms.getRoomById(roomId);
       if (!room) {
         res.status(404).json({ error: "Room not found" });
         return;

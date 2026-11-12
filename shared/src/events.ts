@@ -69,6 +69,7 @@ export const CharacterStateSchema = z.object({
   hpCurrent: z.number().int().nullable(),
   hpMax: z.number().int().nullable(),
   ac: z.number().int().nullable(),
+  hpQuarter: z.number().int().min(0).max(4).nullable(),
   conditions: z.array(ConditionIdSchema).default([]),
 });
 export type CharacterState = z.infer<typeof CharacterStateSchema>;
@@ -78,6 +79,55 @@ export const VisibilityStateSchema = z.object({
   showNpcs: z.boolean(),
 });
 export type VisibilityState = z.infer<typeof VisibilityStateSchema>;
+
+export const RoomSettingsSchema = z.object({
+  screenHpQuarters: z.boolean(),
+});
+export type RoomSettings = z.infer<typeof RoomSettingsSchema>;
+
+export const RoomCodeSchema = z
+  .string()
+  .trim()
+  .min(3)
+  .max(24)
+  .regex(/^[A-Za-z0-9_-]+$/, "Use letters, digits, underscore, or hyphen");
+export type RoomCode = z.infer<typeof RoomCodeSchema>;
+
+export const GmPinSchema = z
+  .string()
+  .regex(/^\d{4,8}$/, "PIN must be 4–8 digits");
+export type GmPin = z.infer<typeof GmPinSchema>;
+
+export function normalizeRoomCode(code: string): string {
+  return code.trim().toUpperCase();
+}
+
+export function hpToQuarter(hpCurrent: number | null, hpMax: number | null): number | null {
+  if (hpCurrent === null && hpMax === null) {
+    return null;
+  }
+  if (hpMax === null || hpMax <= 0) {
+    if (hpCurrent === null) {
+      return null;
+    }
+    return hpCurrent <= 0 ? 0 : 4;
+  }
+  const current = hpCurrent ?? 0;
+  if (current <= 0) {
+    return 0;
+  }
+  const ratio = current / hpMax;
+  if (ratio <= 0.25) {
+    return 1;
+  }
+  if (ratio <= 0.5) {
+    return 2;
+  }
+  if (ratio <= 0.75) {
+    return 3;
+  }
+  return 4;
+}
 
 export const CameraStateSchema = z.object({
   x: z.number(),
@@ -198,6 +248,7 @@ export const SnapshotSchema = z.object({
   tokens: z.array(TokenStateSchema),
   characters: z.array(CharacterStateSchema),
   visibility: VisibilityStateSchema,
+  settings: RoomSettingsSchema,
   camera: CameraStateSchema.nullable(),
   initiative: InitiativeStateSchema.nullable(),
   eventLog: z.array(SessionEventSchema),
@@ -209,11 +260,25 @@ export const SnapshotSchema = z.object({
 export type Snapshot = z.infer<typeof SnapshotSchema>;
 
 export const RoomJoinPayloadSchema = z.object({
-  code: z.string().min(1).max(16),
+  code: RoomCodeSchema,
   role: RoleSchema,
   name: z.string().min(1).max(64).optional(),
+  pin: GmPinSchema.optional(),
+  invite: z.string().min(8).max(128).optional(),
 });
 export type RoomJoinPayload = z.infer<typeof RoomJoinPayloadSchema>;
+
+export const RoomCreatePayloadSchema = z.object({
+  name: z.string().trim().min(1).max(64).optional(),
+  code: RoomCodeSchema,
+  pin: GmPinSchema,
+});
+export type RoomCreatePayload = z.infer<typeof RoomCreatePayloadSchema>;
+
+export const SettingsSetPayloadSchema = z.object({
+  screenHpQuarters: z.boolean().optional(),
+});
+export type SettingsSetPayload = z.infer<typeof SettingsSetPayloadSchema>;
 
 export const TokenMovePayloadSchema = z.object({
   tokenId: z.string().min(1),
@@ -357,6 +422,8 @@ export const ClientEvents = {
   CharacterSetHp: "character:setHp",
   CharacterSetConditions: "character:setConditions",
   VisibilitySet: "visibility:set",
+  SettingsSet: "settings:set",
+  GmMintInvite: "gm:mintInvite",
   BattleStart: "battle:start",
   BattleEnd: "battle:end",
   FogPaint: "fog:paint",
@@ -370,6 +437,7 @@ export const ServerEvents = {
   TokensSynced: "tokens:synced",
   CharactersUpdated: "characters:updated",
   VisibilityUpdated: "visibility:updated",
+  SettingsUpdated: "settings:updated",
   TokenMoved: "token:moved",
   TokenCreated: "token:created",
   TokenRemoved: "token:removed",
@@ -382,10 +450,18 @@ export const ServerEvents = {
   Error: "error",
 } as const;
 
+export type RoomJoinResult =
+  | { ok: true; snapshot: Snapshot; uploadToken?: string }
+  | { ok: false; error: string };
+
+export type GmMintInviteResult =
+  | { ok: true; invite: string; gmInviteUrl: string }
+  | { ok: false; error: string };
+
 export type ClientToServerEvents = {
   [ClientEvents.RoomJoin]: (
     payload: RoomJoinPayload,
-    callback?: (result: { ok: true; snapshot: Snapshot } | { ok: false; error: string }) => void,
+    callback?: (result: RoomJoinResult) => void,
   ) => void;
   [ClientEvents.TokenMove]: (payload: TokenMovePayload) => void;
   [ClientEvents.TokenCreate]: (payload: TokenCreatePayload) => void;
@@ -402,6 +478,10 @@ export type ClientToServerEvents = {
   [ClientEvents.CharacterSetHp]: (payload: CharacterSetHpPayload) => void;
   [ClientEvents.CharacterSetConditions]: (payload: CharacterSetConditionsPayload) => void;
   [ClientEvents.VisibilitySet]: (payload: VisibilitySetPayload) => void;
+  [ClientEvents.SettingsSet]: (payload: SettingsSetPayload) => void;
+  [ClientEvents.GmMintInvite]: (
+    callback?: (result: GmMintInviteResult) => void,
+  ) => void;
   [ClientEvents.BattleStart]: () => void;
   [ClientEvents.BattleEnd]: () => void;
   [ClientEvents.FogPaint]: (payload: FogPaintPayload) => void;
@@ -415,6 +495,7 @@ export type ServerToClientEvents = {
   [ServerEvents.TokensSynced]: (tokens: TokenState[]) => void;
   [ServerEvents.CharactersUpdated]: (characters: CharacterState[]) => void;
   [ServerEvents.VisibilityUpdated]: (visibility: VisibilityState) => void;
+  [ServerEvents.SettingsUpdated]: (settings: RoomSettings) => void;
   [ServerEvents.TokenMoved]: (token: TokenState) => void;
   [ServerEvents.TokenCreated]: (token: TokenState) => void;
   [ServerEvents.TokenRemoved]: (payload: { tokenId: string }) => void;

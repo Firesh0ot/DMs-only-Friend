@@ -1,6 +1,6 @@
 import type { CharacterState, InitiativeState, TokenState } from "@dms/shared";
 import { useMemo } from "react";
-import { formatHp } from "../lib/hp";
+import { formatHp, formatHpQuarter } from "../lib/hp";
 import { ConditionBadges } from "./ConditionBadges";
 
 type Props = {
@@ -29,9 +29,19 @@ export function InitiativeRail({ initiative, tokens, characters }: Props) {
     );
   }
 
+  function displayHp(character: CharacterState | undefined): string | null {
+    if (!character) {
+      return null;
+    }
+    if (character.hpQuarter !== null) {
+      return formatHpQuarter(character.hpQuarter);
+    }
+    return formatHp(character);
+  }
+
   const active = initiative.order[initiative.activeIndex];
   const activeCharacter = active ? characterFor(active.tokenId) : undefined;
-  const activeHp = activeCharacter ? formatHp(activeCharacter) : null;
+  const activeHp = displayHp(activeCharacter);
 
   return (
     <aside className="initiative-rail" aria-label="Initiative order">
@@ -67,7 +77,8 @@ export function InitiativeRail({ initiative, tokens, characters }: Props) {
           const isActive = index === initiative.activeIndex;
           const initial = entry.label.trim().charAt(0).toUpperCase() || "?";
           const character = characterFor(entry.tokenId);
-          const hp = character ? formatHp(character) : null;
+          const hp = displayHp(character);
+          const quarter = character?.hpQuarter;
           return (
             <li key={`${entry.tokenId}-${index}`} className={isActive ? "is-active" : undefined}>
               <div className="tcg-card" data-kind={entry.kind ?? "npc"}>
@@ -81,7 +92,24 @@ export function InitiativeRail({ initiative, tokens, characters }: Props) {
                 <div className="tcg-card__meta">
                   <span className="tcg-card__name">{entry.label}</span>
                   <span className="tcg-card__stats">
-                    {hp ? <span className="hp-chip">{hp}</span> : null}
+                    {quarter !== null && quarter !== undefined ? (
+                      <span
+                        className="hp-bar"
+                        title={hp ?? undefined}
+                        aria-label={hp ? `HP ${hp}` : "HP"}
+                      >
+                        {[0, 1, 2, 3].map((step) => (
+                          <span
+                            key={step}
+                            className={
+                              step < quarter ? "hp-bar__seg is-filled" : "hp-bar__seg"
+                            }
+                          />
+                        ))}
+                      </span>
+                    ) : hp ? (
+                      <span className="hp-chip">{hp}</span>
+                    ) : null}
                     {character ? (
                       <ConditionBadges conditions={character.conditions} compact />
                     ) : null}
