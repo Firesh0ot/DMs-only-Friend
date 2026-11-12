@@ -54,7 +54,7 @@ Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**
 
 Für LAN oder Home-Server: Image `ghcr.io/firesh0ot/dms-only-friend` per Compose ziehen (Host-Port standardmäßig **8042**). `.env.example` nach `.env` kopieren und `PUBLIC_ORIGIN` auf die URL setzen, die alle im Browser öffnen (LAN-IP mit Port oder öffentliche HTTPS-Origin hinter dem Reverse-Proxy). Invite- und API-Raumlinks nutzen diese Origin; Copy-Links für Screen/Player in Settings folgen der aktuellen Browser-Origin — die GM-UI also unter derselben öffentlichen URL öffnen, die du teilst.
 
-Optionale Traefik-Labels (`TRAEFIK_ENABLE` / `FQDN`) hängen an bestehendes Traefik — TLS bleibt beim Proxy. Details: [Developing — Docker / table deploy](../../developing/README.md#docker--table-deploy) und [behind your reverse proxy](../../developing/README.md#behind-your-reverse-proxy).
+Optionale Traefik-Labels (`TRAEFIK_ENABLE` / `FQDN`) hängen an bestehendes Traefik — TLS bleibt beim Proxy. Der Proxy muss WebSocket / HTTP-`Upgrade` für Socket.IO durchlassen; hängt die UI bei **Joining room…**, liegt es meist daran. Details: [Developing — Docker / table deploy](../../developing/README.md#docker--table-deploy), [behind your reverse proxy](../../developing/README.md#behind-your-reverse-proxy) und [WebSockets required](../../developing/README.md#websockets-required-joining-room).
 
 ## Weiteres
 

@@ -51,6 +51,7 @@ docker compose pull && docker compose up -d
 - Set `PUBLIC_ORIGIN` to the URL browsers actually open (scheme + host + port, no trailing slash) so GM invite / room links from the API are correct.
 - Behind an existing reverse proxy: put the public HTTPS origin in `.env` (e.g. `PUBLIC_ORIGIN=https://vtt.example.com`). TLS and FQDN stay on the proxy — this compose file does **not** ship Caddy or Traefik as a service.
 - Optional Traefik: `TRAEFIK_ENABLE=true` and `FQDN=vtt.example.com` enable Docker labels (`traefik.enable`, Host rule, `websecure`, service port **3001**). Defaults leave Traefik off so plain compose still works.
+- **WebSockets required:** Socket.IO needs HTTP `Upgrade` / WebSockets through the proxy. If the browser hangs on **Joining room…**, the proxy is almost certainly blocking upgrades — see [Developing — reverse proxy / WebSockets](docs/developing/README.md#websockets-required-joining-room).
 - Data (SQLite + uploads) lives in the `dms-data` volume.
 
 ## Kernentscheidungen
