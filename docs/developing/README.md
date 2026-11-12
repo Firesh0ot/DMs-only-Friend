@@ -27,6 +27,8 @@ npm run build
 
 Production image: `ghcr.io/firesh0ot/dms-only-friend` (published from `main` / `v*` tags via [`.github/workflows/docker-publish.yml`](../../.github/workflows/docker-publish.yml)). See [ADR 0015](../decisions/0015-docker-ghcr-packaging.md). Copy [`.env.example`](../../.env.example) to `.env` and edit as needed.
 
+**Image deps:** the Dockerfile’s `prod-deps` stage installs server/shared production workspaces (`npm ci --omit=dev -w @dms/server -w @dms/shared`) and copies both the hoisted root `node_modules` and any nested `server/node_modules` (needed when npm nests a major that differs from the client tree, e.g. `nanoid@5`). After merging packaging changes, wait for the GHCR publish workflow on `main`, then `docker compose pull && docker compose up -d`.
+
 **Pull and run (compose):**
 
 ```bash

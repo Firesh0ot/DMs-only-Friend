@@ -19,8 +19,22 @@ COPY shared ./shared
 COPY server ./server
 COPY client ./client
 
-RUN npm run build \
-  && npm prune --omit=dev
+RUN npm run build
+
+FROM node:20-bookworm AS prod-deps
+WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+COPY shared/package.json ./shared/
+COPY server/package.json ./server/
+COPY client/package.json ./client/
+
+RUN npm ci --omit=dev -w @dms/server -w @dms/shared \
+  && mkdir -p /app/server/node_modules /app/shared/node_modules
 
 FROM node:20-bookworm-slim AS runtime
 WORKDIR /app
@@ -38,11 +52,13 @@ ENV NODE_ENV=production \
     PUBLIC_ORIGIN=http://localhost:8042 \
     CLIENT_DIST=/app/client/dist
 
-COPY --from=build /app/package.json /app/package-lock.json ./
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/shared/package.json ./shared/package.json
+COPY --from=prod-deps /app/package.json /app/package-lock.json ./
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=prod-deps /app/shared/package.json ./shared/package.json
+COPY --from=prod-deps /app/shared/node_modules ./shared/node_modules
 COPY --from=build /app/shared/dist ./shared/dist
-COPY --from=build /app/server/package.json ./server/package.json
+COPY --from=prod-deps /app/server/package.json ./server/package.json
+COPY --from=prod-deps /app/server/node_modules ./server/node_modules
 COPY --from=build /app/server/dist ./server/dist
 COPY --from=build /app/client/dist ./client/dist
 
