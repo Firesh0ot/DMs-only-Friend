@@ -52,3 +52,4 @@ What becomes easier, harder, or out of scope.
 | [0011](0011-token-conditions.md) | Character conditions on roster / tokens | accepted |
 | [0012](0012-room-identity-gm-auth.md) | Room identity and GM auth (PIN + single-use invite) | accepted |
 | [0013](0013-screen-hp-quarters.md) | Screen HP quarter bands toggle | accepted |
+| [0014](0014-player-token-character-bind.md) | Player token ownership by character id | accepted |

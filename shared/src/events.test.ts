@@ -122,9 +122,20 @@ describe("event schemas", () => {
       fog: null,
       role: "gm",
       playerName: null,
+      characterId: null,
     });
     expect(snapshot.visibility.showPcs).toBe(true);
     expect(snapshot.settings.screenHpQuarters).toBe(false);
+    expect(snapshot.characterId).toBeNull();
+  });
+
+  it("accepts player join with characterId claim", () => {
+    const parsed = RoomJoinPayloadSchema.parse({
+      code: "ABC123",
+      role: "player",
+      characterId: "char-1",
+    });
+    expect(parsed.characterId).toBe("char-1");
   });
 
   it("accepts fog paint payloads and fog state", () => {

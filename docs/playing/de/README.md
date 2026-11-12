@@ -8,7 +8,7 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 |---|---|
 | **GM** | **Settings** für Vorbereitung; **Play** mit schwebenden Inseln (Map, Initiative, NPCs, Log, Dice, Fog) |
 | **Player-Screen** | Vollbild-Karte + TCG-Initiative-Leiste; kompakte Kampfdauer / letzte Events; Würfel-Toast bei Rolls; Kamera folgt dem GM |
-| **Remote-Spieler** | Wie Player-Screen, plus Steuerung des eigenen Tokens (Label = Name) |
+| **Remote-Spieler** | Wie Player-Screen, plus Steuerung des Tokens für den **beanspruchten PC** (`characterId` oder eindeutiger PC-Name beim Join) |
 
 ## GM-Vorbereitung (Settings)
 
@@ -48,7 +48,7 @@ Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**
 2. GM erstellt einen Raum (Code + PIN) → einmaligen GM-Invite öffnen und PIN eingeben.
 3. Screen-URL auf dem TV/Tablet öffnen (nur Code; kein PIN).
 4. In Settings: Karten und Roster pflegen; dann Play.
-5. Optional: Remote-Spielern ihre Join-Links schicken. GM später mit Code + PIN erneut joinen.
+5. Optional: Remote-Spielern Join-Links mit `characterId` (oder eindeutigem PC-`name`) schicken, damit sie diesen Roster-PC beanspruchen. GM später mit Code + PIN erneut joinen.
 
 ## Weiteres
 
@@ -64,4 +64,5 @@ Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**
 - Bedingungen-ADR: [../../decisions/0011-token-conditions.md](../../decisions/0011-token-conditions.md)
 - Raum-/GM-Auth-ADR: [../../decisions/0012-room-identity-gm-auth.md](../../decisions/0012-room-identity-gm-auth.md)
 - Screen-TP-Viertel-ADR: [../../decisions/0013-screen-hp-quarters.md](../../decisions/0013-screen-hp-quarters.md)
+- Spieler-Token-Bind-ADR: [../../decisions/0014-player-token-character-bind.md](../../decisions/0014-player-token-character-bind.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

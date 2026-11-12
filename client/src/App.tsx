@@ -6,7 +6,14 @@ import type { Role } from "@dms/shared";
 
 type Route =
   | { kind: "home" }
-  | { kind: "room"; code: string; role: Role; name: string | null; invite: string | null };
+  | {
+      kind: "room";
+      code: string;
+      role: Role;
+      name: string | null;
+      characterId: string | null;
+      invite: string | null;
+    };
 
 function parseHash(hash: string): Route {
   const raw = hash.replace(/^#/, "") || "/";
@@ -23,6 +30,7 @@ function parseHash(hash: string): Route {
       code: parts[1].toUpperCase(),
       role,
       name: url.searchParams.get("name"),
+      characterId: url.searchParams.get("characterId"),
       invite: url.searchParams.get("invite"),
     };
   }
@@ -42,7 +50,13 @@ export function App() {
 
   if (route.kind === "room") {
     return (
-      <RoomPage code={route.code} role={route.role} name={route.name} invite={route.invite} />
+      <RoomPage
+        code={route.code}
+        role={route.role}
+        name={route.name}
+        characterId={route.characterId}
+        invite={route.invite}
+      />
     );
   }
 
