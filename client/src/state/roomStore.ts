@@ -229,23 +229,49 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     const socket = getSocket();
     set({ joining: true, error: null, uploadToken: null });
 
-    await new Promise<void>((resolve, reject) => {
-      socket.emit(
-        ClientEvents.RoomJoin,
-        { code, role, name, characterId, pin, invite },
-        (result) => {
-          if (!result?.ok) {
-            const message = result?.error ?? "Join failed";
-            set({ joining: false, error: message });
-            reject(new Error(message));
-            return;
-          }
-          get().applySnapshot(result.snapshot);
-          set({ uploadToken: result.uploadToken ?? null });
-          resolve();
-        },
-      );
-    });
+    try {
+      if (!socket.connected) {
+        await new Promise<void>((resolve, reject) => {
+          const timer = window.setTimeout(() => {
+            reject(new Error("Could not connect to server"));
+          }, 12_000);
+          const onConnect = () => {
+            window.clearTimeout(timer);
+            socket.off("connect_error", onError);
+            resolve();
+          };
+          const onError = (err: Error) => {
+            window.clearTimeout(timer);
+            socket.off("connect", onConnect);
+            reject(err);
+          };
+          socket.once("connect", onConnect);
+          socket.once("connect_error", onError);
+        });
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        socket.emit(
+          ClientEvents.RoomJoin,
+          { code, role, name, characterId, pin, invite },
+          (result) => {
+            if (!result?.ok) {
+              const message = result?.error ?? "Join failed";
+              set({ joining: false, error: message });
+              reject(new Error(message));
+              return;
+            }
+            get().applySnapshot(result.snapshot);
+            set({ uploadToken: result.uploadToken ?? null });
+            resolve();
+          },
+        );
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Join failed";
+      set({ joining: false, error: message });
+      throw error instanceof Error ? error : new Error(message);
+    }
   },
 }));
 

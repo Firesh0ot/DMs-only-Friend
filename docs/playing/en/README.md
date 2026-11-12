@@ -48,7 +48,7 @@ The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings
 2. GM creates a room (code + PIN) → open the single-use GM invite and enter the PIN.
 3. Open the screen URL on the TV/tablet (code only; no PIN).
 4. In Settings: upload maps, set roster links; then Play.
-5. Optional: send remote players join links with `characterId` (or a unique PC `name`) so they claim that roster PC. Rejoin as GM later with code + PIN. Keep the PIN somewhere safe while you are not joined as GM.
+5. Optional: send remote players join links with `characterId` (or a unique PC `name`) so they claim that roster PC. Rejoin as GM later with code + PIN (works even if a reminted invite is still pending — the invite URL is only required for the **first** GM claim). Keep the PIN somewhere safe while you are not joined as GM.
 
 ### Self-host / join links
 

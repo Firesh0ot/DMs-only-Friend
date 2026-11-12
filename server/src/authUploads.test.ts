@@ -54,6 +54,7 @@ describe("room auth and upload gates", () => {
     expect(links.body.playerUrl).toContain("role=player");
     expect(links.body.gmUrl).toBeUndefined();
     expect(links.body.gmInvitePending).toBe(true);
+    expect(links.body.gmInviteRequired).toBe(true);
   });
 
   it("creates rooms with German umlaut codes and serves encoded links", async () => {

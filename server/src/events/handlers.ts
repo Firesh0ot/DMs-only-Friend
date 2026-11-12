@@ -76,7 +76,6 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Join failed";
         callback?.({ ok: false, error: message });
-        socket.emit(ServerEvents.Error, { message });
       }
     });
 

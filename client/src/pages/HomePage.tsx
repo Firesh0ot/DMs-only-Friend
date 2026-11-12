@@ -60,14 +60,15 @@ export function HomePage() {
     }
   }
 
-  function openRoom(role: "gm" | "screen" | "player") {
+  async function openRoom(role: "gm" | "screen" | "player") {
     const roomCode = normalizeRoomCode(created?.code ?? joinCode);
     if (!roomCode) {
       setError("Enter a room code");
       return;
     }
     if (role === "gm") {
-      const pinValue = (created ? pin : joinPin).trim() || sessionStorage.getItem(`dms-gm-pin:${roomCode}`) || "";
+      const pinValue =
+        (created ? pin : joinPin).trim() || sessionStorage.getItem(`dms-gm-pin:${roomCode}`) || "";
       if (!pinValue) {
         setError("Enter the GM PIN");
         return;
@@ -76,6 +77,29 @@ export function HomePage() {
       if (created?.gmInviteUrl) {
         openCreatedGm();
         return;
+      }
+      setBusy(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/rooms/${roomCodePathSegment(roomCode)}/links`);
+        const payload = (await response.json().catch(() => null)) as {
+          gmInviteRequired?: boolean;
+          error?: string;
+        } | null;
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Room not found");
+        }
+        if (payload?.gmInviteRequired) {
+          setError(
+            "First GM claim needs the single-use invite URL — mint one with the PIN below, then open it.",
+          );
+          return;
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not check room");
+        return;
+      } finally {
+        setBusy(false);
       }
     }
     const params = new URLSearchParams({ role });
@@ -181,8 +205,14 @@ export function HomePage() {
                 />
               </label>
               <div className="row">
-                <button onClick={() => openRoom("gm")}>Open as GM</button>
-                <button className="secondary" onClick={() => openRoom("screen")}>
+                <button disabled={busy} onClick={() => void openRoom("gm")}>
+                  Open as GM
+                </button>
+                <button
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => void openRoom("screen")}
+                >
                   Open screen
                 </button>
               </div>
@@ -222,15 +252,17 @@ export function HomePage() {
             />
           </label>
           <div className="row">
-            <button onClick={() => openRoom("screen")}>Join screen</button>
+            <button disabled={busy} onClick={() => void openRoom("screen")}>
+              Join screen
+            </button>
             <button
               className="secondary"
-              onClick={() => openRoom("player")}
-              disabled={!playerName.trim()}
+              onClick={() => void openRoom("player")}
+              disabled={busy || !playerName.trim()}
             >
               Join as player
             </button>
-            <button className="secondary" onClick={() => openRoom("gm")}>
+            <button className="secondary" disabled={busy} onClick={() => void openRoom("gm")}>
               Join as GM
             </button>
           </div>

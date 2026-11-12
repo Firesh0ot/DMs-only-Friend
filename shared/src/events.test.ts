@@ -17,6 +17,7 @@ import {
   VisibilitySetPayloadSchema,
   hpToQuarter,
   normalizeRoomCode,
+  roomCodeFromPathSegment,
   roomCodePathSegment,
 } from "./events.js";
 
@@ -49,6 +50,8 @@ describe("event schemas", () => {
     expect(normalizeRoomCode("a\u0308ok")).toBe("ÄOK");
     expect(RoomCodeSchema.parse("a\u0308ok")).toBe("ÄOK");
     expect(roomCodePathSegment("dörfer")).toBe(encodeURIComponent("DÖRFER"));
+    expect(roomCodeFromPathSegment(encodeURIComponent("DÖRFER"))).toBe("DÖRFER");
+    expect(roomCodeFromPathSegment("friday-table")).toBe("FRIDAY-TABLE");
     expect(() => RoomCodeSchema.parse("bad code")).toThrow();
     expect(() => RoomCodeSchema.parse("code/slash")).toThrow();
     expect(() => RoomCodeSchema.parse("emoji😀")).toThrow();
