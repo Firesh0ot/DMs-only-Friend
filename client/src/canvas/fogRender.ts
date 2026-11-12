@@ -1,5 +1,6 @@
-import { Graphics, type Application, type RenderTexture } from "pixi.js";
+import { Sprite, type Application, type Graphics, type RenderTexture } from "pixi.js";
 import type { FogState, FogStroke, MapState } from "@dms/shared";
+import { composeFogMask } from "./fogMaskCompose";
 
 export function drawFogStroke(graphics: Graphics, stroke: FogStroke, color: number): void {
   if (stroke.kind === "brush") {
@@ -47,29 +48,21 @@ export function renderFogMask(
   map: MapState,
   fog: FogState,
 ): void {
-  const brush = new Graphics();
-  if (fog.baseCovered) {
-    brush.rect(0, 0, map.width, map.height);
-    brush.fill({ color: 0xffffff });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.floor(map.width));
+  canvas.height = Math.max(1, Math.floor(map.height));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return;
   }
+  composeFogMask(ctx, canvas.width, canvas.height, fog);
+  const sprite = Sprite.from(canvas);
   app.renderer.render({
-    container: brush,
+    container: sprite,
     target,
     clear: true,
   });
-
-  for (const stroke of fog.strokes) {
-    brush.clear();
-    brush.blendMode = stroke.mode === "reveal" ? "erase" : "normal";
-    drawFogStroke(brush, stroke, 0xffffff);
-    app.renderer.render({
-      container: brush,
-      target,
-      clear: false,
-    });
-  }
-
-  brush.destroy();
+  sprite.destroy({ texture: true, textureSource: true });
 }
 
 export function downsamplePoints(

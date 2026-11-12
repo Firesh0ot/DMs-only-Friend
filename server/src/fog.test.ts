@@ -46,6 +46,7 @@ describe("manual fog of war", () => {
     });
     expect(painted.strokes).toHaveLength(1);
     expect(painted.strokes[0]?.kind).toBe("brush");
+    expect(painted.strokes[0]?.mode).toBe("reveal");
     expect(painted.strokes[0]?.id).toBeTruthy();
 
     const withRect = store.paintFog(room.id, map.id, {
@@ -59,6 +60,7 @@ describe("manual fog of war", () => {
     expect(withRect.strokes).toHaveLength(2);
     const rect = withRect.strokes[1];
     expect(rect?.kind).toBe("rect");
+    expect(rect?.mode).toBe("hide");
     if (rect?.kind === "rect") {
       expect(rect.x).toBe(120);
       expect(rect.y).toBe(50);
@@ -69,6 +71,37 @@ describe("manual fog of war", () => {
     const screen = store.getSnapshot(room.id, "screen", null);
     expect(screen.fog?.strokes).toHaveLength(2);
     expect(screen.fog?.baseCovered).toBe(true);
+  });
+
+  it("preserves reveal then hide modes across brush and rect paints", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+    const map = store.addMap(room.id, {
+      name: "Ruins",
+      filename: "ruins.png",
+      width: 500,
+      height: 400,
+      gridPx: 50,
+    });
+
+    const revealed = store.paintFog(room.id, map.id, {
+      kind: "brush",
+      mode: "reveal",
+      radius: 24,
+      points: [{ x: 40, y: 40 }],
+    });
+    expect(revealed.strokes[0]?.mode).toBe("reveal");
+
+    const hidden = store.paintFog(room.id, map.id, {
+      kind: "rect",
+      mode: "hide",
+      x: 10,
+      y: 10,
+      w: 60,
+      h: 40,
+    });
+    expect(hidden.strokes.map((stroke) => stroke.mode)).toEqual(["reveal", "hide"]);
+    expect(store.getFog(map.id).strokes.map((stroke) => stroke.mode)).toEqual(["reveal", "hide"]);
   });
 
   it("resets fog cover and clears strokes", () => {
