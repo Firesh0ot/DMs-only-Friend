@@ -40,6 +40,14 @@ const emptyDraft = (): DraftCharacter => ({
   mapIds: [],
 });
 
+function scrollToSettingsSection(sectionId: string): void {
+  const target = document.getElementById(sectionId);
+  if (!target) {
+    return;
+  }
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 export function SettingsPanel({
   code,
   maps,
@@ -443,10 +451,21 @@ export function SettingsPanel({
       ) : null}
 
       <nav className="settings-toc" aria-label="Settings sections">
-        <a href="#settings-maps">Maps</a>
-        <a href="#settings-characters">Characters</a>
-        <a href="#settings-screen">Screen</a>
-        <a href="#settings-links">Room links</a>
+        <button type="button" onClick={() => scrollToSettingsSection("settings-maps")}>
+          Maps
+        </button>
+        <button
+          type="button"
+          onClick={() => scrollToSettingsSection("settings-characters")}
+        >
+          Characters
+        </button>
+        <button type="button" onClick={() => scrollToSettingsSection("settings-screen")}>
+          Screen
+        </button>
+        <button type="button" onClick={() => scrollToSettingsSection("settings-links")}>
+          Room links
+        </button>
       </nav>
 
       <section className="settings-section stack" aria-labelledby="settings-maps">
