@@ -13,7 +13,7 @@ Phase 2 calls for a manual Fog-of-War layer (brush and rectangles) so the GM can
 - Default for a new map: fully covered (`baseCovered: true`, no strokes).
 - GM-only socket events: `fog:paint` (append brush or rect stroke) and `fog:reset` (cover-all or clear-all). Server assigns stroke ids, normalizes rects, and broadcasts `fog:updated`.
 - Snapshot on join includes `fog` for the active map (or `null` with no map). Map activate/upload/remove also refreshes fog for clients.
-- Client renders fog with PixiJS v8 (`RenderTexture` + erase blend). Screen/player see opaque fog; GM sees translucent fog for editing.
+- Client renders fog with PixiJS v8 (`RenderTexture` fed by Canvas2D mask compositing: `destination-out` reveal / `source-over` hide). Screen/player see opaque fog; GM sees translucent fog for editing. Pixi `erase` blend is avoided because it does not apply when rendering bare `Graphics` into a `RenderTexture` in v8.
 - Play gets a **Fog** island (tool off/brush/rect, reveal/hide, brush size, cover/clear) with corner snap like other islands. No automatic LoS.
 
 ## Consequences
