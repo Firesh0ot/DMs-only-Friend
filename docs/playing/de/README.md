@@ -50,6 +50,12 @@ Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**
 4. In Settings: Karten und Roster pflegen; dann Play.
 5. Optional: Remote-Spielern Join-Links mit `characterId` (oder eindeutigem PC-`name`) schicken, damit sie diesen Roster-PC beanspruchen. GM später mit Code + PIN erneut joinen.
 
+### Self-Hosting / Join-Links
+
+Für LAN oder Home-Server: Image `ghcr.io/firesh0ot/dms-only-friend` per Compose ziehen (Host-Port standardmäßig **8042**). `.env.example` nach `.env` kopieren und `PUBLIC_ORIGIN` auf die URL setzen, die alle im Browser öffnen (LAN-IP mit Port oder öffentliche HTTPS-Origin hinter dem Reverse-Proxy). Invite- und API-Raumlinks nutzen diese Origin; Copy-Links für Screen/Player in Settings folgen der aktuellen Browser-Origin — die GM-UI also unter derselben öffentlichen URL öffnen, die du teilst.
+
+Optionale Traefik-Labels (`TRAEFIK_ENABLE` / `FQDN`) hängen an bestehendes Traefik — TLS bleibt beim Proxy. Details: [Developing — Docker / table deploy](../../developing/README.md#docker--table-deploy) und [behind your reverse proxy](../../developing/README.md#behind-your-reverse-proxy).
+
 ## Weiteres
 
 - English: [../en/README.md](../en/README.md)
@@ -65,4 +71,5 @@ Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**
 - Raum-/GM-Auth-ADR: [../../decisions/0012-room-identity-gm-auth.md](../../decisions/0012-room-identity-gm-auth.md)
 - Screen-TP-Viertel-ADR: [../../decisions/0013-screen-hp-quarters.md](../../decisions/0013-screen-hp-quarters.md)
 - Spieler-Token-Bind-ADR: [../../decisions/0014-player-token-character-bind.md](../../decisions/0014-player-token-character-bind.md)
+- Docker-/GHCR-ADR: [../../decisions/0015-docker-ghcr-packaging.md](../../decisions/0015-docker-ghcr-packaging.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

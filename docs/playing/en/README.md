@@ -50,6 +50,12 @@ The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings
 4. In Settings: upload maps, set roster links; then Play.
 5. Optional: send remote players join links with `characterId` (or a unique PC `name`) so they claim that roster PC. Rejoin as GM later with code + PIN.
 
+### Self-host / join links
+
+For a LAN or home-server table, pull `ghcr.io/firesh0ot/dms-only-friend` and run compose (default host port **8042**). Copy `.env.example` to `.env` and set `PUBLIC_ORIGIN` to the URL everyone opens in the browser (LAN IP with port, or your public HTTPS origin behind a reverse proxy). Invite and API-built room links use that origin; screen/player Copy links in Settings follow the browser’s current origin, so open the GM UI at the same public URL you share.
+
+Optional Traefik labels (`TRAEFIK_ENABLE` / `FQDN`) attach to an existing Traefik — TLS stays on your proxy. Details: [Developing — Docker / table deploy](../../developing/README.md#docker--table-deploy) and [behind your reverse proxy](../../developing/README.md#behind-your-reverse-proxy).
+
 ## Related
 
 - German: [../de/README.md](../de/README.md)
@@ -65,4 +71,5 @@ The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings
 - Room / GM auth ADR: [../../decisions/0012-room-identity-gm-auth.md](../../decisions/0012-room-identity-gm-auth.md)
 - Screen HP quarters ADR: [../../decisions/0013-screen-hp-quarters.md](../../decisions/0013-screen-hp-quarters.md)
 - Player token bind ADR: [../../decisions/0014-player-token-character-bind.md](../../decisions/0014-player-token-character-bind.md)
+- Docker / GHCR ADR: [../../decisions/0015-docker-ghcr-packaging.md](../../decisions/0015-docker-ghcr-packaging.md)
 - Developing: [../../developing/README.md](../../developing/README.md)
