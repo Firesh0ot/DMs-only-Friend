@@ -14,7 +14,7 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 
 1. Raum auf der Startseite erstellen: **Raumcode**, Tischname und **GM-PIN** (4–8 Ziffern) wählen. Den **einmaligen GM-Invite** sofort kopieren, öffnen und PIN eingeben.
 2. Eine oder mehrere Karten hochladen: PNG/JPG/WebP (`grid_px` setzen) oder Universal VTT `.dd2vtt` (Raster und Wände kommen aus der Datei). Uploads brauchen eine aktive GM-Session. In der GM-Ansicht erscheinen importierte Wände als bernsteinfarbene Overlay-Linien.
-3. Screen-/Player-Links teilen. Es gibt keine dauerhafte GM-URL — bei Bedarf neuen einmaligen Invite in Settings (oder Startseite mit PIN) erzeugen.
+3. In Settings → **Room links** mit **Copy** neben Room join / Screen / Player (und einem geminteten GM-Invite) teilen. Es gibt keine dauerhafte GM-URL — bei Bedarf neuen einmaligen Invite in Settings (oder Startseite mit PIN) erzeugen.
 4. PCs und NPCs anlegen (Anzeigename, optionale TP/RK, kurze Notizen, Portrait); Häkchen setzen, auf welchen Karten sie erscheinen.
 5. Optional unter **Screen**: Viertel-TP-Balken (25/50/75/100 %) auf dem Player-Screen — standardmäßig aus (genaue PC-TP; Monster verborgen).
 6. Für die Session auf **Play** wechseln. Portraits und TP-Chips erscheinen in der Initiative, wenn gesetzt.

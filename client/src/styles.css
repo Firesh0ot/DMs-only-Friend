@@ -1139,6 +1139,27 @@ html[data-lantern="off"] .map-table {
   align-items: end;
 }
 
+.settings-link-field {
+  gap: 0.4rem;
+}
+
+.settings-link-row {
+  flex-wrap: nowrap;
+  gap: 0.55rem;
+  align-items: stretch;
+}
+
+.settings-link-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.settings-link-row button {
+  flex: 0 0 auto;
+  min-width: 5.5rem;
+  padding-inline: 0.85rem;
+}
+
 .check-row {
   display: inline-flex;
   align-items: center;
