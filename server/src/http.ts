@@ -1,4 +1,9 @@
-import { RoomCreatePayloadSchema, ServerEvents, normalizeRoomCode } from "@dms/shared";
+import {
+  RoomCreatePayloadSchema,
+  ServerEvents,
+  normalizeRoomCode,
+  roomCodePathSegment,
+} from "@dms/shared";
 import cors from "cors";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import multer from "multer";
@@ -62,13 +67,14 @@ export function createHttpApp(deps: HttpDeps): Express {
         pin: parsed.pin,
       });
       const origin = deps.publicOrigin.replace(/\/$/, "");
+      const pathCode = roomCodePathSegment(code);
       res.status(201).json({
         id: room.id,
         code,
         name: room.name,
-        gmInviteUrl: `${origin}/#/room/${code}?role=gm&invite=${encodeURIComponent(gmInviteToken)}`,
-        screenUrl: `${origin}/#/room/${code}?role=screen`,
-        playerUrl: `${origin}/#/room/${code}?role=player`,
+        gmInviteUrl: `${origin}/#/room/${pathCode}?role=gm&invite=${encodeURIComponent(gmInviteToken)}`,
+        screenUrl: `${origin}/#/room/${pathCode}?role=screen`,
+        playerUrl: `${origin}/#/room/${pathCode}?role=player`,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not create room";
@@ -84,10 +90,11 @@ export function createHttpApp(deps: HttpDeps): Express {
       return;
     }
     const origin = deps.publicOrigin.replace(/\/$/, "");
+    const pathCode = roomCodePathSegment(room.code);
     res.json({
       code: room.code,
-      screenUrl: `${origin}/#/room/${room.code}?role=screen`,
-      playerUrl: `${origin}/#/room/${room.code}?role=player`,
+      screenUrl: `${origin}/#/room/${pathCode}?role=screen`,
+      playerUrl: `${origin}/#/room/${pathCode}?role=player`,
       gmInvitePending: deps.rooms.hasPendingGmInvite(room.id),
     });
   });
@@ -102,9 +109,10 @@ export function createHttpApp(deps: HttpDeps): Express {
     try {
       const invite = deps.rooms.mintGmInviteWithPin(room.id, pin);
       const origin = deps.publicOrigin.replace(/\/$/, "");
+      const pathCode = roomCodePathSegment(room.code);
       res.status(201).json({
         code: room.code,
-        gmInviteUrl: `${origin}/#/room/${room.code}?role=gm&invite=${encodeURIComponent(invite)}`,
+        gmInviteUrl: `${origin}/#/room/${pathCode}?role=gm&invite=${encodeURIComponent(invite)}`,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not mint invite";

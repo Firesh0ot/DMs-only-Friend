@@ -47,6 +47,31 @@ describe("RoomStore", () => {
     expect(snapshot.battle).toBeNull();
   });
 
+  it("accepts Unicode room codes and keeps uniqueness after normalization", () => {
+    const store = createStore();
+    const { code } = store.createRoom({
+      name: "Märchenstunde",
+      code: "dörfer",
+      pin: "4242",
+    });
+    expect(code).toBe("DÖRFER");
+    expect(store.getRoomByCode("dörfer")?.code).toBe("DÖRFER");
+    expect(store.getRoomByCode("DÖRFER")?.code).toBe("DÖRFER");
+    expect(() =>
+      store.createRoom({ name: "Dup", code: "DÖRFER", pin: "9999" }),
+    ).toThrow(/already taken/);
+
+    const sharp = store.createRoom({
+      name: "Alley",
+      code: "straße",
+      pin: "1357",
+    });
+    expect(sharp.code).toBe("STRASSE");
+    expect(() =>
+      store.createRoom({ name: "Dup2", code: "strasse", pin: "2468" }),
+    ).toThrow(/already taken/);
+  });
+
   it("requires PIN and single-use invite for first GM claim", () => {
     const store = createStore();
     const { room, gmInviteToken } = store.createRoom({

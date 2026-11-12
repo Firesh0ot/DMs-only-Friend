@@ -20,6 +20,7 @@ import {
   TokenRemovePayloadSchema,
   VisibilitySetPayloadSchema,
   normalizeRoomCode,
+  roomCodePathSegment,
   roll,
   type ClientToServerEvents,
   type ServerToClientEvents,
@@ -538,7 +539,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         callback?.({
           ok: true,
           invite,
-          gmInviteUrl: `#/room/${room.code}?role=gm&invite=${encodeURIComponent(invite)}`,
+          gmInviteUrl: `#/room/${roomCodePathSegment(room.code)}?role=gm&invite=${encodeURIComponent(invite)}`,
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Could not mint invite";

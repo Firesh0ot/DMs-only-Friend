@@ -1,6 +1,7 @@
 import {
   hpToQuarter,
   normalizeRoomCode,
+  RoomCodeSchema,
   type BattleState,
   type CameraState,
   type CharacterKind,
@@ -138,7 +139,7 @@ export class RoomStore {
   } {
     const options = typeof input === "string" ? { name: input } : input;
     const name = options.name?.trim() || "Table";
-    const code = options.code ? normalizeRoomCode(options.code) : makeCode();
+    const code = options.code ? RoomCodeSchema.parse(options.code) : makeCode();
     const pin = options.pin ?? "1234";
     if (this.getRoomByCode(code)) {
       throw new Error("Room code already taken");
