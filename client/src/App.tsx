@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { HomePage } from "./pages/HomePage";
 import { RoomPage } from "./pages/RoomPage";
 import { bindSocketListeners } from "./state/roomStore";
-import { normalizeRoomCode, type Role } from "@dms/shared";
+import { roomCodeFromPathSegment, type Role } from "@dms/shared";
 
 type Route =
   | { kind: "home" }
@@ -27,7 +27,7 @@ function parseHash(hash: string): Route {
         : "screen";
     return {
       kind: "room",
-      code: normalizeRoomCode(parts[1]),
+      code: roomCodeFromPathSegment(parts[1]),
       role,
       name: url.searchParams.get("name"),
       characterId: url.searchParams.get("characterId"),

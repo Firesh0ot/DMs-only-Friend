@@ -79,15 +79,39 @@ describe("RoomStore", () => {
       code: "GATE-ROOM",
       pin: "1357",
     });
+    expect(store.requiresGmInvite(room.id)).toBe(true);
     expect(() => store.assertGmJoin(room.id, undefined, gmInviteToken)).toThrow(/PIN/);
     expect(() => store.assertGmJoin(room.id, "1357", undefined)).toThrow(/invite/);
     expect(() => store.assertGmJoin(room.id, "0000", gmInviteToken)).toThrow(/Invalid GM PIN/);
     store.assertGmJoin(room.id, "1357", gmInviteToken);
     expect(store.hasPendingGmInvite(room.id)).toBe(false);
+    expect(store.requiresGmInvite(room.id)).toBe(false);
+    expect(store.isGmClaimed(room.id)).toBe(true);
     store.assertGmJoin(room.id, "1357", undefined);
     const upload = store.issueUploadToken(room.id);
     expect(store.validateUploadToken(upload, room.id)).toBe(true);
     expect(store.validateUploadToken("nope", room.id)).toBe(false);
+  });
+
+  it("allows PIN-only GM rejoin after claim even when a reminted invite is pending", () => {
+    const store = createStore();
+    const { room, gmInviteToken } = store.createRoom({
+      name: "Rejoin",
+      code: "REJOIN1",
+      pin: "2468",
+    });
+    store.assertGmJoin(room.id, "2468", gmInviteToken);
+    expect(store.isGmClaimed(room.id)).toBe(true);
+
+    const reminted = store.mintGmInvite(room.id);
+    expect(store.hasPendingGmInvite(room.id)).toBe(true);
+    expect(store.requiresGmInvite(room.id)).toBe(false);
+    store.assertGmJoin(room.id, "2468", undefined);
+    expect(store.hasPendingGmInvite(room.id)).toBe(true);
+
+    store.assertGmJoin(room.id, "2468", reminted);
+    expect(store.hasPendingGmInvite(room.id)).toBe(false);
+    store.assertGmJoin(room.id, "2468", undefined);
   });
 
   it("lets an authenticated flow change the PIN and optionally clear invites", () => {

@@ -95,6 +95,16 @@ export function roomCodePathSegment(code: string): string {
   return encodeURIComponent(normalizeRoomCode(code));
 }
 
+export function roomCodeFromPathSegment(segment: string): string {
+  let decoded = segment;
+  try {
+    decoded = decodeURIComponent(segment);
+  } catch {
+    decoded = segment;
+  }
+  return normalizeRoomCode(decoded);
+}
+
 export const RoomCodeSchema = z
   .string()
   .trim()

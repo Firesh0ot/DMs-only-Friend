@@ -96,6 +96,7 @@ export function createHttpApp(deps: HttpDeps): Express {
       screenUrl: `${origin}/#/room/${pathCode}?role=screen`,
       playerUrl: `${origin}/#/room/${pathCode}?role=player`,
       gmInvitePending: deps.rooms.hasPendingGmInvite(room.id),
+      gmInviteRequired: deps.rooms.requiresGmInvite(room.id),
     });
   });
 

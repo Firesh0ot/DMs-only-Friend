@@ -48,7 +48,7 @@ Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**
 2. GM erstellt einen Raum (Code + PIN) → einmaligen GM-Invite öffnen und PIN eingeben.
 3. Screen-URL auf dem TV/Tablet öffnen (nur Code; kein PIN).
 4. In Settings: Karten und Roster pflegen; dann Play.
-5. Optional: Remote-Spielern Join-Links mit `characterId` (oder eindeutigem PC-`name`) schicken, damit sie diesen Roster-PC beanspruchen. GM später mit Code + PIN erneut joinen. PIN sicher aufbewahren, solange du nicht als GM verbunden bist.
+5. Optional: Remote-Spielern Join-Links mit `characterId` (oder eindeutigem PC-`name`) schicken, damit sie diesen Roster-PC beanspruchen. GM später mit Code + PIN erneut joinen (funktioniert auch, wenn noch ein neu geminteter Invite aussteht — die Invite-URL braucht man nur für den **ersten** GM-Claim). PIN sicher aufbewahren, solange du nicht als GM verbunden bist.
 
 ### Self-Hosting / Join-Links
 

@@ -134,6 +134,7 @@ function migrate(db: Db): void {
   ensureColumn(db, "rooms", "pin_salt", "TEXT");
   ensureColumn(db, "rooms", "gm_invite_hash", "TEXT");
   ensureColumn(db, "rooms", "screen_hp_quarters", "INT NOT NULL DEFAULT 0");
+  ensureColumn(db, "rooms", "gm_claimed", "INT NOT NULL DEFAULT 1");
 
   backfillActiveMaps(db);
   backfillTokenMaps(db);

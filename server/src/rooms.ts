@@ -45,6 +45,7 @@ type RoomRow = {
   pin_salt: string | null;
   gm_invite_hash: string | null;
   screen_hp_quarters: number;
+  gm_claimed: number;
 };
 type MapRow = {
   id: string;
@@ -153,8 +154,8 @@ export class RoomStore {
       .prepare(
         `INSERT INTO rooms (
            id, code, name, created_at, show_pcs, show_npcs,
-           pin_hash, pin_salt, gm_invite_hash, screen_hp_quarters
-         ) VALUES (?, ?, ?, ?, 1, 1, ?, ?, ?, 0)`,
+           pin_hash, pin_salt, gm_invite_hash, screen_hp_quarters, gm_claimed
+         ) VALUES (?, ?, ?, ?, 1, 1, ?, ?, ?, 0, 0)`,
       )
       .run(id, code, name, createdAt, pinSecret.hash, pinSecret.salt, inviteHash);
     return { room: { id, code, name }, code, gmInviteToken };
@@ -380,6 +381,21 @@ export class RoomStore {
     return Boolean(room?.gm_invite_hash);
   }
 
+  isGmClaimed(roomId: string): boolean {
+    const room = this.getRoomRow(roomId);
+    if (!room) {
+      return false;
+    }
+    if (!room.pin_hash || !room.pin_salt) {
+      return true;
+    }
+    return room.gm_claimed === 1;
+  }
+
+  requiresGmInvite(roomId: string): boolean {
+    return this.hasPendingGmInvite(roomId) && !this.isGmClaimed(roomId);
+  }
+
   verifyGmPin(roomId: string, pin: string): boolean {
     const room = this.getRoomRow(roomId);
     if (!room?.pin_hash || !room.pin_salt) {
@@ -402,14 +418,26 @@ export class RoomStore {
         throw new Error("Invalid GM PIN");
       }
     }
+    const claimed = !pinRequired || room.gm_claimed === 1;
     if (room.gm_invite_hash) {
       if (!invite) {
-        throw new Error("Single-use GM invite required");
+        if (!claimed) {
+          throw new Error(
+            "Single-use GM invite URL required for the first GM claim — open the invite link or mint a new one with the PIN",
+          );
+        }
+        return;
       }
       if (hashToken(invite) !== room.gm_invite_hash) {
         throw new Error("Invalid or used GM invite");
       }
-      this.db.prepare("UPDATE rooms SET gm_invite_hash = NULL WHERE id = ?").run(roomId);
+      this.db
+        .prepare("UPDATE rooms SET gm_invite_hash = NULL, gm_claimed = 1 WHERE id = ?")
+        .run(roomId);
+      return;
+    }
+    if (!claimed) {
+      this.db.prepare("UPDATE rooms SET gm_claimed = 1 WHERE id = ?").run(roomId);
     }
   }
 
