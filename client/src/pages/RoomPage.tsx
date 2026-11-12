@@ -305,6 +305,8 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                 />
                 <FogIsland
                   mapId={snapshot.map?.id ?? null}
+                  hasWalls={(snapshot.map?.walls.length ?? 0) > 0}
+                  losEnabled={snapshot.fog?.losEnabled ?? false}
                   tool={fogTool}
                   paintMode={fogPaintMode}
                   brushRadius={fogBrushRadius}

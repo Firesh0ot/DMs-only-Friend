@@ -260,6 +260,7 @@ export const FogStateSchema = z.object({
   mapId: z.string(),
   baseCovered: z.boolean(),
   strokes: z.array(FogStrokeSchema),
+  losEnabled: z.boolean().default(false),
 });
 export type FogState = z.infer<typeof FogStateSchema>;
 
@@ -426,6 +427,12 @@ export const FogResetPayloadSchema = z.object({
 });
 export type FogResetPayload = z.infer<typeof FogResetPayloadSchema>;
 
+export const FogSetLosPayloadSchema = z.object({
+  mapId: z.string().min(1),
+  enabled: z.boolean(),
+});
+export type FogSetLosPayload = z.infer<typeof FogSetLosPayloadSchema>;
+
 export const DiceRolledSchema = z.object({
   id: z.number().int(),
   playerName: z.string(),
@@ -460,6 +467,7 @@ export const ClientEvents = {
   BattleEnd: "battle:end",
   FogPaint: "fog:paint",
   FogReset: "fog:reset",
+  FogSetLos: "fog:setLos",
 } as const;
 
 export const ServerEvents = {
@@ -526,6 +534,7 @@ export type ClientToServerEvents = {
   [ClientEvents.BattleEnd]: () => void;
   [ClientEvents.FogPaint]: (payload: FogPaintPayload) => void;
   [ClientEvents.FogReset]: (payload: FogResetPayload) => void;
+  [ClientEvents.FogSetLos]: (payload: FogSetLosPayload) => void;
 };
 
 export type ServerToClientEvents = {

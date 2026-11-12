@@ -33,7 +33,12 @@ describe("manual fog of war", () => {
     });
 
     const empty = store.getSnapshot(room.id, "gm", null);
-    expect(empty.fog).toEqual({ mapId: map.id, baseCovered: true, strokes: [] });
+    expect(empty.fog).toEqual({
+      mapId: map.id,
+      baseCovered: true,
+      strokes: [],
+      losEnabled: false,
+    });
 
     const painted = store.paintFog(room.id, map.id, {
       kind: "brush",
@@ -124,11 +129,69 @@ describe("manual fog of war", () => {
     });
 
     const cleared = store.resetFog(room.id, map.id, false);
-    expect(cleared).toEqual({ mapId: map.id, baseCovered: false, strokes: [] });
+    expect(cleared).toEqual({
+      mapId: map.id,
+      baseCovered: false,
+      strokes: [],
+      losEnabled: false,
+    });
     expect(store.getFog(map.id).baseCovered).toBe(false);
 
     const covered = store.resetFog(room.id, map.id, true);
     expect(covered.baseCovered).toBe(true);
     expect(covered.strokes).toEqual([]);
+  });
+
+  it("toggles LoS fog and preserves it across manual reset", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+    const map = store.addMap(room.id, {
+      name: "Dungeon",
+      filename: "dungeon.png",
+      width: 280,
+      height: 140,
+      gridPx: 70,
+      walls: [
+        [
+          { x: 0, y: 0 },
+          { x: 2, y: 0 },
+        ],
+        [
+          { x: 1, y: 0 },
+          { x: 1, y: 1 },
+        ],
+      ],
+    });
+
+    expect(() => store.setFogLos(room.id, map.id, true)).not.toThrow();
+    expect(store.getFog(map.id).losEnabled).toBe(true);
+
+    store.paintFog(room.id, map.id, {
+      kind: "rect",
+      mode: "reveal",
+      x: 0,
+      y: 0,
+      w: 40,
+      h: 40,
+    });
+    const reset = store.resetFog(room.id, map.id, true);
+    expect(reset.losEnabled).toBe(true);
+    expect(reset.strokes).toEqual([]);
+
+    const disabled = store.setFogLos(room.id, map.id, false);
+    expect(disabled.losEnabled).toBe(false);
+  });
+
+  it("rejects LoS enable without walls", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+    const map = store.addMap(room.id, {
+      name: "Plain",
+      filename: "plain.png",
+      width: 200,
+      height: 200,
+      gridPx: 50,
+    });
+    expect(() => store.setFogLos(room.id, map.id, true)).toThrow(/wall data/i);
   });
 });

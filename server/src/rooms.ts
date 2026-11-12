@@ -110,6 +110,7 @@ type MapFogRow = {
   map_id: string;
   base_covered: number;
   strokes_json: string;
+  los_enabled: number;
 };
 
 export type Session = {
@@ -1137,12 +1138,13 @@ export class RoomStore {
       | MapFogRow
       | undefined;
     if (!row) {
-      return { mapId, baseCovered: true, strokes: [] };
+      return { mapId, baseCovered: true, strokes: [], losEnabled: false };
     }
     return {
       mapId: row.map_id,
       baseCovered: row.base_covered === 1,
       strokes: JSON.parse(row.strokes_json) as FogStroke[],
+      losEnabled: row.los_enabled === 1,
     };
   }
 
@@ -1185,14 +1187,15 @@ export class RoomStore {
     const strokes = [...current.strokes, stroke];
     this.db
       .prepare(
-        `INSERT INTO map_fog (map_id, base_covered, strokes_json)
-         VALUES (?, ?, ?)
+        `INSERT INTO map_fog (map_id, base_covered, strokes_json, los_enabled)
+         VALUES (?, ?, ?, ?)
          ON CONFLICT(map_id) DO UPDATE SET
            base_covered = excluded.base_covered,
-           strokes_json = excluded.strokes_json`,
+           strokes_json = excluded.strokes_json,
+           los_enabled = excluded.los_enabled`,
       )
-      .run(mapId, current.baseCovered ? 1 : 0, JSON.stringify(strokes));
-    return { mapId, baseCovered: current.baseCovered, strokes };
+      .run(mapId, current.baseCovered ? 1 : 0, JSON.stringify(strokes), current.losEnabled ? 1 : 0);
+    return { mapId, baseCovered: current.baseCovered, strokes, losEnabled: current.losEnabled };
   }
 
   resetFog(roomId: string, mapId: string, baseCovered: boolean): FogState {
@@ -1200,16 +1203,45 @@ export class RoomStore {
     if (!map || map.roomId !== roomId) {
       throw new Error("Map not found");
     }
+    const current = this.getFog(mapId);
     this.db
       .prepare(
-        `INSERT INTO map_fog (map_id, base_covered, strokes_json)
-         VALUES (?, ?, '[]')
+        `INSERT INTO map_fog (map_id, base_covered, strokes_json, los_enabled)
+         VALUES (?, ?, '[]', ?)
          ON CONFLICT(map_id) DO UPDATE SET
            base_covered = excluded.base_covered,
-           strokes_json = '[]'`,
+           strokes_json = '[]',
+           los_enabled = excluded.los_enabled`,
       )
-      .run(mapId, baseCovered ? 1 : 0);
-    return { mapId, baseCovered, strokes: [] };
+      .run(mapId, baseCovered ? 1 : 0, current.losEnabled ? 1 : 0);
+    return { mapId, baseCovered, strokes: [], losEnabled: current.losEnabled };
+  }
+
+  setFogLos(roomId: string, mapId: string, enabled: boolean): FogState {
+    const map = this.getMapById(mapId);
+    if (!map || map.roomId !== roomId) {
+      throw new Error("Map not found");
+    }
+    if (enabled && map.walls.length === 0) {
+      throw new Error("Line of sight needs wall data from a .dd2vtt map");
+    }
+    const current = this.getFog(mapId);
+    this.db
+      .prepare(
+        `INSERT INTO map_fog (map_id, base_covered, strokes_json, los_enabled)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(map_id) DO UPDATE SET
+           base_covered = excluded.base_covered,
+           strokes_json = excluded.strokes_json,
+           los_enabled = excluded.los_enabled`,
+      )
+      .run(
+        mapId,
+        current.baseCovered ? 1 : 0,
+        JSON.stringify(current.strokes),
+        enabled ? 1 : 0,
+      );
+    return { mapId, baseCovered: current.baseCovered, strokes: current.strokes, losEnabled: enabled };
   }
 
   claimCharacterForPlayer(

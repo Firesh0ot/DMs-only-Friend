@@ -129,7 +129,12 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       applyCamera(world, cameraRef.current);
       void syncMap(propsRef.current.map);
       syncTokens(propsRef.current.tokens, propsRef.current.activeTokenId);
-      syncFog(propsRef.current.fog, propsRef.current.map, propsRef.current.role);
+      syncFog(
+        propsRef.current.fog,
+        propsRef.current.map,
+        propsRef.current.tokens,
+        propsRef.current.role,
+      );
 
       app.stage.on("pointerdown", (event) => {
         if (propsRef.current.role !== "gm") {
@@ -334,12 +339,13 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
 
   useEffect(() => {
     syncTokens(props.tokens, props.activeTokenId);
+    syncFog(props.fog, props.map, props.tokens, props.role);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.tokens, props.activeTokenId]);
 
   useEffect(() => {
-    syncFog(props.fog, props.map, props.role);
-  }, [props.fog, props.map, props.role]);
+    syncFog(props.fog, props.map, props.tokens, props.role);
+  }, [props.fog, props.map, props.tokens, props.role]);
 
   useEffect(() => {
     if (!host) {
@@ -378,7 +384,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       drawWalls(wallLayer, map);
     }
     ensureFogTexture(map);
-    syncFog(propsRef.current.fog, map, propsRef.current.role);
+    syncFog(propsRef.current.fog, map, propsRef.current.tokens, propsRef.current.role);
 
     if (propsRef.current.role === "gm" && !propsRef.current.camera) {
       const application = appRef.current;
@@ -497,7 +503,12 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     clearFogPreview();
   }
 
-  function syncFog(fog: FogState | null, map: MapState | null, role: Role): void {
+  function syncFog(
+    fog: FogState | null,
+    map: MapState | null,
+    tokens: TokenState[],
+    role: Role,
+  ): void {
     const app = appRef.current;
     const texture = fogTextureRef.current;
     const sprite = fogSpriteRef.current;
@@ -509,7 +520,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       }
       return;
     }
-    renderFogMask(app, texture, map, fog);
+    renderFogMask(app, texture, map, fog, tokens);
     sprite.visible = true;
     sprite.alpha = role === "gm" ? 0.58 : 1;
   }

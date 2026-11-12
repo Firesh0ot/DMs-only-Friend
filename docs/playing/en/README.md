@@ -28,7 +28,7 @@ Floating islands around the map:
 - **NPCs** — spawn or place roster NPCs; select one to adjust HP (−5/−1/+1/+5), toggle conditions, and see AC/notes.
 - **Log** — recent session events and battle timer; **Start** / **End** battle. The first **Next** turn also starts a battle if none is active.
 - **Dice** — enter expressions such as `2d6+3` (or use quick chips), roll on the server, see totals and recent rolls. Results are broadcast and appear in the session log.
-- **Fog** — brush or rectangle to **Reveal** / **Hide** areas; **Cover all** / **Clear all**. New maps start fully covered. Fog is translucent for you and solid for screen/players. Turn the tool **Off** to pan and move tokens again.
+- **Fog** — brush or rectangle to **Reveal** / **Hide** areas; **Cover all** / **Clear all**. New maps start fully covered. On `.dd2vtt` maps with walls, toggle **LoS** so screen/players only see what PC tokens can see through walls; manual fog still applies on top. Fog is translucent for you and solid for screen/players. Turn the tool **Off** to pan and move tokens again.
 
 Use **Snap** on an island to cycle dock slots (four corners plus mid-left/mid-right). First visit uses a non-overlapping default layout; positions are remembered per room code in the browser.
 
@@ -67,6 +67,7 @@ Optional Traefik labels (`TRAEFIK_ENABLE` / `FQDN`) attach to an existing Traefi
 - dd2vtt import ADR: [../../decisions/0008-dd2vtt-map-import.md](../../decisions/0008-dd2vtt-map-import.md)
 - HP visibility ADR: [../../decisions/0009-hp-screen-visibility.md](../../decisions/0009-hp-screen-visibility.md)
 - Manual fog ADR: [../../decisions/0010-manual-fog-of-war.md](../../decisions/0010-manual-fog-of-war.md)
+- LoS fog ADR: [../../decisions/0016-los-fog-from-walls.md](../../decisions/0016-los-fog-from-walls.md)
 - Conditions ADR: [../../decisions/0011-token-conditions.md](../../decisions/0011-token-conditions.md)
 - Room / GM auth ADR: [../../decisions/0012-room-identity-gm-auth.md](../../decisions/0012-room-identity-gm-auth.md)
 - Screen HP quarters ADR: [../../decisions/0013-screen-hp-quarters.md](../../decisions/0013-screen-hp-quarters.md)

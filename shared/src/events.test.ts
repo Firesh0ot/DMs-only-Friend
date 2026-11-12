@@ -200,6 +200,15 @@ describe("event schemas", () => {
       ],
     });
     expect(fog.strokes[0]?.kind).toBe("rect");
+    expect(fog.losEnabled).toBe(false);
+
+    const withLos = FogStateSchema.parse({
+      mapId: "map-1",
+      baseCovered: false,
+      strokes: [],
+      losEnabled: true,
+    });
+    expect(withLos.losEnabled).toBe(true);
   });
 
   it("accepts session log and battle schemas", () => {
