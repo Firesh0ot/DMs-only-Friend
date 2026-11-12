@@ -40,7 +40,7 @@ No GM islands. Use the side rail for round, turn order, and whose turn it is. By
 
 ## Look & lantern
 
-The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings, Play, and Screen) to switch between candlelit cozy and a darker smoky dungeon look. The choice is remembered in this browser.
+The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings, Play, and Screen) to switch between candlelit cozy and a darker smoky dungeon look. The choice is remembered in this browser. Theme fonts ship with the app, so the look works on LAN / offline without a Google Fonts connection.
 
 ## Quick start (table)
 

@@ -40,7 +40,7 @@ Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Standar
 
 ## Look & Laterne
 
-Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**-Schalter (Startseite, Settings, Play und Screen) wechselst du zwischen kerzenwarm und dunkler, rauchiger Dungeon-Taverne. Die Wahl bleibt in diesem Browser gespeichert.
+Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**-Schalter (Startseite, Settings, Play und Screen) wechselst du zwischen kerzenwarm und dunkler, rauchiger Dungeon-Taverne. Die Wahl bleibt in diesem Browser gespeichert. Die Theme-Schriften liegen in der App, daher wirkt das Look auch im LAN / offline ohne Google-Fonts-Verbindung.
 
 ## Schnellstart (Tisch)
 
