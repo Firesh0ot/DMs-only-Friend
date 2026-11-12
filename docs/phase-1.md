@@ -1,5 +1,7 @@
 # Phase 1 – Tisch-Kern (Spezifikation)
 
+**Status:** Acceptance criteria below are met on `main`. Items listed under “Abgrenzung Phase 1” (fog, `.dd2vtt`, initiative, monster stats, …) shipped in later phases — see [ADRs 0003–0016](decisions/README.md) and Playing manuals for what exists now. This file stays the historical Phase 1 design sketch.
+
 ## Ziel
 
 Ein minimaler, spielbarer Tisch: GM erstellt einen Raum, importiert ein PNG als Karte, setzt Tokens, der Player-Screen zeigt dieselbe Karte live synchron, Tokens lassen sich draggen, ein einfacher Würfelwurf wird für alle sichtbar angezeigt.
