@@ -208,7 +208,7 @@ export function HomePage() {
             />
           </label>
           <label className="stack">
-            <span className="muted">Player name (remote)</span>
+            <span className="muted">PC name to claim (remote)</span>
             <input
               value={playerName}
               onChange={(event) => setPlayerName(event.target.value)}
@@ -217,7 +217,11 @@ export function HomePage() {
           </label>
           <div className="row">
             <button onClick={() => openRoom("screen")}>Join screen</button>
-            <button className="secondary" onClick={() => openRoom("player")}>
+            <button
+              className="secondary"
+              onClick={() => openRoom("player")}
+              disabled={!playerName.trim()}
+            >
               Join as player
             </button>
             <button className="secondary" onClick={() => openRoom("gm")}>

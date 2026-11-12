@@ -15,7 +15,7 @@ type Props = {
   tokens: TokenState[];
   camera: CameraState | null;
   role: Role;
-  playerName: string | null;
+  characterId: string | null;
   activeTokenId: string | null;
   fog: FogState | null;
   fogTool: FogToolMode;

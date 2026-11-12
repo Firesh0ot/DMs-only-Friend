@@ -705,7 +705,11 @@ export function SettingsPanel({
         ) : null}
         <CopyableLinkField id={`${baseId}-link-room`} label="Room join" value={links.room} />
         <CopyableLinkField id={`${baseId}-link-screen`} label="Screen" value={links.screen} />
-        <CopyableLinkField id={`${baseId}-link-player`} label="Player" value={links.player} />
+        <CopyableLinkField
+          id={`${baseId}-link-player`}
+          label="Player (append &name=PC or &characterId=…)"
+          value={links.player}
+        />
       </section>
     </section>
   );

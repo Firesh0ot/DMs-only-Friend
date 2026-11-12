@@ -29,7 +29,7 @@ export type MapSceneProps = {
   tokens: TokenState[];
   camera: CameraState | null;
   role: Role;
-  playerName: string | null;
+  characterId: string | null;
   activeTokenId: string | null;
   fog: FogState | null;
   fogTool: FogToolMode;
@@ -578,12 +578,12 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
   }
 
   function canDragToken(token: TokenState): boolean {
-    const { role, playerName } = propsRef.current;
+    const { role, characterId } = propsRef.current;
     if (role === "gm") {
       return true;
     }
     if (role === "player") {
-      return token.isPlayer && token.label === playerName;
+      return Boolean(characterId && token.characterId && token.characterId === characterId);
     }
     return false;
   }

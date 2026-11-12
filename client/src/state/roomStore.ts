@@ -22,6 +22,7 @@ type JoinOptions = {
   code: string;
   role: Role;
   name?: string;
+  characterId?: string;
   pin?: string;
   invite?: string;
 };
@@ -224,14 +225,14 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     });
   },
 
-  joinRoom: async ({ code, role, name, pin, invite }) => {
+  joinRoom: async ({ code, role, name, characterId, pin, invite }) => {
     const socket = getSocket();
     set({ joining: true, error: null, uploadToken: null });
 
     await new Promise<void>((resolve, reject) => {
       socket.emit(
         ClientEvents.RoomJoin,
-        { code, role, name, pin, invite },
+        { code, role, name, characterId, pin, invite },
         (result) => {
           if (!result?.ok) {
             const message = result?.error ?? "Join failed";

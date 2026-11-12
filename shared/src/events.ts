@@ -256,6 +256,7 @@ export const SnapshotSchema = z.object({
   fog: FogStateSchema.nullable(),
   role: RoleSchema,
   playerName: z.string().nullable(),
+  characterId: z.string().nullable(),
 });
 export type Snapshot = z.infer<typeof SnapshotSchema>;
 
@@ -263,6 +264,7 @@ export const RoomJoinPayloadSchema = z.object({
   code: RoomCodeSchema,
   role: RoleSchema,
   name: z.string().min(1).max(64).optional(),
+  characterId: z.string().min(1).optional(),
   pin: GmPinSchema.optional(),
   invite: z.string().min(8).max(128).optional(),
 });

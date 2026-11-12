@@ -46,17 +46,28 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           rooms.assertGmJoin(room.id, data.pin, data.invite);
         }
 
-        const playerName =
-          data.role === "player" ? (data.name?.trim() || "Player") : (data.name?.trim() ?? null);
+        let playerName = data.name?.trim() ?? null;
+        let characterId: string | null = null;
+
+        if (data.role === "player") {
+          const claimed = rooms.claimCharacterForPlayer(room.id, {
+            characterId: data.characterId,
+            name: data.name,
+            socketId: socket.id,
+          });
+          characterId = claimed.characterId;
+          playerName = claimed.playerName;
+        }
 
         rooms.bindSession(socket.id, {
           roomId: room.id,
           role: data.role,
           playerName,
+          characterId,
         });
 
         void socket.join(roomChannel(room.id));
-        const snapshot = rooms.getSnapshot(room.id, data.role, playerName);
+        const snapshot = rooms.getSnapshot(room.id, data.role, playerName, characterId);
         const uploadToken = data.role === "gm" ? rooms.issueUploadToken(room.id) : undefined;
         callback?.({ ok: true, snapshot, uploadToken });
         socket.emit(ServerEvents.Snapshot, snapshot);
@@ -128,11 +139,9 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           emitError(socket, new Error("Token not found"));
           return;
         }
-        if (session.role !== "gm") {
-          if (session.role !== "player" || !token.isPlayer || token.label !== session.playerName) {
-            emitError(socket, new Error("Not allowed to move this token"));
-            return;
-          }
+        if (!rooms.canSessionMoveToken(session, token)) {
+          emitError(socket, new Error("Not allowed to move this token"));
+          return;
         }
         const moved = rooms.moveToken(data.tokenId, data.x, data.y);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.TokenMoved, moved);

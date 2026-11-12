@@ -8,7 +8,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 |---|---|
 | **GM** | **Settings** for prep; **Play** with floating islands (Map, Initiative, NPCs, Log, Dice, Fog) |
 | **Player screen** | Full-screen map + TCG-style initiative rail; compact battle duration / last events; dice toast on rolls; camera follows the GM |
-| **Remote player** | Like the player screen, plus control of your own token (label = your name) |
+| **Remote player** | Like the player screen, plus control of the token for your **claimed PC** (`characterId`, or unique PC name at join) |
 
 ## GM prep (Settings)
 
@@ -48,7 +48,7 @@ The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings
 2. GM creates a room (code + PIN) → open the single-use GM invite and enter the PIN.
 3. Open the screen URL on the TV/tablet (code only; no PIN).
 4. In Settings: upload maps, set roster links; then Play.
-5. Optional: send remote players their join links. Rejoin as GM later with code + PIN.
+5. Optional: send remote players join links with `characterId` (or a unique PC `name`) so they claim that roster PC. Rejoin as GM later with code + PIN.
 
 ## Related
 
@@ -64,4 +64,5 @@ The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings
 - Conditions ADR: [../../decisions/0011-token-conditions.md](../../decisions/0011-token-conditions.md)
 - Room / GM auth ADR: [../../decisions/0012-room-identity-gm-auth.md](../../decisions/0012-room-identity-gm-auth.md)
 - Screen HP quarters ADR: [../../decisions/0013-screen-hp-quarters.md](../../decisions/0013-screen-hp-quarters.md)
+- Player token bind ADR: [../../decisions/0014-player-token-character-bind.md](../../decisions/0014-player-token-character-bind.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

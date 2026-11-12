@@ -33,12 +33,13 @@ type Props = {
   code: string;
   role: Role;
   name: string | null;
+  characterId: string | null;
   invite: string | null;
 };
 
 type GmMode = "play" | "settings";
 
-export function RoomPage({ code, role, name, invite }: Props) {
+export function RoomPage({ code, role, name, characterId, invite }: Props) {
   const joinRoom = useRoomStore((state) => state.joinRoom);
   const snapshot = useRoomStore((state) => state.snapshot);
   const uploadToken = useRoomStore((state) => state.uploadToken);
@@ -75,6 +76,7 @@ export function RoomPage({ code, role, name, invite }: Props) {
       code,
       role,
       name: name ?? undefined,
+      characterId: characterId ?? undefined,
       pin: role === "gm" ? gmPin || undefined : undefined,
       invite: role === "gm" ? invite ?? undefined : undefined,
     })
@@ -84,7 +86,7 @@ export function RoomPage({ code, role, name, invite }: Props) {
         }
       })
       .catch(() => undefined);
-  }, [code, role, name, invite, joinRoom, pinReady, gmPin]);
+  }, [code, role, name, characterId, invite, joinRoom, pinReady, gmPin]);
 
   useEffect(() => {
     if (role !== "gm") {
@@ -252,7 +254,7 @@ export function RoomPage({ code, role, name, invite }: Props) {
                   tokens={tokens}
                   camera={snapshot.camera}
                   role={role}
-                  playerName={snapshot.playerName}
+                  characterId={snapshot.characterId}
                   activeTokenId={activeTokenId}
                   fog={snapshot.fog}
                   fogTool={isGm ? fogTool : "off"}

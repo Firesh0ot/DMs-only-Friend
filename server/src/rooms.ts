@@ -115,6 +115,7 @@ export type Session = {
   roomId: string;
   role: Role;
   playerName: string | null;
+  characterId: string | null;
 };
 
 export type CreateRoomInput = {
@@ -1152,7 +1153,61 @@ export class RoomStore {
     return { mapId, baseCovered, strokes: [] };
   }
 
-  getSnapshot(roomId: string, role: Role, playerName: string | null): Snapshot {
+  claimCharacterForPlayer(
+    roomId: string,
+    input: { characterId?: string; name?: string; socketId: string },
+  ): { characterId: string; playerName: string } {
+    const characters = this.listCharacters(roomId).filter((character) => character.kind === "pc");
+    let character =
+      input.characterId != null
+        ? characters.find((entry) => entry.id === input.characterId)
+        : undefined;
+
+    if (!character && input.name?.trim()) {
+      const name = input.name.trim();
+      const matches = characters.filter((entry) => entry.name === name);
+      if (matches.length === 0) {
+        throw new Error(`No PC named "${name}"`);
+      }
+      if (matches.length > 1) {
+        throw new Error(`Ambiguous PC name "${name}"`);
+      }
+      character = matches[0];
+    }
+
+    if (!character) {
+      throw new Error("Select a PC to claim (characterId or name)");
+    }
+
+    const taken = this.listSessionsInRoom(roomId).some(
+      (session) =>
+        session.socketId !== input.socketId &&
+        session.role === "player" &&
+        session.characterId === character.id,
+    );
+    if (taken) {
+      throw new Error("Character already claimed");
+    }
+
+    return { characterId: character.id, playerName: character.name };
+  }
+
+  canSessionMoveToken(session: Session, token: TokenState): boolean {
+    if (session.role === "gm") {
+      return true;
+    }
+    if (session.role !== "player" || !session.characterId || !token.characterId) {
+      return false;
+    }
+    return token.characterId === session.characterId;
+  }
+
+  getSnapshot(
+    roomId: string,
+    role: Role,
+    playerName: string | null,
+    characterId: string | null = null,
+  ): Snapshot {
     const room = this.getRoomById(roomId);
     if (!room) {
       throw new Error("Room not found");
@@ -1172,6 +1227,7 @@ export class RoomStore {
       fog: this.getActiveFog(roomId),
       role,
       playerName,
+      characterId,
     };
   }
 }
