@@ -19,4 +19,4 @@ Phase 1 only accepted PNG/JPG/WebP with a manual `grid_px`. Universal VTT (`.dd2
 
 - Settings Maps can ingest VTT exports without a separate calibration step when the file includes grid data.
 - Later LoS fog can read persisted walls without re-importing maps.
-- Animated WebM packages and full LoS remain out of scope until a follow-up ADR/phase cut.
+- Automatic LoS fog from persisted walls is covered in [ADR 0016](0016-los-fog-from-walls.md). Animated WebM packages remain a later cut.

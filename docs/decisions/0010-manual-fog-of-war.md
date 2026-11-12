@@ -20,4 +20,4 @@ Phase 2 calls for a manual Fog-of-War layer (brush and rectangles) so the GM can
 
 - Stroke lists can grow; a hard cap rejects further paints until reset (bake/compact can come later).
 - Fog is independent of dice, HP, and `.dd2vtt` importers.
-- Later wall-based LoS can feed the same mask or a sibling layer without changing the GM paint UX.
+- Wall-based LoS (ADR 0016) adds a sibling cover layer and `losEnabled` on the same fog state without changing the GM paint UX.

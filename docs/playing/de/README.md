@@ -28,7 +28,7 @@ Schwebende Inseln um die Karte:
 - **NPCs** — NPCs spawnen oder platzieren; auswählen, um TP anzupassen (−5/−1/+1/+5), Bedingungen zu setzen und RK/Notizen zu sehen.
 - **Log** — Session-Events und Kampftimer; Kampf **Start** / **Ende**. Das erste **Next** startet automatisch einen Kampf, falls keiner läuft.
 - **Dice** — Ausdrücke wie `2d6+3` eingeben (oder Quick-Chips), serverseitig würfeln, Summe und letzte Rolls sehen. Ergebnisse werden gebroadcastet und erscheinen im Session-Log.
-- **Fog** — Pinsel oder Rechteck zum **Reveal** / **Hide**; **Cover all** / **Clear all**. Neue Karten starten voll verdeckt. Für dich ist Fog durchscheinend, für Screen/Spieler deckend. Tool **Off**, um wieder zu pannen und Tokens zu bewegen.
+- **Fog** — Pinsel oder Rechteck zum **Reveal** / **Hide**; **Cover all** / **Clear all**. Neue Karten starten voll verdeckt. Bei `.dd2vtt`-Karten mit Wänden **LoS** einschalten: Screen/Spieler sehen nur, was PC-Tokens durch die Wände sehen können; manueller Fog gilt weiterhin. Für dich ist Fog durchscheinend, für Screen/Spieler deckend. Tool **Off**, um wieder zu pannen und Tokens zu bewegen.
 
 **Snap** verschiebt eine Insel zum nächsten Dock-Slot (vier Ecken plus Mitte links/rechts). Beim ersten Besuch gilt ein nicht überlappendes Standard-Layout; Positionen bleiben pro Raumcode im Browser erhalten.
 
@@ -67,6 +67,7 @@ Optionale Traefik-Labels (`TRAEFIK_ENABLE` / `FQDN`) hängen an bestehendes Trae
 - dd2vtt-Import-ADR: [../../decisions/0008-dd2vtt-map-import.md](../../decisions/0008-dd2vtt-map-import.md)
 - TP-Sichtbarkeit-ADR: [../../decisions/0009-hp-screen-visibility.md](../../decisions/0009-hp-screen-visibility.md)
 - Manuelles Fog-ADR: [../../decisions/0010-manual-fog-of-war.md](../../decisions/0010-manual-fog-of-war.md)
+- LoS-Fog-ADR: [../../decisions/0016-los-fog-from-walls.md](../../decisions/0016-los-fog-from-walls.md)
 - Bedingungen-ADR: [../../decisions/0011-token-conditions.md](../../decisions/0011-token-conditions.md)
 - Raum-/GM-Auth-ADR: [../../decisions/0012-room-identity-gm-auth.md](../../decisions/0012-room-identity-gm-auth.md)
 - Screen-TP-Viertel-ADR: [../../decisions/0013-screen-hp-quarters.md](../../decisions/0013-screen-hp-quarters.md)

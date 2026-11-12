@@ -149,18 +149,24 @@ See [ADR 0008](../decisions/0008-dd2vtt-map-import.md).
 - Parser: `server/src/dd2vtt.ts` (pure); upload path in `server/src/http.ts`.
 - Persistence: `maps.walls_json` (grid-cell polylines from `line_of_sight`); embedded image written under `server/uploads/`.
 - Client: GM-only wall overlay in `useMapScene`; Settings Maps accepts `.dd2vtt` beside PNG/JPG/WebP.
-- Not yet: portals/lights rendering, automatic LoS fog, animated WebM packages.
+- Automatic LoS fog: see below / [ADR 0016](../decisions/0016-los-fog-from-walls.md). Not yet: portals/lights rendering, animated WebM packages.
 
 ### Manual fog of war
 
 See [ADR 0010](../decisions/0010-manual-fog-of-war.md).
 
-- Table: `map_fog` (`base_covered`, `strokes_json`) keyed by `map_id`.
-- Snapshot field: `fog` for the active map.
-- Events: `fog:paint`, `fog:reset` → `fog:updated` (GM only to mutate).
-- Client: PixiJS v8 fog mask above tokens; Fog Play island for brush/rect tools.
+- Table: `map_fog` (`base_covered`, `strokes_json`, `los_enabled`) keyed by `map_id`.
+- Snapshot field: `fog` for the active map (`losEnabled` included).
+- Events: `fog:paint`, `fog:reset`, `fog:setLos` → `fog:updated` (GM only to mutate).
+- Client: PixiJS v8 fog mask above tokens; Fog Play island for brush/rect tools and LoS toggle.
 
-Out of scope here: automatic LoS from walls, replay/video, WebM animated map layers.
+### Automatic LoS fog
+
+See [ADR 0016](../decisions/0016-los-fog-from-walls.md).
+
+- Vision from PC tokens against `maps.walls_json` (grid-cell polylines → pixel segments).
+- Client: `losVisibility.ts` ray cast; composed with manual fog (visible only if both allow).
+- Out of scope here: portals/doors, lights, vision radius, replay/video, WebM animated map layers.
 
 ### Character conditions
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyLosFogOverlay,
   composeFogMask,
   fogCompositeOp,
   paintFogStrokeOnContext,
@@ -125,5 +126,19 @@ describe("fogMaskCompose", () => {
       op: "destination-out",
       lineWidth: 16,
     });
+  });
+
+  it("covers the map then punches LoS vision polygons", () => {
+    const ctx = createRecordingContext();
+    applyLosFogOverlay(ctx, 100, 80, [
+      [
+        { x: 10, y: 10 },
+        { x: 40, y: 10 },
+        { x: 25, y: 40 },
+      ],
+    ]);
+    expect(ctx.ops[0]).toMatchObject({ type: "fillRect", w: 100, h: 80, op: "source-over" });
+    const punch = ctx.ops.find((op) => op.type === "fill" && op.op === "destination-out");
+    expect(punch).toBeTruthy();
   });
 });

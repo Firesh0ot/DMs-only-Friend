@@ -8,6 +8,7 @@ import {
   DiceRollPayloadSchema,
   FogPaintPayloadSchema,
   FogResetPayloadSchema,
+  FogSetLosPayloadSchema,
   GmChangePinPayloadSchema,
   InitiativeSetPayloadSchema,
   MapActivatePayloadSchema,
@@ -652,6 +653,20 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       try {
         const data = FogResetPayloadSchema.parse(payload);
         const fog = rooms.resetFog(session.roomId, data.mapId, data.baseCovered);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.FogUpdated, fog);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.FogSetLos, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = FogSetLosPayloadSchema.parse(payload);
+        const fog = rooms.setFogLos(session.roomId, data.mapId, data.enabled);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.FogUpdated, fog);
       } catch (error) {
         emitError(socket, error);

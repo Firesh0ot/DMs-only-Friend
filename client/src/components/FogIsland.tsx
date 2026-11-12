@@ -6,6 +6,8 @@ import { PlayIsland } from "./PlayIsland";
 
 type Props = {
   mapId: string | null;
+  hasWalls: boolean;
+  losEnabled: boolean;
   tool: FogToolMode;
   paintMode: FogPaintMode;
   brushRadius: number;
@@ -18,6 +20,8 @@ type Props = {
 
 export function FogIsland({
   mapId,
+  hasWalls,
+  losEnabled,
   tool,
   paintMode,
   brushRadius,
@@ -32,6 +36,13 @@ export function FogIsland({
       return;
     }
     getSocket().emit(ClientEvents.FogReset, { mapId, baseCovered });
+  }
+
+  function setLos(enabled: boolean) {
+    if (!mapId) {
+      return;
+    }
+    getSocket().emit(ClientEvents.FogSetLos, { mapId, enabled });
   }
 
   return (
@@ -100,7 +111,26 @@ export function FogIsland({
           Clear all
         </button>
       </div>
-      <p className="muted fog-island__hint">Players see solid fog; you see it translucent for editing.</p>
+      <div className="fog-island__tools" role="group" aria-label="Line of sight fog">
+        <button
+          type="button"
+          className={losEnabled ? "is-active" : "secondary"}
+          disabled={!mapId || !hasWalls}
+          onClick={() => setLos(!losEnabled)}
+          title={
+            hasWalls
+              ? "Toggle automatic line-of-sight fog from walls"
+              : "Import a .dd2vtt map with walls to enable LoS"
+          }
+        >
+          LoS {losEnabled ? "on" : "off"}
+        </button>
+      </div>
+      <p className="muted fog-island__hint">
+        {hasWalls
+          ? "LoS hides areas behind walls from PC tokens; manual fog still applies. Players see solid fog; you see it translucent."
+          : "Players see solid fog; you see it translucent for editing. LoS needs .dd2vtt walls."}
+      </p>
     </PlayIsland>
   );
 }

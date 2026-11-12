@@ -120,7 +120,8 @@ function migrate(db: Db): void {
     CREATE TABLE IF NOT EXISTS map_fog (
       map_id TEXT PRIMARY KEY REFERENCES maps(id) ON DELETE CASCADE,
       base_covered INT NOT NULL DEFAULT 1,
-      strokes_json TEXT NOT NULL DEFAULT '[]'
+      strokes_json TEXT NOT NULL DEFAULT '[]',
+      los_enabled INT NOT NULL DEFAULT 0
     );
   `);
 
@@ -135,6 +136,7 @@ function migrate(db: Db): void {
   ensureColumn(db, "rooms", "gm_invite_hash", "TEXT");
   ensureColumn(db, "rooms", "screen_hp_quarters", "INT NOT NULL DEFAULT 0");
   ensureColumn(db, "rooms", "gm_claimed", "INT NOT NULL DEFAULT 1");
+  ensureColumn(db, "map_fog", "los_enabled", "INT NOT NULL DEFAULT 0");
 
   backfillActiveMaps(db);
   backfillTokenMaps(db);
