@@ -8,6 +8,8 @@ import {
 import { formatHp } from "../lib/hp";
 import type { Corner } from "../lib/islandLayout";
 import { getSocket } from "../socket/socket";
+import { ConditionBadges } from "./ConditionBadges";
+import { ConditionToggles } from "./ConditionToggles";
 import { PlayIsland } from "./PlayIsland";
 
 type Props = {
@@ -99,6 +101,9 @@ export function InitiativeIsland({
             <strong className="init-active-card__name">{active.label}</strong>
             {activeHp ? <span className="hp-chip">{activeHp}</span> : null}
             {activeRow?.character ? (
+              <ConditionBadges conditions={activeRow.character.conditions} compact />
+            ) : null}
+            {activeRow?.character ? (
               <div className="row init-active-card__hp">
                 <button
                   type="button"
@@ -117,6 +122,13 @@ export function InitiativeIsland({
                   +1
                 </button>
               </div>
+            ) : null}
+            {activeRow?.character ? (
+              <ConditionToggles
+                characterId={activeRow.character.id}
+                conditions={activeRow.character.conditions}
+                label={`Conditions for ${active.label}`}
+              />
             ) : null}
           </div>
         </div>
@@ -142,6 +154,9 @@ export function InitiativeIsland({
                   <span className="init-row__name">
                     <span>{row.token.label}</span>
                     {hp ? <span className="hp-chip">{hp}</span> : null}
+                    {row.character ? (
+                      <ConditionBadges conditions={row.character.conditions} compact />
+                    ) : null}
                   </span>
                   <input
                     id={inputId}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BattleStateSchema,
+  CharacterSetConditionsPayloadSchema,
   CharacterSetHpPayloadSchema,
   CharacterUpsertPayloadSchema,
   FogPaintPayloadSchema,
@@ -64,6 +65,24 @@ describe("event schemas", () => {
       CharacterSetHpPayloadSchema.parse({ characterId: "c1", hpCurrent: 10, hpMax: 20 }).hpCurrent,
     ).toBe(10);
     expect(() => CharacterSetHpPayloadSchema.parse({ characterId: "c1" })).toThrow();
+  });
+
+  it("accepts character condition payloads", () => {
+    expect(
+      CharacterSetConditionsPayloadSchema.parse({
+        characterId: "c1",
+        conditions: ["prone", "frightened"],
+      }).conditions,
+    ).toEqual(["prone", "frightened"]);
+    expect(
+      CharacterSetConditionsPayloadSchema.parse({ characterId: "c1", conditions: [] }).conditions,
+    ).toEqual([]);
+    expect(() =>
+      CharacterSetConditionsPayloadSchema.parse({
+        characterId: "c1",
+        conditions: ["flying"],
+      }),
+    ).toThrow();
   });
 
   it("accepts a prep/play snapshot shape", () => {

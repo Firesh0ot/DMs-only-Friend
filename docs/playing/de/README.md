@@ -23,8 +23,8 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 Schwebende Inseln um die Karte:
 
 - **Map** — aktive Karte wechseln; PCs/NPCs gruppenweise ein-/ausblenden.
-- **Initiative** — Werte, Reihenfolge, Next Turn (Runde steigt beim Überlauf). Kompakte TP auf den Karten; ±1 beim aktiven Charakter, wenn verknüpft.
-- **NPCs** — NPCs spawnen oder platzieren; auswählen, um TP anzupassen (−5/−1/+1/+5) und RK/Notizen zu sehen.
+- **Initiative** — Werte, Reihenfolge, Next Turn (Runde steigt beim Überlauf). Kompakte TP auf den Karten; ±1 beim aktiven Charakter, wenn verknüpft. Bedingungen (prone, frightened, …) am aktiven Charakter umschalten.
+- **NPCs** — NPCs spawnen oder platzieren; auswählen, um TP anzupassen (−5/−1/+1/+5), Bedingungen zu setzen und RK/Notizen zu sehen.
 - **Log** — Session-Events und Kampftimer; Kampf **Start** / **Ende**. Das erste **Next** startet automatisch einen Kampf, falls keiner läuft.
 - **Dice** — Ausdrücke wie `2d6+3` eingeben (oder Quick-Chips), serverseitig würfeln, Summe und letzte Rolls sehen. Ergebnisse werden gebroadcastet und erscheinen im Session-Log.
 - **Fog** — Pinsel oder Rechteck zum **Reveal** / **Hide**; **Cover all** / **Clear all**. Neue Karten starten voll verdeckt. Für dich ist Fog durchscheinend, für Screen/Spieler deckend. Tool **Off**, um wieder zu pannen und Tokens zu bewegen.
@@ -35,7 +35,7 @@ Kartenwechsel lädt die verknüpften Charaktere und entfernt die übrigen. Token
 
 ## Screen / Player
 
-Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. TP von PCs können auf den Initiativkarten erscheinen; **Monster-TP bleiben standardmäßig nur für die GM sichtbar**. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Würfelwürfe erscheinen kurz als Toast über der Karte. Pan/Zoom folgt dem GM. Unaufgedeckte Bereiche bleiben unter solidem Fog (inkl. Tokens dort).
+Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. TP von PCs können auf den Initiativkarten erscheinen; **Monster-TP bleiben standardmäßig nur für die GM sichtbar**. Kompakte Bedingungs-Badges (z. B. PRN, FRI), wenn die GM sie setzt. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Würfelwürfe erscheinen kurz als Toast über der Karte. Pan/Zoom folgt dem GM. Unaufgedeckte Bereiche bleiben unter solidem Fog (inkl. Tokens dort).
 
 ## Look & Laterne
 
@@ -60,4 +60,5 @@ Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**
 - dd2vtt-Import-ADR: [../../decisions/0008-dd2vtt-map-import.md](../../decisions/0008-dd2vtt-map-import.md)
 - TP-Sichtbarkeit-ADR: [../../decisions/0009-hp-screen-visibility.md](../../decisions/0009-hp-screen-visibility.md)
 - Manuelles Fog-ADR: [../../decisions/0010-manual-fog-of-war.md](../../decisions/0010-manual-fog-of-war.md)
+- Bedingungen-ADR: [../../decisions/0011-token-conditions.md](../../decisions/0011-token-conditions.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

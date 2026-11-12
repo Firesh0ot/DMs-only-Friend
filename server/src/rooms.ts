@@ -3,6 +3,8 @@ import {
   type CameraState,
   type CharacterKind,
   type CharacterState,
+  type ConditionId,
+  ConditionIdSchema,
   type FogState,
   type FogStroke,
   type FogStrokeInput,
@@ -69,6 +71,7 @@ type CharacterRow = {
   hp_current: number | null;
   hp_max: number | null;
   ac: number | null;
+  conditions_json: string | null;
 };
 type CameraRow = { room_id: string; x: number; y: number; zoom: number };
 type InitiativeRow = {
@@ -457,6 +460,22 @@ export class RoomStore {
     const character = this.getCharacter(characterId);
     if (!character) {
       throw new Error("Failed to persist HP");
+    }
+    return character;
+  }
+
+  setCharacterConditions(characterId: string, conditions: ConditionId[]): CharacterState {
+    const existing = this.getCharacter(characterId);
+    if (!existing) {
+      throw new Error("Character not found");
+    }
+    const next = normalizeConditions(conditions);
+    this.db
+      .prepare("UPDATE characters SET conditions_json = ? WHERE id = ?")
+      .run(JSON.stringify(next), characterId);
+    const character = this.getCharacter(characterId);
+    if (!character) {
+      throw new Error("Failed to persist conditions");
     }
     return character;
   }
@@ -1079,7 +1098,34 @@ function toCharacterState(row: CharacterRow, mapIds: string[]): CharacterState {
     hpCurrent: row.hp_current ?? null,
     hpMax: row.hp_max ?? null,
     ac: row.ac ?? null,
+    conditions: parseConditionsJson(row.conditions_json),
   };
+}
+
+function parseConditionsJson(raw: string | null | undefined): ConditionId[] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return normalizeConditions(parsed);
+  } catch {
+    return [];
+  }
+}
+
+function normalizeConditions(values: unknown[]): ConditionId[] {
+  const seen = new Set<ConditionId>();
+  for (const value of values) {
+    const parsed = ConditionIdSchema.safeParse(value);
+    if (parsed.success) {
+      seen.add(parsed.data);
+    }
+  }
+  return ConditionIdSchema.options.filter((id) => seen.has(id));
 }
 
 function normalizeHp(input: {

@@ -3,6 +3,8 @@ import { ClientEvents, type CharacterState, type TokenState } from "@dms/shared"
 import { formatHp } from "../lib/hp";
 import type { Corner } from "../lib/islandLayout";
 import { getSocket } from "../socket/socket";
+import { ConditionBadges } from "./ConditionBadges";
+import { ConditionToggles } from "./ConditionToggles";
 import { PlayIsland } from "./PlayIsland";
 
 type Props = {
@@ -169,6 +171,11 @@ export function NpcIsland({ characters, tokens, activeMapId, corner, onCycleCorn
             </button>
           </div>
           {selected.notes ? <p className="muted hp-panel__notes">{selected.notes}</p> : null}
+          <ConditionToggles
+            characterId={selected.id}
+            conditions={selected.conditions}
+            label={`Conditions for ${selected.name}`}
+          />
         </div>
       ) : null}
 
@@ -191,7 +198,10 @@ export function NpcIsland({ characters, tokens, activeMapId, corner, onCycleCorn
               >
                 <span>{token.label}</span>
                 {character ? (
-                  <span className="hp-chip">{formatHp(character) ?? "HP?"}</span>
+                  <span className="token-select__meta">
+                    <span className="hp-chip">{formatHp(character) ?? "HP?"}</span>
+                    <ConditionBadges conditions={character.conditions} compact />
+                  </span>
                 ) : null}
               </button>
               <button className="secondary" onClick={() => removeToken(token.id)}>
@@ -220,7 +230,10 @@ export function NpcIsland({ characters, tokens, activeMapId, corner, onCycleCorn
                     }}
                   >
                     <span>{character.name}</span>
-                    <span className="hp-chip">{formatHp(character) ?? "HP?"}</span>
+                    <span className="token-select__meta">
+                      <span className="hp-chip">{formatHp(character) ?? "HP?"}</span>
+                      <ConditionBadges conditions={character.conditions} compact />
+                    </span>
                   </button>
                   {!onMap && activeMapId ? (
                     <button className="secondary" onClick={() => linkToActiveMap(character)}>

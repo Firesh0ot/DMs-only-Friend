@@ -49,3 +49,4 @@ What becomes easier, harder, or out of scope.
 | [0008](0008-dd2vtt-map-import.md) | Universal VTT (.dd2vtt) map import | accepted |
 | [0009](0009-hp-screen-visibility.md) | HP / monster stats screen visibility | accepted |
 | [0010](0010-manual-fog-of-war.md) | Manual Fog of War (brush / rect) | accepted |
+| [0011](0011-token-conditions.md) | Character conditions on roster / tokens | accepted |

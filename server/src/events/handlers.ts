@@ -1,6 +1,7 @@
 import {
   CameraSetPayloadSchema,
   CharacterRemovePayloadSchema,
+  CharacterSetConditionsPayloadSchema,
   CharacterSetHpPayloadSchema,
   CharacterUpsertPayloadSchema,
   ClientEvents,
@@ -464,6 +465,25 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           hpMax: data.hpMax,
           delta: data.delta,
         });
+        emitCharactersUpdated(io, rooms, session.roomId);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.CharacterSetConditions, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = CharacterSetConditionsPayloadSchema.parse(payload);
+        const character = rooms.getCharacter(data.characterId);
+        if (!character || character.roomId !== session.roomId) {
+          emitError(socket, new Error("Character not found"));
+          return;
+        }
+        rooms.setCharacterConditions(data.characterId, data.conditions);
         emitCharactersUpdated(io, rooms, session.roomId);
       } catch (error) {
         emitError(socket, error);
