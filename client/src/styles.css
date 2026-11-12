@@ -117,6 +117,24 @@ body.tavern-body::before {
   opacity: 0.95;
 }
 
+body.tavern-body::after {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at 50% -8%, rgba(255, 196, 110, 0.28), transparent 52%),
+    radial-gradient(ellipse at 18% 88%, rgba(255, 140, 60, 0.1), transparent 42%),
+    radial-gradient(ellipse at 84% 72%, rgba(255, 170, 80, 0.09), transparent 40%);
+  mix-blend-mode: soft-light;
+}
+
+html[data-lantern="on"] body.tavern-body::after {
+  animation: candle-flicker 5.2s ease-in-out infinite;
+}
+
 html[data-lantern="off"] body.tavern-body {
   background-image:
     var(--ambient-warm),
@@ -135,6 +153,130 @@ html[data-lantern="off"] body.tavern-body::before {
   background:
     radial-gradient(ellipse at center, transparent 28%, var(--vignette) 100%),
     linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent 20%, transparent 70%, rgba(0, 0, 0, 0.5));
+}
+
+html[data-lantern="off"] body.tavern-body::after {
+  animation: none;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at 48% 12%, rgba(70, 65, 50, 0.14), transparent 48%),
+    radial-gradient(ellipse at 50% 100%, rgba(12, 16, 20, 0.35), transparent 55%);
+  mix-blend-mode: multiply;
+}
+
+html[data-lantern-fx="blow-out"] body.tavern-body::after {
+  animation: candle-blow-out 0.56s ease-in forwards;
+  mix-blend-mode: soft-light;
+}
+
+html[data-lantern-fx="blow-out"] body.tavern-body::before {
+  animation: candle-blow-out-vignette 0.56s ease-in forwards;
+}
+
+html[data-lantern-fx="light"] body.tavern-body::after {
+  animation: candle-light 0.56s ease-out forwards;
+  mix-blend-mode: soft-light;
+}
+
+html[data-lantern-fx="light"] body.tavern-body::before {
+  animation: candle-light-vignette 0.56s ease-out forwards;
+}
+
+@keyframes candle-flicker {
+  0%,
+  100% {
+    opacity: 0.52;
+  }
+  14% {
+    opacity: 0.46;
+  }
+  28% {
+    opacity: 0.58;
+  }
+  41% {
+    opacity: 0.5;
+  }
+  57% {
+    opacity: 0.6;
+  }
+  72% {
+    opacity: 0.48;
+  }
+  86% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes candle-blow-out {
+  0% {
+    opacity: 0.62;
+    filter: brightness(1.05);
+  }
+  22% {
+    opacity: 0.78;
+    filter: brightness(1.28);
+  }
+  48% {
+    opacity: 0.28;
+    filter: brightness(0.55);
+  }
+  100% {
+    opacity: 0;
+    filter: brightness(0.25);
+  }
+}
+
+@keyframes candle-blow-out-vignette {
+  0% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes candle-light {
+  0% {
+    opacity: 0;
+    filter: brightness(0.45);
+  }
+  38% {
+    opacity: 0.72;
+    filter: brightness(1.22);
+  }
+  100% {
+    opacity: 0.52;
+    filter: brightness(1);
+  }
+}
+
+@keyframes candle-light-vignette {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.95;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-lantern="on"] body.tavern-body::after {
+    animation: none;
+    opacity: 0.5;
+  }
+
+  html[data-lantern-fx="blow-out"] body.tavern-body::after,
+  html[data-lantern-fx="light"] body.tavern-body::after,
+  html[data-lantern-fx="blow-out"] body.tavern-body::before,
+  html[data-lantern-fx="light"] body.tavern-body::before {
+    animation: none;
+  }
+
+  .lantern-toggle--on .lantern-toggle__flame,
+  html[data-lantern-fx="blow-out"] .lantern-toggle__flame,
+  html[data-lantern-fx="light"] .lantern-toggle__flame {
+    animation: none;
+  }
 }
 
 button,
@@ -489,6 +631,77 @@ html[data-lantern="off"] .brand {
 .lantern-toggle--on .lantern-toggle__flame {
   fill: #ffb347;
   filter: drop-shadow(0 0 6px rgba(255, 170, 60, 0.9));
+  transform-origin: 50% 85%;
+  animation: flame-flicker 2.8s ease-in-out infinite;
+}
+
+html[data-lantern-fx="blow-out"] .lantern-toggle__flame {
+  animation: flame-blow-out 0.56s ease-in forwards;
+}
+
+html[data-lantern-fx="light"] .lantern-toggle__flame {
+  animation: flame-light 0.56s ease-out forwards;
+}
+
+@keyframes flame-flicker {
+  0%,
+  100% {
+    transform: scaleY(1) scaleX(1);
+    opacity: 1;
+  }
+  25% {
+    transform: scaleY(0.94) scaleX(1.04);
+    opacity: 0.92;
+  }
+  55% {
+    transform: scaleY(1.06) scaleX(0.96);
+    opacity: 1;
+  }
+  80% {
+    transform: scaleY(0.97) scaleX(1.02);
+    opacity: 0.95;
+  }
+}
+
+@keyframes flame-blow-out {
+  0% {
+    transform: scaleY(1) scaleX(1);
+    opacity: 1;
+    fill: #ffb347;
+  }
+  28% {
+    transform: scaleY(1.18) scaleX(0.9);
+    opacity: 1;
+    fill: #ffe0a0;
+  }
+  62% {
+    transform: scaleY(0.35) scaleX(1.15);
+    opacity: 0.45;
+    fill: #c87830;
+  }
+  100% {
+    transform: scaleY(0.05) scaleX(0.6);
+    opacity: 0;
+    fill: transparent;
+  }
+}
+
+@keyframes flame-light {
+  0% {
+    transform: scaleY(0.1) scaleX(0.5);
+    opacity: 0;
+    fill: #ffe0a0;
+  }
+  45% {
+    transform: scaleY(1.12) scaleX(0.92);
+    opacity: 1;
+    fill: #ffd078;
+  }
+  100% {
+    transform: scaleY(1) scaleX(1);
+    opacity: 1;
+    fill: #ffb347;
+  }
 }
 
 .lantern-toggle--off {

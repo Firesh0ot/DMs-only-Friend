@@ -15,7 +15,8 @@ type ThemeStore = {
 export const useThemeStore = create<ThemeStore>((set, get) => ({
   lantern: readLanternMode(),
   setLantern: (mode) => {
-    applyLanternMode(mode);
+    const previous = get().lantern;
+    applyLanternMode(mode, { animate: previous !== mode });
     writeLanternMode(mode);
     set({ lantern: mode });
   },
