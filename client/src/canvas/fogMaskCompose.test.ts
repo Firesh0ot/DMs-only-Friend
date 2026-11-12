@@ -141,4 +141,22 @@ describe("fogMaskCompose", () => {
     const punch = ctx.ops.find((op) => op.type === "fill" && op.op === "destination-out");
     expect(punch).toBeTruthy();
   });
+
+  it("skips base cover fill when baseCovered is false", () => {
+    const ctx = createRecordingContext();
+    composeFogMask(ctx, 50, 40, { baseCovered: false, strokes: [] });
+    expect(ctx.ops).toEqual([{ type: "clearRect", x: 0, y: 0, w: 50, h: 40 }]);
+  });
+
+  it("ignores brush strokes with no points", () => {
+    const ctx = createRecordingContext();
+    paintFogStrokeOnContext(ctx, {
+      id: "empty-brush",
+      kind: "brush",
+      mode: "hide",
+      radius: 10,
+      points: [],
+    });
+    expect(ctx.ops).toEqual([]);
+  });
 });
