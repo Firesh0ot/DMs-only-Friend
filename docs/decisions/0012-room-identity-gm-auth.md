@@ -9,7 +9,7 @@ Phase 1 used random room codes and treated knowing the code (or a forever `?role
 
 ## Decision
 
-- Room codes are **creator-chosen** slugs (3–24 chars, letters/digits/`_`/`-`), stored uppercased, unique; collisions return 409.
+- Room codes are **creator-chosen** slugs (3–24 chars after normalization): Unicode letters (incl. German ä/ö/ü/ß), ASCII digits, `_`, `-`. NFC-normalized and stored uppercased (`ß` → `SS`); unique; collisions return 409. Codes stay the URL identity (percent-encoded in path segments); table `name` remains a separate display label.
 - Creating a room also sets a **GM PIN** (4–8 digits, hashed at rest).
 - First GM claim uses a **single-use invite token** in the GM URL **and** the PIN. Redeeming clears the invite hash. Later GM rejoins need the PIN only (no forever public `gmUrl`).
 - Lost invite before redeem: `POST /api/rooms/:code/gm-invite` with the PIN mints a new invite. An authenticated GM can also mint via `gm:mintInvite`.

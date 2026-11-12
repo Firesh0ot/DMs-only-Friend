@@ -12,7 +12,7 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 
 ## GM-Vorbereitung (Settings)
 
-1. Raum auf der Startseite erstellen: **Raumcode**, Tischname und **GM-PIN** (4–8 Ziffern) wählen. Den **einmaligen GM-Invite** sofort kopieren, öffnen und PIN eingeben.
+1. Raum auf der Startseite erstellen: **Raumcode**, Tischname und **GM-PIN** (4–8 Ziffern) wählen. Raumcodes: 3–24 Zeichen nach Normalisierung — Unicode-Buchstaben (inkl. ä/ö/ü und ß), Ziffern, `_` und `-`. Speicherung NFC-normalisiert und in Großbuchstaben (`ß` wird zu `SS`, daher kollidieren `straße` und `strasse`). Den **einmaligen GM-Invite** sofort kopieren, öffnen und PIN eingeben.
 2. Eine oder mehrere Karten hochladen: PNG/JPG/WebP (`grid_px` setzen) oder Universal VTT `.dd2vtt` (Raster und Wände kommen aus der Datei). Uploads brauchen eine aktive GM-Session. In der GM-Ansicht erscheinen importierte Wände als bernsteinfarbene Overlay-Linien.
 3. In Settings → **Room links** mit **Copy** neben Room join / Screen / Player (und einem geminteten GM-Invite) teilen. Es gibt keine dauerhafte GM-URL — bei Bedarf neuen einmaligen Invite in Settings (oder Startseite mit PIN) erzeugen.
 4. PCs und NPCs anlegen (Anzeigename, optionale TP/RK, kurze Notizen, Portrait); Häkchen setzen, auf welchen Karten sie erscheinen.

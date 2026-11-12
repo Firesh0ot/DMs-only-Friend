@@ -85,22 +85,34 @@ export const RoomSettingsSchema = z.object({
 });
 export type RoomSettings = z.infer<typeof RoomSettingsSchema>;
 
+const ROOM_CODE_PATTERN = /^[\p{L}0-9_-]+$/u;
+
+export function normalizeRoomCode(code: string): string {
+  return code.trim().normalize("NFC").toLocaleUpperCase("und");
+}
+
+export function roomCodePathSegment(code: string): string {
+  return encodeURIComponent(normalizeRoomCode(code));
+}
+
 export const RoomCodeSchema = z
   .string()
   .trim()
-  .min(3)
-  .max(24)
-  .regex(/^[A-Za-z0-9_-]+$/, "Use letters, digits, underscore, or hyphen");
+  .min(1)
+  .transform((value) => value.normalize("NFC"))
+  .refine((value) => ROOM_CODE_PATTERN.test(value), {
+    message: "Use letters, digits, underscore, or hyphen",
+  })
+  .transform((value) => normalizeRoomCode(value))
+  .refine((value) => value.length >= 3 && value.length <= 24, {
+    message: "Room code must be 3–24 characters",
+  });
 export type RoomCode = z.infer<typeof RoomCodeSchema>;
 
 export const GmPinSchema = z
   .string()
   .regex(/^\d{4,8}$/, "PIN must be 4–8 digits");
 export type GmPin = z.infer<typeof GmPinSchema>;
-
-export function normalizeRoomCode(code: string): string {
-  return code.trim().toUpperCase();
-}
 
 export function hpToQuarter(hpCurrent: number | null, hpMax: number | null): number | null {
   if (hpCurrent === null && hpMax === null) {

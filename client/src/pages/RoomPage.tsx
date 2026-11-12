@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ClientEvents,
+  roomCodePathSegment,
   type CameraState,
   type FogPaintMode,
   type FogStrokeInput,
@@ -82,7 +83,7 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
     })
       .then(() => {
         if (role === "gm" && invite) {
-          window.location.hash = `/room/${code}?role=gm`;
+          window.location.hash = `/room/${roomCodePathSegment(code)}?role=gm`;
         }
       })
       .catch(() => undefined);

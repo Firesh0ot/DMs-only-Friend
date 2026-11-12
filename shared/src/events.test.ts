@@ -7,6 +7,7 @@ import {
   FogPaintPayloadSchema,
   FogStateSchema,
   MapActivatePayloadSchema,
+  RoomCodeSchema,
   RoomCreatePayloadSchema,
   RoomJoinPayloadSchema,
   SessionEventSchema,
@@ -14,6 +15,8 @@ import {
   TokenMovePayloadSchema,
   VisibilitySetPayloadSchema,
   hpToQuarter,
+  normalizeRoomCode,
+  roomCodePathSegment,
 } from "./events.js";
 
 describe("event schemas", () => {
@@ -26,14 +29,29 @@ describe("event schemas", () => {
     });
     expect(parsed.role).toBe("gm");
     expect(parsed.pin).toBe("1234");
+    expect(parsed.code).toBe("ABC123");
   });
 
   it("accepts room create payloads and rejects bad codes", () => {
     expect(
       RoomCreatePayloadSchema.parse({ code: "Friday-Table", pin: "2468", name: "Quest" }).code,
-    ).toBe("Friday-Table");
+    ).toBe("FRIDAY-TABLE");
     expect(() => RoomCreatePayloadSchema.parse({ code: "ab", pin: "1234" })).toThrow();
     expect(() => RoomCreatePayloadSchema.parse({ code: "GOOD", pin: "12" })).toThrow();
+  });
+
+  it("allows Unicode letters including German umlauts and ß in room codes", () => {
+    expect(RoomCodeSchema.parse("dörfer")).toBe("DÖRFER");
+    expect(RoomCodeSchema.parse("Märchen")).toBe("MÄRCHEN");
+    expect(RoomCodeSchema.parse("straße")).toBe("STRASSE");
+    expect(RoomCodeSchema.parse("über_den-hügel")).toBe("ÜBER_DEN-HÜGEL");
+    expect(normalizeRoomCode("a\u0308ok")).toBe("ÄOK");
+    expect(RoomCodeSchema.parse("a\u0308ok")).toBe("ÄOK");
+    expect(roomCodePathSegment("dörfer")).toBe(encodeURIComponent("DÖRFER"));
+    expect(() => RoomCodeSchema.parse("bad code")).toThrow();
+    expect(() => RoomCodeSchema.parse("code/slash")).toThrow();
+    expect(() => RoomCodeSchema.parse("emoji😀")).toThrow();
+    expect(() => RoomCodeSchema.parse("xx")).toThrow();
   });
 
   it("maps HP into quarter steps", () => {

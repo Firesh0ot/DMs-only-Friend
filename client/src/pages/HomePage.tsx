@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { normalizeRoomCode, roomCodePathSegment } from "@dms/shared";
 import { LanternToggle } from "../components/LanternToggle";
 
 type CreatedRoom = {
@@ -60,7 +61,7 @@ export function HomePage() {
   }
 
   function openRoom(role: "gm" | "screen" | "player") {
-    const roomCode = (created?.code ?? joinCode).trim().toUpperCase();
+    const roomCode = normalizeRoomCode(created?.code ?? joinCode);
     if (!roomCode) {
       setError("Enter a room code");
       return;
@@ -81,11 +82,11 @@ export function HomePage() {
     if (role === "player" && playerName.trim()) {
       params.set("name", playerName.trim());
     }
-    window.location.hash = `/room/${roomCode}?${params.toString()}`;
+    window.location.hash = `/room/${roomCodePathSegment(roomCode)}?${params.toString()}`;
   }
 
   async function mintInvite() {
-    const roomCode = joinCode.trim().toUpperCase();
+    const roomCode = normalizeRoomCode(joinCode);
     if (!roomCode || !joinPin.trim()) {
       setError("Enter room code and PIN to mint a GM invite");
       return;
@@ -93,7 +94,7 @@ export function HomePage() {
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch(`/api/rooms/${roomCode}/gm-invite`, {
+      const response = await fetch(`/api/rooms/${roomCodePathSegment(roomCode)}/gm-invite`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pin: joinPin.trim() }),
@@ -106,11 +107,12 @@ export function HomePage() {
         throw new Error(payload?.error ?? "Could not mint GM invite");
       }
       sessionStorage.setItem(`dms-gm-pin:${roomCode}`, joinPin.trim());
+      const pathCode = roomCodePathSegment(roomCode);
       setCreated({
         code: roomCode,
         gmInviteUrl: payload.gmInviteUrl,
-        screenUrl: `${window.location.origin}/#/room/${roomCode}?role=screen`,
-        playerUrl: `${window.location.origin}/#/room/${roomCode}?role=player`,
+        screenUrl: `${window.location.origin}/#/room/${pathCode}?role=screen`,
+        playerUrl: `${window.location.origin}/#/room/${pathCode}?role=player`,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Mint invite failed");
@@ -138,7 +140,9 @@ export function HomePage() {
             <span className="muted">Room code</span>
             <input
               value={code}
-              onChange={(event) => setCode(event.target.value.toUpperCase())}
+              onChange={(event) =>
+                setCode(event.target.value.normalize("NFC").toLocaleUpperCase("und"))
+              }
               placeholder="FRIDAY-TABLE"
               autoComplete="off"
             />
@@ -193,7 +197,9 @@ export function HomePage() {
             <span className="muted">Room code</span>
             <input
               value={joinCode}
-              onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
+              onChange={(event) =>
+                setJoinCode(event.target.value.normalize("NFC").toLocaleUpperCase("und"))
+              }
               placeholder="FRIDAY-TABLE"
             />
           </label>

@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from "react";
 import {
   ClientEvents,
+  roomCodePathSegment,
   type CharacterKind,
   type CharacterState,
   type MapState,
@@ -62,14 +63,14 @@ export function SettingsPanel({
   const [gmInviteUrl, setGmInviteUrl] = useState<string | null>(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const links = useMemo(
-    () => ({
-      room: `${origin}/#/room/${code}`,
-      screen: `${origin}/#/room/${code}?role=screen`,
-      player: `${origin}/#/room/${code}?role=player`,
-    }),
-    [origin, code],
-  );
+  const links = useMemo(() => {
+    const pathCode = roomCodePathSegment(code);
+    return {
+      room: `${origin}/#/room/${pathCode}`,
+      screen: `${origin}/#/room/${pathCode}?role=screen`,
+      player: `${origin}/#/room/${pathCode}?role=player`,
+    };
+  }, [origin, code]);
 
   const pcs = characters.filter((character) => character.kind === "pc");
   const npcs = characters.filter((character) => character.kind === "npc");
@@ -98,7 +99,7 @@ export function SettingsPanel({
       if (mapName.trim()) {
         body.append("name", mapName.trim());
       }
-      const response = await fetch(`/api/rooms/${code}/map`, {
+      const response = await fetch(`/api/rooms/${roomCodePathSegment(code)}/map`, {
         method: "POST",
         headers: uploadHeaders(),
         body,
@@ -129,11 +130,14 @@ export function SettingsPanel({
     try {
       const body = new FormData();
       body.append("portrait", file);
-      const response = await fetch(`/api/rooms/${code}/characters/${characterId}/portrait`, {
-        method: "POST",
-        headers: uploadHeaders(),
-        body,
-      });
+      const response = await fetch(
+        `/api/rooms/${roomCodePathSegment(code)}/characters/${characterId}/portrait`,
+        {
+          method: "POST",
+          headers: uploadHeaders(),
+          body,
+        },
+      );
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(payload?.error ?? "Portrait upload failed");
