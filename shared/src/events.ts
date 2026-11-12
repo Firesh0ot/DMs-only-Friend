@@ -37,6 +37,16 @@ export const PortalStateSchema = z.object({
 });
 export type PortalState = z.infer<typeof PortalStateSchema>;
 
+export const LightStateSchema = z.object({
+  id: z.string().min(1),
+  position: WallPointSchema,
+  range: z.number().positive(),
+  intensity: z.number().min(0).max(1),
+  color: z.string().regex(/^[0-9a-fA-F]{6}$/),
+  shadows: z.boolean().default(true),
+});
+export type LightState = z.infer<typeof LightStateSchema>;
+
 export const MapStateSchema = z.object({
   id: z.string(),
   roomId: z.string(),
@@ -49,6 +59,7 @@ export const MapStateSchema = z.object({
   offsetY: z.number().int(),
   walls: z.array(WallPolylineSchema).default([]),
   portals: z.array(PortalStateSchema).default([]),
+  lights: z.array(LightStateSchema).default([]),
 });
 export type MapState = z.infer<typeof MapStateSchema>;
 

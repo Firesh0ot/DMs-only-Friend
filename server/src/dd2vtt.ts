@@ -13,6 +13,14 @@ const PortalSchema = z.object({
   freestanding: z.boolean().default(false),
 });
 
+const LightSchema = z.object({
+  position: PointSchema,
+  range: z.number().positive(),
+  intensity: z.number().min(0).max(1).default(1),
+  color: z.string().default("ffffffff"),
+  shadows: z.boolean().default(true),
+});
+
 const Dd2vttSchema = z.object({
   format: z.number().optional(),
   resolution: z.object({
@@ -22,6 +30,7 @@ const Dd2vttSchema = z.object({
   }),
   line_of_sight: z.array(z.array(PointSchema)).default([]),
   portals: z.array(PortalSchema).default([]),
+  lights: z.array(LightSchema).default([]),
   image: z.string().min(1),
 });
 
@@ -30,6 +39,15 @@ export type ParsedPortal = {
   bounds: [{ x: number; y: number }, { x: number; y: number }];
   closed: boolean;
   freestanding: boolean;
+};
+
+export type ParsedLight = {
+  id: string;
+  position: { x: number; y: number };
+  range: number;
+  intensity: number;
+  color: string;
+  shadows: boolean;
 };
 
 export type ParsedDd2vtt = {
@@ -41,6 +59,7 @@ export type ParsedDd2vtt = {
   offsetY: number;
   walls: Array<Array<{ x: number; y: number }>>;
   portals: ParsedPortal[];
+  lights: ParsedLight[];
   mapSizeCells: { x: number; y: number };
 };
 
@@ -82,6 +101,23 @@ export function parseDd2vtt(raw: string | Buffer): ParsedDd2vtt {
     })
     .filter((portal): portal is ParsedPortal => portal !== null);
 
+  const lights = doc.lights
+    .map((light, index) => {
+      const color = normalizeLightColor(light.color);
+      if (!color || !Number.isFinite(light.range) || light.range <= 0) {
+        return null;
+      }
+      return {
+        id: `light-${index}`,
+        position: { x: light.position.x, y: light.position.y },
+        range: light.range,
+        intensity: Math.min(1, Math.max(0, light.intensity)),
+        color,
+        shadows: light.shadows,
+      };
+    })
+    .filter((light): light is ParsedLight => light !== null);
+
   return {
     imageBuffer: image.buffer,
     imageExt: image.ext,
@@ -91,11 +127,23 @@ export function parseDd2vtt(raw: string | Buffer): ParsedDd2vtt {
     offsetY: Math.round(origin.y * gridPx),
     walls,
     portals,
+    lights,
     mapSizeCells: {
       x: doc.resolution.map_size.x,
       y: doc.resolution.map_size.y,
     },
   };
+}
+
+export function normalizeLightColor(raw: string): string | null {
+  const trimmed = raw.trim().replace(/^#/, "");
+  if (/^[0-9a-fA-F]{8}$/.test(trimmed)) {
+    return trimmed.slice(2).toLowerCase();
+  }
+  if (/^[0-9a-fA-F]{6}$/.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+  return null;
 }
 
 function decodeEmbeddedImage(image: string): {

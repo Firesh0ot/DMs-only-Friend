@@ -80,10 +80,18 @@ describe("map upload", () => {
     expect(response.body.map.height).toBe(70);
     expect(response.body.map.walls).toHaveLength(2);
     expect(response.body.map.portals).toEqual([]);
+    expect(response.body.map.lights).toHaveLength(1);
+    expect(response.body.map.lights[0]).toMatchObject({
+      id: "light-0",
+      color: "eccd8b",
+      range: 1.5,
+      intensity: 0.8,
+    });
     expect(response.body.map.filename).toMatch(/\.png$/);
     const stored = rooms.getMap(rooms.getRoomByCode(code)!.id);
     expect(stored?.walls[0]?.length).toBeGreaterThanOrEqual(2);
     expect(stored?.portals).toEqual([]);
+    expect(stored?.lights).toHaveLength(1);
     expect(fs.existsSync(path.join(uploadsDir, stored!.filename))).toBe(true);
   });
 

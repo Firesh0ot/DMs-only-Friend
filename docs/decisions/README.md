@@ -56,3 +56,4 @@ What becomes easier, harder, or out of scope.
 | [0015](0015-docker-ghcr-packaging.md) | Docker and GHCR packaging | accepted |
 | [0016](0016-los-fog-from-walls.md) | Automatic LoS fog from dd2vtt walls | accepted |
 | [0017](0017-dd2vtt-doors-portals.md) | dd2vtt doors / portals and LoS | accepted |
+| [0018](0018-dd2vtt-lights-overlay.md) | Soft lights from dd2vtt | accepted |

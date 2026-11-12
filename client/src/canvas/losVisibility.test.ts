@@ -35,6 +35,7 @@ const map: MapState = {
     ],
   ],
   portals: [],
+  lights: [],
 };
 
 describe("losVisibility", () => {
