@@ -8,6 +8,8 @@ import {
   FogStateSchema,
   GmChangePinPayloadSchema,
   MapActivatePayloadSchema,
+  MapStateSchema,
+  PortalSetClosedPayloadSchema,
   RoomCodeSchema,
   RoomCreatePayloadSchema,
   RoomJoinPayloadSchema,
@@ -209,6 +211,40 @@ describe("event schemas", () => {
       losEnabled: true,
     });
     expect(withLos.losEnabled).toBe(true);
+  });
+
+  it("accepts map portals and portal toggle payloads", () => {
+    const map = MapStateSchema.parse({
+      id: "map-1",
+      roomId: "room-1",
+      name: "Dungeon",
+      filename: "dungeon.png",
+      width: 100,
+      height: 100,
+      gridPx: 70,
+      offsetX: 0,
+      offsetY: 0,
+      walls: [],
+      portals: [
+        {
+          id: "portal-0",
+          bounds: [
+            { x: 1, y: 1 },
+            { x: 1, y: 2 },
+          ],
+          closed: true,
+        },
+      ],
+    });
+    expect(map.portals[0]?.freestanding).toBe(false);
+    expect(map.portals[0]?.closed).toBe(true);
+
+    const payload = PortalSetClosedPayloadSchema.parse({
+      mapId: "map-1",
+      portalId: "portal-0",
+      closed: false,
+    });
+    expect(payload.closed).toBe(false);
   });
 
   it("accepts session log and battle schemas", () => {

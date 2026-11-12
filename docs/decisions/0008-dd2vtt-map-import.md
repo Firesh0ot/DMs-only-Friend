@@ -12,7 +12,7 @@ Phase 1 only accepted PNG/JPG/WebP with a manual `grid_px`. Universal VTT (`.dd2
 - Accept `.dd2vtt` (and `.uvtt`) on `POST /api/rooms/:code/map` alongside image uploads.
 - Parse on the server: extract the embedded image to `server/uploads/`, set `grid_px` / offsets from `resolution`, and store `line_of_sight` polylines (grid-cell coordinates) in `maps.walls_json`.
 - Expose `walls` on `MapState` in snapshots and map events.
-- For GM only, draw a simple wall overlay on the Pixi map; no automatic LoS fog, portals, lights, or WebM layers in this decision.
+- For GM only, draw a simple wall overlay on the Pixi map. Automatic LoS fog: [0016](0016-los-fog-from-walls.md). Doors/portals: [0017](0017-dd2vtt-doors-portals.md). Lights and WebM layers stay later.
 - PNG/JPG/WebP uploads remain supported; their `grid_px` stays manual and `walls` stay empty.
 
 ## Consequences

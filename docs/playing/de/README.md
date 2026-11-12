@@ -13,7 +13,7 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 ## GM-Vorbereitung (Settings)
 
 1. Raum auf der Startseite erstellen: **Raumcode**, Tischname und **GM-PIN** (4–8 Ziffern) wählen. Raumcodes: 3–24 Zeichen nach Normalisierung — Unicode-Buchstaben (inkl. ä/ö/ü und ß), Ziffern, `_` und `-`. Speicherung NFC-normalisiert und in Großbuchstaben (`ß` wird zu `SS`, daher kollidieren `straße` und `strasse`). Den **einmaligen GM-Invite** sofort kopieren, öffnen und PIN eingeben.
-2. Eine oder mehrere Karten hochladen: PNG/JPG/WebP (`grid_px` setzen) oder Universal VTT `.dd2vtt` (Raster und Wände kommen aus der Datei). Uploads brauchen eine aktive GM-Session. In der GM-Ansicht erscheinen importierte Wände als bernsteinfarbene Overlay-Linien.
+2. Eine oder mehrere Karten hochladen: PNG/JPG/WebP (`grid_px` setzen) oder Universal VTT `.dd2vtt` (Raster, Wände und Türen kommen aus der Datei). Uploads brauchen eine aktive GM-Session. In der GM-Ansicht erscheinen importierte Wände als bernsteinfarbene Overlay-Linien; Türen als dickere Linien (zu vs. offen).
 3. In Settings → **Room links** mit **Copy** neben Room join / Screen / Player (und einem geminteten GM-Invite) teilen. Es gibt keine dauerhafte GM-URL — bei Bedarf neuen einmaligen Invite in Settings (oder Startseite mit PIN) erzeugen. Solange eine GM-Session offen ist, kannst du dort die **GM-PIN ändern** (optional ausstehenden Invite invalidieren). Geht die PIN verloren und es gibt keine aktive GM-Session, ist der Tisch nicht wiederherstellbar — es gibt keinen Recovery-Code.
 4. PCs und NPCs anlegen (Anzeigename, optionale TP/RK, kurze Notizen, Portrait); Häkchen setzen, auf welchen Karten sie erscheinen.
 5. Optional unter **Screen**: Viertel-TP-Balken (25/50/75/100 %) auf dem Player-Screen — standardmäßig aus (genaue PC-TP; Monster verborgen).
@@ -28,7 +28,7 @@ Schwebende Inseln um die Karte:
 - **NPCs** — NPCs spawnen oder platzieren; auswählen, um TP anzupassen (−5/−1/+1/+5), Bedingungen zu setzen und RK/Notizen zu sehen.
 - **Log** — Session-Events und Kampftimer; Kampf **Start** / **Ende**. Das erste **Next** startet automatisch einen Kampf, falls keiner läuft.
 - **Dice** — Ausdrücke wie `2d6+3` eingeben (oder Quick-Chips), serverseitig würfeln, Summe und letzte Rolls sehen. Ergebnisse werden gebroadcastet und erscheinen im Session-Log.
-- **Fog** — Pinsel oder Rechteck zum **Reveal** / **Hide**; **Cover all** / **Clear all**. Neue Karten starten voll verdeckt. Bei `.dd2vtt`-Karten mit Wänden **LoS** einschalten: Screen/Spieler sehen nur, was PC-Tokens durch die Wände sehen können; manueller Fog gilt weiterhin. Für dich ist Fog durchscheinend, für Screen/Spieler deckend. Tool **Off**, um wieder zu pannen und Tokens zu bewegen.
+- **Fog** — Pinsel oder Rechteck zum **Reveal** / **Hide**; **Cover all** / **Clear all**. Neue Karten starten voll verdeckt. Bei `.dd2vtt`-Karten mit Wänden oder Türen **LoS** einschalten: Screen/Spieler sehen nur, was PC-Tokens durch die Wände sehen können; **geschlossene Türen blockieren Sicht**, offene nicht. Türen im Fog-Island oder per Klick auf die Tür auf der Karte (Fog-Tool **Off**) umschalten. Manueller Fog gilt weiterhin. Für dich ist Fog durchscheinend, für Screen/Spieler deckend.
 
 **Snap** verschiebt eine Insel zum nächsten Dock-Slot (vier Ecken plus Mitte links/rechts). Beim ersten Besuch gilt ein nicht überlappendes Standard-Layout; Positionen bleiben pro Raumcode im Browser erhalten.
 

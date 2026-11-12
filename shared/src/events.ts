@@ -29,6 +29,14 @@ export type WallPoint = z.infer<typeof WallPointSchema>;
 export const WallPolylineSchema = z.array(WallPointSchema).min(2);
 export type WallPolyline = z.infer<typeof WallPolylineSchema>;
 
+export const PortalStateSchema = z.object({
+  id: z.string().min(1),
+  bounds: z.tuple([WallPointSchema, WallPointSchema]),
+  closed: z.boolean(),
+  freestanding: z.boolean().default(false),
+});
+export type PortalState = z.infer<typeof PortalStateSchema>;
+
 export const MapStateSchema = z.object({
   id: z.string(),
   roomId: z.string(),
@@ -40,6 +48,7 @@ export const MapStateSchema = z.object({
   offsetX: z.number().int(),
   offsetY: z.number().int(),
   walls: z.array(WallPolylineSchema).default([]),
+  portals: z.array(PortalStateSchema).default([]),
 });
 export type MapState = z.infer<typeof MapStateSchema>;
 
@@ -433,6 +442,13 @@ export const FogSetLosPayloadSchema = z.object({
 });
 export type FogSetLosPayload = z.infer<typeof FogSetLosPayloadSchema>;
 
+export const PortalSetClosedPayloadSchema = z.object({
+  mapId: z.string().min(1),
+  portalId: z.string().min(1),
+  closed: z.boolean(),
+});
+export type PortalSetClosedPayload = z.infer<typeof PortalSetClosedPayloadSchema>;
+
 export const DiceRolledSchema = z.object({
   id: z.number().int(),
   playerName: z.string(),
@@ -468,6 +484,7 @@ export const ClientEvents = {
   FogPaint: "fog:paint",
   FogReset: "fog:reset",
   FogSetLos: "fog:setLos",
+  PortalSetClosed: "portal:setClosed",
 } as const;
 
 export const ServerEvents = {
@@ -535,6 +552,7 @@ export type ClientToServerEvents = {
   [ClientEvents.FogPaint]: (payload: FogPaintPayload) => void;
   [ClientEvents.FogReset]: (payload: FogResetPayload) => void;
   [ClientEvents.FogSetLos]: (payload: FogSetLosPayload) => void;
+  [ClientEvents.PortalSetClosed]: (payload: PortalSetClosedPayload) => void;
 };
 
 export type ServerToClientEvents = {

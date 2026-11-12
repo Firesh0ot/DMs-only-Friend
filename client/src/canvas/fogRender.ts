@@ -1,7 +1,7 @@
 import { Sprite, type Application, type Graphics, type RenderTexture } from "pixi.js";
 import type { FogState, FogStroke, MapState, TokenState } from "@dms/shared";
 import { composeFogMask, composeFogMaskWithLos } from "./fogMaskCompose";
-import { playerVisionPolygons } from "./losVisibility";
+import { mapHasLosGeometry, playerVisionPolygons } from "./losVisibility";
 
 export function drawFogStroke(graphics: Graphics, stroke: FogStroke, color: number): void {
   if (stroke.kind === "brush") {
@@ -57,7 +57,7 @@ export function renderFogMask(
   if (!ctx) {
     return;
   }
-  if (fog.losEnabled && map.walls.length > 0) {
+  if (fog.losEnabled && mapHasLosGeometry(map)) {
     const polygons = playerVisionPolygons(map, tokens);
     composeFogMaskWithLos(ctx, canvas.width, canvas.height, fog, polygons);
   } else {

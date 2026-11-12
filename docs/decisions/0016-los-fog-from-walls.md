@@ -18,5 +18,5 @@ Phase 3 needs automatic Fog of War from Universal VTT `line_of_sight` polylines 
 ## Consequences
 
 - Token moves refresh LoS for all clients without new server events beyond existing token sync.
-- Portals, doors, lights, per-token vision radius, and animated WebM stay out of scope.
+- Lights, per-token vision radius, and animated WebM stay out of scope. Doors/portals: see [0017](0017-dd2vtt-doors-portals.md).
 - Dense wall maps may need later performance work (spatial index / baking); first slice prefers correctness and tests.

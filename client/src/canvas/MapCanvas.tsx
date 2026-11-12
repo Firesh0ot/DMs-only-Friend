@@ -24,6 +24,7 @@ type Props = {
   onTokenMove: (tokenId: string, x: number, y: number) => void;
   onCameraChange: (camera: CameraState) => void;
   onFogPaint: (stroke: FogStrokeInput) => void;
+  onPortalToggle?: (portalId: string, closed: boolean) => void;
 };
 
 export function MapCanvas(props: Props) {

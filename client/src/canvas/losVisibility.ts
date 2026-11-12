@@ -1,10 +1,14 @@
-import type { MapState, TokenState, WallPolyline } from "@dms/shared";
+import type { MapState, PortalState, TokenState, WallPolyline } from "@dms/shared";
 
 export type LosPoint = { x: number; y: number };
 export type LosSegment = { a: LosPoint; b: LosPoint };
 
 const ANGLE_EPS = 1e-6;
 const RAY_EPS = 1e-4;
+
+export function mapHasLosGeometry(map: Pick<MapState, "walls" | "portals">): boolean {
+  return map.walls.length > 0 || map.portals.length > 0;
+}
 
 export function wallPolylinesToSegments(
   walls: WallPolyline[],
@@ -25,6 +29,33 @@ export function wallPolylinesToSegments(
     }
   }
   return segments;
+}
+
+export function closedPortalSegments(
+  portals: PortalState[],
+  map: Pick<MapState, "gridPx" | "offsetX" | "offsetY">,
+): LosSegment[] {
+  const segments: LosSegment[] = [];
+  for (const portal of portals) {
+    if (!portal.closed) {
+      continue;
+    }
+    segments.push({
+      a: wallPointToPixel(portal.bounds[0], map),
+      b: wallPointToPixel(portal.bounds[1], map),
+    });
+  }
+  return segments;
+}
+
+export function losBlockingSegments(
+  map: Pick<MapState, "walls" | "portals" | "gridPx" | "offsetX" | "offsetY" | "width" | "height">,
+): LosSegment[] {
+  return [
+    ...wallPolylinesToSegments(map.walls, map),
+    ...closedPortalSegments(map.portals, map),
+    ...mapBoundarySegments(map.width, map.height),
+  ];
 }
 
 export function mapBoundarySegments(width: number, height: number): LosSegment[] {
@@ -89,11 +120,10 @@ export function playerVisionPolygons(
   map: MapState,
   tokens: TokenState[],
 ): LosPoint[][] {
-  if (map.walls.length === 0) {
+  if (!mapHasLosGeometry(map)) {
     return [];
   }
-  const wallSegments = wallPolylinesToSegments(map.walls, map);
-  const segments = [...wallSegments, ...mapBoundarySegments(map.width, map.height)];
+  const segments = losBlockingSegments(map);
   const polygons: LosPoint[][] = [];
   for (const token of tokens) {
     if (!token.isPlayer || token.mapId !== map.id) {

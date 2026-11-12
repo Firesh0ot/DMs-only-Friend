@@ -1,4 +1,4 @@
-import { ClientEvents, type FogPaintMode } from "@dms/shared";
+import { ClientEvents, type FogPaintMode, type PortalState } from "@dms/shared";
 import { getSocket } from "../socket/socket";
 import type { FogToolMode } from "../canvas/useMapScene";
 import type { Corner } from "../lib/islandLayout";
@@ -6,7 +6,8 @@ import { PlayIsland } from "./PlayIsland";
 
 type Props = {
   mapId: string | null;
-  hasWalls: boolean;
+  hasLosGeometry: boolean;
+  portals: PortalState[];
   losEnabled: boolean;
   tool: FogToolMode;
   paintMode: FogPaintMode;
@@ -16,11 +17,13 @@ type Props = {
   onPaintModeChange: (mode: FogPaintMode) => void;
   onBrushRadiusChange: (radius: number) => void;
   onCycleCorner: () => void;
+  onPortalToggle: (portalId: string, closed: boolean) => void;
 };
 
 export function FogIsland({
   mapId,
-  hasWalls,
+  hasLosGeometry,
+  portals,
   losEnabled,
   tool,
   paintMode,
@@ -30,6 +33,7 @@ export function FogIsland({
   onPaintModeChange,
   onBrushRadiusChange,
   onCycleCorner,
+  onPortalToggle,
 }: Props) {
   function reset(baseCovered: boolean) {
     if (!mapId) {
@@ -115,21 +119,40 @@ export function FogIsland({
         <button
           type="button"
           className={losEnabled ? "is-active" : "secondary"}
-          disabled={!mapId || !hasWalls}
+          disabled={!mapId || !hasLosGeometry}
           onClick={() => setLos(!losEnabled)}
           title={
-            hasWalls
-              ? "Toggle automatic line-of-sight fog from walls"
-              : "Import a .dd2vtt map with walls to enable LoS"
+            hasLosGeometry
+              ? "Toggle automatic line-of-sight fog from walls and doors"
+              : "Import a .dd2vtt map with walls or doors to enable LoS"
           }
         >
           LoS {losEnabled ? "on" : "off"}
         </button>
       </div>
+      {portals.length > 0 ? (
+        <div className="fog-island__doors" role="group" aria-label="Doors">
+          <span className="muted">Doors (click map or here)</span>
+          <div className="fog-island__tools">
+            {portals.map((portal, index) => (
+              <button
+                key={portal.id}
+                type="button"
+                className={portal.closed ? "secondary" : "is-active"}
+                disabled={!mapId}
+                onClick={() => onPortalToggle(portal.id, !portal.closed)}
+                title={portal.closed ? "Open door" : "Close door"}
+              >
+                D{index + 1} {portal.closed ? "shut" : "open"}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <p className="muted fog-island__hint">
-        {hasWalls
-          ? "LoS hides areas behind walls from PC tokens; manual fog still applies. Players see solid fog; you see it translucent."
-          : "Players see solid fog; you see it translucent for editing. LoS needs .dd2vtt walls."}
+        {hasLosGeometry
+          ? "LoS hides areas behind walls and closed doors from PC tokens; manual fog still applies. Open doors let vision through. Players see solid fog; you see it translucent."
+          : "Players see solid fog; you see it translucent for editing. LoS needs .dd2vtt walls or doors."}
       </p>
     </PlayIsland>
   );

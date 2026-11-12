@@ -13,7 +13,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 ## GM prep (Settings)
 
 1. Create a room from the home page: choose a **room code**, table name, and **GM PIN** (4–8 digits). Room codes are 3–24 characters after normalization: Unicode letters (including German ä/ö/ü and ß), digits, `_`, and `-`. Codes are NFC-normalized and stored uppercased (`ß` becomes `SS`, so `straße` and `strasse` collide). Copy the **single-use GM invite** immediately, then open it and enter the PIN.
-2. Upload one or more maps: PNG/JPG/WebP (set `grid_px`) or Universal VTT `.dd2vtt` (grid and walls come from the file). Uploads require a joined GM session. On the GM view, imported walls show as an amber overlay.
+2. Upload one or more maps: PNG/JPG/WebP (set `grid_px`) or Universal VTT `.dd2vtt` (grid, walls, and doors come from the file). Uploads require a joined GM session. On the GM view, imported walls show as an amber overlay; doors are thicker lines (shut vs open).
 3. In Settings → **Room links**, use **Copy** next to Room join / Screen / Player (and a minted GM invite). There is no forever GM URL — mint a new single-use invite from Settings (or home with PIN) if you need another GM device. While a GM session is open, you can **change the GM PIN** there (optionally invalidate a pending invite). If you lose the PIN with no active GM session, the table cannot be recovered — there is no recovery code.
 4. Add PCs and NPCs (display name, optional HP/AC, short notes, portrait); tick which maps each character appears on.
 5. Optional **Screen** setting: show quarter HP bars (25/50/75/100%) on the player screen — default off (exact PC HP; monsters hidden).
@@ -28,7 +28,7 @@ Floating islands around the map:
 - **NPCs** — spawn or place roster NPCs; select one to adjust HP (−5/−1/+1/+5), toggle conditions, and see AC/notes.
 - **Log** — recent session events and battle timer; **Start** / **End** battle. The first **Next** turn also starts a battle if none is active.
 - **Dice** — enter expressions such as `2d6+3` (or use quick chips), roll on the server, see totals and recent rolls. Results are broadcast and appear in the session log.
-- **Fog** — brush or rectangle to **Reveal** / **Hide** areas; **Cover all** / **Clear all**. New maps start fully covered. On `.dd2vtt` maps with walls, toggle **LoS** so screen/players only see what PC tokens can see through walls; manual fog still applies on top. Fog is translucent for you and solid for screen/players. Turn the tool **Off** to pan and move tokens again.
+- **Fog** — brush or rectangle to **Reveal** / **Hide** areas; **Cover all** / **Clear all**. New maps start fully covered. On `.dd2vtt` maps with walls or doors, toggle **LoS** so screen/players only see what PC tokens can see through walls; **closed doors block vision**, open doors do not. Toggle doors from the Fog island or by clicking a door on the map (fog tool **Off**). Manual fog still applies on top. Fog is translucent for you and solid for screen/players.
 
 Use **Snap** on an island to cycle dock slots (four corners plus mid-left/mid-right). First visit uses a non-overlapping default layout; positions are remembered per room code in the browser.
 

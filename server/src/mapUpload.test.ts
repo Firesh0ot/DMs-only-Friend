@@ -79,9 +79,46 @@ describe("map upload", () => {
     expect(response.body.map.width).toBe(140);
     expect(response.body.map.height).toBe(70);
     expect(response.body.map.walls).toHaveLength(2);
+    expect(response.body.map.portals).toEqual([]);
     expect(response.body.map.filename).toMatch(/\.png$/);
     const stored = rooms.getMap(rooms.getRoomByCode(code)!.id);
     expect(stored?.walls[0]?.length).toBeGreaterThanOrEqual(2);
+    expect(stored?.portals).toEqual([]);
     expect(fs.existsSync(path.join(uploadsDir, stored!.filename))).toBe(true);
+  });
+
+  it("imports portals from the dungeon .dd2vtt fixture", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dms-dd2vtt-portals-"));
+    tempDirs.push(dir);
+    const db = openDb(path.join(dir, "test.sqlite"));
+    const rooms = new RoomStore(db);
+    const { room, code } = rooms.createRoom("Portal Table");
+    const uploadToken = rooms.issueUploadToken(room.id);
+    const uploadsDir = path.join(dir, "uploads");
+    const httpServer = http.createServer();
+    const io = new Server(httpServer);
+    const app = createHttpApp({
+      rooms,
+      uploadsDir,
+      io,
+      publicOrigin: "http://localhost:5173",
+    });
+
+    const fixture = path.resolve(process.cwd(), "../fixtures/dungeon-map-for-testing.dd2vtt");
+    const response = await request(app)
+      .post(`/api/rooms/${code}/map`)
+      .set("X-Dms-Upload-Token", uploadToken)
+      .attach("map", fixture);
+
+    expect(response.status).toBe(201);
+    expect(response.body.map.portals.length).toBe(5);
+    expect(response.body.map.portals[0].closed).toBe(true);
+    const toggled = rooms.setPortalClosed(
+      room.id,
+      response.body.map.id,
+      response.body.map.portals[0].id,
+      false,
+    );
+    expect(toggled.portals[0]?.closed).toBe(false);
   });
 });
