@@ -31,11 +31,22 @@ npm run test
 npm run build
 ```
 
+## Docker (table deploy)
+
+Image: `ghcr.io/firesh0ot/dms-only-friend`. Details: [docs/developing/README.md](docs/developing/README.md#docker--table-deploy).
+
+```bash
+export PUBLIC_ORIGIN=http://192.168.1.10:3001   # your LAN IP or public URL
+docker compose pull && docker compose up -d
+```
+
+Set `PUBLIC_ORIGIN` to the address browsers actually open (invite links). Data (SQLite + uploads) lives in the `dms-data` volume.
+
 ## Kernentscheidungen
 
 - **Web-App** (React + TypeScript, PixiJS/WebGL für die Karten-Canvas), kein Electron.
 - **Backend**: Node.js + TypeScript, Socket.IO (WebSocket-Sync), Server = Single Source of Truth.
-- **Persistenz**: SQLite, Dateien auf Disk. Self-Hosting via Docker geplant (lokal am Tisch ohne Internet nutzbar).
+- **Persistenz**: SQLite, Dateien auf Disk. Self-Hosting via Docker/GHCR (`ghcr.io/firesh0ot/dms-only-friend`).
 - **Auth**: Raum-Codes (kein Account-Zwang). GM erstellt Raum → Spieler/Screen joinen per Code/Link.
 - **Karten-Import**: Universal VTT (`.dd2vtt`) als Standardformat → unterstützt Dungeon Map Builder, Dungeon Scrawl, Dungeondraft, Dungeon Alchemist. Fallback: PNG/JPG (manuelles Grid), animiertes WebM als Hintergrund-Layer.
 - **KI-Maps (Roadmap Phase 4)**: prozedurales Layout (BSP/WFC) mit dd2vtt-kompatiblen Daten, optionale Bild-Stilisierung (Stable Diffusion/ControlNet, grid-genau) als Hintergrund-Layer.

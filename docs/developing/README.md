@@ -23,7 +23,40 @@ npm run test
 npm run build
 ```
 
-Docker is welcome for self-hosting later; it is **not** required for Phase 1 acceptance.
+## Docker / table deploy
+
+Production image: `ghcr.io/firesh0ot/dms-only-friend` (published from `main` / `v*` tags). See [ADR 0015](../decisions/0015-docker-ghcr-packaging.md).
+
+**Pull and run (compose):**
+
+```bash
+export PUBLIC_ORIGIN=http://192.168.1.10:3001   # LAN IP or public URL clients will open
+docker compose pull
+docker compose up -d
+```
+
+Or build locally:
+
+```bash
+PUBLIC_ORIGIN=http://localhost:3001 docker compose up -d --build
+```
+
+Open `PUBLIC_ORIGIN` in the browser (default port **3001**). SQLite + uploads persist in the `dms-data` volume (`DATA_DIR=/data` → `/data/dms.sqlite`, `/data/uploads`).
+
+**`PUBLIC_ORIGIN`:** must match the URL players/TV use (scheme + host + port, no trailing slash). The server embeds it in GM invite / room links from the HTTP API. Screen/player links built in the browser already use `window.location.origin`.
+
+**One-liner without compose:**
+
+```bash
+docker run --rm -p 3001:3001 \
+  -e PUBLIC_ORIGIN=http://192.168.1.10:3001 \
+  -v dms-data:/data \
+  ghcr.io/firesh0ot/dms-only-friend:latest
+```
+
+Env knobs: `PORT`, `HOST` (default `0.0.0.0`), `DATA_DIR`, `UPLOADS_DIR`, `DMS_DB_PATH`, `PUBLIC_ORIGIN`, `CLIENT_DIST`.
+
+Local `npm run dev` remains the day-to-day path; Docker is for self-host / table deploy.
 
 ## Monorepo layout
 
