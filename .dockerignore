@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.github
+.cursor
+*.sqlite
+*.sqlite3
+server/uploads
+server/data
+coverage
+.env
+.DS_Store
+docs
+fixtures
+*.md
+!README.md

@@ -17,6 +17,7 @@ export type HttpDeps = {
   uploadsDir: string;
   io: IoServer;
   publicOrigin: string;
+  clientDist?: string;
 };
 
 type AuthedRequest = Request & { dmsRoomId?: string };
@@ -271,6 +272,21 @@ export function createHttpApp(deps: HttpDeps): Express {
       }
     },
   );
+
+  if (deps.clientDist && fs.existsSync(deps.clientDist)) {
+    app.use(express.static(deps.clientDist));
+    app.get("*", (req, res, next) => {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        next();
+        return;
+      }
+      if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
+        next();
+        return;
+      }
+      res.sendFile(path.join(deps.clientDist!, "index.html"));
+    });
+  }
 
   return app;
 }
