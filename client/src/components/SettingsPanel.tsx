@@ -8,6 +8,7 @@ import {
 } from "@dms/shared";
 import { parseOptionalInt } from "../lib/hp";
 import { getSocket } from "../socket/socket";
+import { CopyableLinkField } from "./CopyableLinkField";
 
 type Props = {
   code: string;
@@ -63,6 +64,7 @@ export function SettingsPanel({
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const links = useMemo(
     () => ({
+      room: `${origin}/#/room/${code}`,
       screen: `${origin}/#/room/${code}?role=screen`,
       player: `${origin}/#/room/${code}?role=player`,
     }),
@@ -157,7 +159,7 @@ export function SettingsPanel({
         ? result.gmInviteUrl
         : `#/${result.gmInviteUrl.replace(/^\//, "")}`;
       setGmInviteUrl(`${origin}/${hash}`);
-      setMessage("New single-use GM invite created — copy it now");
+      setMessage("New single-use GM invite created — use Copy below");
     });
   }
 
@@ -687,7 +689,7 @@ export function SettingsPanel({
         </p>
         <p className="muted">
           There is no forever GM URL. Mint a single-use invite when you need another GM device; PIN
-          alone rejoins after the invite is used.
+          alone rejoins after the invite is used. Use Copy next to each link.
         </p>
         <div className="row">
           <button type="button" className="secondary" disabled={busy} onClick={mintGmInvite}>
@@ -695,34 +697,15 @@ export function SettingsPanel({
           </button>
         </div>
         {gmInviteUrl ? (
-          <label className="stack" htmlFor={`${baseId}-link-gm-invite`}>
-            <span className="muted">GM invite (single-use)</span>
-            <input
-              id={`${baseId}-link-gm-invite`}
-              readOnly
-              value={gmInviteUrl}
-              onFocus={(event) => event.target.select()}
-            />
-          </label>
+          <CopyableLinkField
+            id={`${baseId}-link-gm-invite`}
+            label="GM invite (single-use)"
+            value={gmInviteUrl}
+          />
         ) : null}
-        <label className="stack" htmlFor={`${baseId}-link-screen`}>
-          <span className="muted">Screen</span>
-          <input
-            id={`${baseId}-link-screen`}
-            readOnly
-            value={links.screen}
-            onFocus={(event) => event.target.select()}
-          />
-        </label>
-        <label className="stack" htmlFor={`${baseId}-link-player`}>
-          <span className="muted">Player</span>
-          <input
-            id={`${baseId}-link-player`}
-            readOnly
-            value={links.player}
-            onFocus={(event) => event.target.select()}
-          />
-        </label>
+        <CopyableLinkField id={`${baseId}-link-room`} label="Room join" value={links.room} />
+        <CopyableLinkField id={`${baseId}-link-screen`} label="Screen" value={links.screen} />
+        <CopyableLinkField id={`${baseId}-link-player`} label="Player" value={links.player} />
       </section>
     </section>
   );

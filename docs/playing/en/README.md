@@ -14,7 +14,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 
 1. Create a room from the home page: choose a **room code**, table name, and **GM PIN** (4–8 digits). Copy the **single-use GM invite** immediately, then open it and enter the PIN.
 2. Upload one or more maps: PNG/JPG/WebP (set `grid_px`) or Universal VTT `.dd2vtt` (grid and walls come from the file). Uploads require a joined GM session. On the GM view, imported walls show as an amber overlay.
-3. Copy Screen / Player links for the table. There is no forever GM URL — mint a new single-use invite from Settings (or home with PIN) if you need another GM device.
+3. In Settings → **Room links**, use **Copy** next to Room join / Screen / Player (and a minted GM invite). There is no forever GM URL — mint a new single-use invite from Settings (or home with PIN) if you need another GM device.
 4. Add PCs and NPCs (display name, optional HP/AC, short notes, portrait); tick which maps each character appears on.
 5. Optional **Screen** setting: show quarter HP bars (25/50/75/100%) on the player screen — default off (exact PC HP; monsters hidden).
 6. Switch to **Play** when the session starts. Portraits and HP chips appear on initiative cards when set.
