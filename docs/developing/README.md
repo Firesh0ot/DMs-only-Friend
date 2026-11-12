@@ -59,7 +59,13 @@ PORT=8042
 
 Point the proxy at the published host port (default **8042**) or at container **3001** on a shared Docker network.
 
-**Optional Traefik labels** (disabled by default so plain compose stays unchanged):
+#### WebSockets required (“Joining room…”)
+
+Room join and live sync use **Socket.IO** over WebSocket (with HTTP long-polling fallback). The reverse proxy must forward HTTP **`Upgrade`** / WebSocket connections to the app. If upgrades are stripped or refused, the UI often loads but then sticks on **Joining room…** and never receives the room snapshot.
+
+Symptoms: static assets and `/api/health` work; DevTools → Network shows Socket.IO failing to upgrade (or endless polling that never completes join).
+
+**Traefik (optional labels, off by default):** compose already exposes labels that route HTTP to port **3001**. Traefik passes WebSockets by default — do not add middlewares that drop `Connection` / `Upgrade`. Enable with:
 
 ```bash
 # .env — attach this service to an existing Traefik
@@ -69,6 +75,22 @@ PUBLIC_ORIGIN=https://vtt.example.com
 ```
 
 Labels applied when enabled: `traefik.enable`, `traefik.http.routers.dms.rule=Host(…)`, `traefik.http.routers.dms.entrypoints` (default `websecure`), `traefik.http.routers.dms.tls`, `traefik.http.services.dms.loadbalancer.server.port=3001`. Put the container on the same Docker network as Traefik (external network) if needed — no bundled proxy stack.
+
+**nginx** (proxy to published host port **8042**, or to container **3001** on a Docker network):
+
+```nginx
+location / {
+  proxy_pass http://127.0.0.1:8042;
+  proxy_http_version 1.1;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+}
+```
+
+**Caddy:** `reverse_proxy` upgrades WebSockets by default — just point it at the same upstream and set `PUBLIC_ORIGIN` to the public HTTPS origin.
 
 **One-liner without compose:**
 
