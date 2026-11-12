@@ -24,7 +24,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 Floating islands around the map:
 
 - **Map** — change active map; show/hide PCs or NPCs as groups.
-- **Initiative** — enter scores, set order, next turn (round advances when the order wraps). Compact HP on cards; ±1 on the active combatant when linked to a character. Toggle conditions (prone, frightened, …) on the active combatant.
+- **Initiative** — enter scores, set order, next turn (round advances when the order wraps). Compact HP on cards; ±1 on the active combatant when linked to a character. Toggle conditions (prone, frightened, …) on the active combatant. Removing a token or character drops them from the order automatically.
 - **NPCs** — spawn or place roster NPCs; select one to adjust HP (−5/−1/+1/+5), toggle conditions, and see AC/notes.
 - **Log** — recent session events and battle timer; **Start** / **End** battle. The first **Next** turn also starts a battle if none is active.
 - **Dice** — enter expressions such as `2d6+3` (or use quick chips), roll on the server, see totals and recent rolls. Results are broadcast and appear in the session log.
