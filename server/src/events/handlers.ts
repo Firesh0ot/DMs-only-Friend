@@ -118,11 +118,14 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           emitError(socket, new Error("Token not found"));
           return;
         }
-        rooms.removeToken(data.tokenId);
+        const initiative = rooms.removeToken(data.tokenId);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.TokenRemoved, {
           tokenId: data.tokenId,
         });
         emitCharactersUpdated(io, rooms, session.roomId);
+        if (initiative) {
+          io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+        }
       } catch (error) {
         emitError(socket, error);
       }
@@ -404,6 +407,12 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           ServerEvents.FogUpdated,
           rooms.getActiveFog(session.roomId),
         );
+        if (result.initiative) {
+          io.to(roomChannel(session.roomId)).emit(
+            ServerEvents.InitiativeUpdated,
+            result.initiative,
+          );
+        }
       } catch (error) {
         emitError(socket, error);
       }
@@ -455,12 +464,18 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           emitError(socket, new Error("Character not found"));
           return;
         }
-        rooms.removeCharacter(data.characterId);
+        const removed = rooms.removeCharacter(data.characterId);
         emitCharactersUpdated(io, rooms, session.roomId);
         io.to(roomChannel(session.roomId)).emit(
           ServerEvents.TokensSynced,
           rooms.listVisibleTokens(session.roomId),
         );
+        if (removed.initiative) {
+          io.to(roomChannel(session.roomId)).emit(
+            ServerEvents.InitiativeUpdated,
+            removed.initiative,
+          );
+        }
       } catch (error) {
         emitError(socket, error);
       }
@@ -689,6 +704,10 @@ function broadcastMapView(
   io.to(roomChannel(roomId)).emit(ServerEvents.MapSet, map);
   io.to(roomChannel(roomId)).emit(ServerEvents.TokensSynced, rooms.listVisibleTokens(roomId));
   io.to(roomChannel(roomId)).emit(ServerEvents.FogUpdated, rooms.getActiveFog(roomId));
+  const initiative = rooms.pruneStaleInitiative(roomId);
+  if (initiative) {
+    io.to(roomChannel(roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+  }
 }
 
 export function emitCharactersUpdated(io: AppServer, rooms: RoomStore, roomId: string): void {

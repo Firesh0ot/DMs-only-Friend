@@ -311,7 +311,11 @@ export class RoomStore {
     return map;
   }
 
-  removeMap(roomId: string, mapId: string): { maps: MapState[]; active: MapState | null } {
+  removeMap(roomId: string, mapId: string): {
+    maps: MapState[];
+    active: MapState | null;
+    initiative: InitiativeState | null;
+  } {
     const map = this.getMapById(mapId);
     if (!map || map.roomId !== roomId) {
       throw new Error("Map not found");
@@ -331,7 +335,12 @@ export class RoomStore {
         this.syncTokensForActiveMap(roomId);
       }
     }
-    return { maps: this.listMaps(roomId), active: this.getActiveMap(roomId) };
+    const initiative = this.pruneStaleInitiative(roomId);
+    return {
+      maps: this.listMaps(roomId),
+      active: this.getActiveMap(roomId),
+      initiative,
+    };
   }
 
   getVisibility(roomId: string): VisibilityState {
@@ -677,7 +686,10 @@ export class RoomStore {
     return character;
   }
 
-  removeCharacter(characterId: string): { roomId: string } {
+  removeCharacter(characterId: string): {
+    roomId: string;
+    initiative: InitiativeState | null;
+  } {
     const character = this.getCharacter(characterId);
     if (!character) {
       throw new Error("Character not found");
@@ -685,7 +697,10 @@ export class RoomStore {
     this.db.prepare("DELETE FROM tokens WHERE character_id = ?").run(characterId);
     this.db.prepare("DELETE FROM character_maps WHERE character_id = ?").run(characterId);
     this.db.prepare("DELETE FROM characters WHERE id = ?").run(characterId);
-    return { roomId: character.roomId };
+    return {
+      roomId: character.roomId,
+      initiative: this.pruneStaleInitiative(character.roomId),
+    };
   }
 
   private setCharacterMaps(characterId: string, roomId: string, mapIds: string[]): void {
@@ -886,7 +901,7 @@ export class RoomStore {
     return token;
   }
 
-  removeToken(tokenId: string): void {
+  removeToken(tokenId: string): InitiativeState | null {
     const token = this.getToken(tokenId);
     this.db.prepare("DELETE FROM tokens WHERE id = ?").run(tokenId);
     if (token?.characterId && token.mapId) {
@@ -894,6 +909,7 @@ export class RoomStore {
         .prepare("DELETE FROM character_maps WHERE character_id = ? AND map_id = ?")
         .run(token.characterId, token.mapId);
     }
+    return token ? this.pruneStaleInitiative(token.roomId) : null;
   }
 
   getCamera(roomId: string): CameraState | null {
@@ -930,7 +946,34 @@ export class RoomStore {
     return character;
   }
 
+  pruneStaleInitiative(roomId: string): InitiativeState | null {
+    const current = this.getInitiative(roomId);
+    if (!current || current.order.length === 0) {
+      return null;
+    }
+    const rows = this.db
+      .prepare("SELECT id FROM tokens WHERE room_id = ?")
+      .all(roomId) as Array<{ id: string }>;
+    const existing = new Set(rows.map((row) => row.id));
+    const order = current.order.filter((entry) => existing.has(entry.tokenId));
+    if (order.length === current.order.length) {
+      return null;
+    }
+    const activeEntry = current.order[current.activeIndex];
+    let activeIndex = 0;
+    if (order.length > 0 && activeEntry) {
+      const kept = order.findIndex((entry) => entry.tokenId === activeEntry.tokenId);
+      activeIndex = kept >= 0 ? kept : Math.min(current.activeIndex, order.length - 1);
+    }
+    return this.setInitiative(roomId, {
+      order,
+      activeIndex,
+      round: current.round,
+    });
+  }
+
   refreshInitiativePortraits(roomId: string): InitiativeState | null {
+    this.pruneStaleInitiative(roomId);
     const current = this.getInitiative(roomId);
     if (!current || current.order.length === 0) {
       return current;

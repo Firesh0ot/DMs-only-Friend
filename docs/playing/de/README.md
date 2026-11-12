@@ -24,7 +24,7 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 Schwebende Inseln um die Karte:
 
 - **Map** — aktive Karte wechseln; PCs/NPCs gruppenweise ein-/ausblenden.
-- **Initiative** — Werte, Reihenfolge, Next Turn (Runde steigt beim Überlauf). Kompakte TP auf den Karten; ±1 beim aktiven Charakter, wenn verknüpft. Bedingungen (prone, frightened, …) am aktiven Charakter umschalten.
+- **Initiative** — Werte, Reihenfolge, Next Turn (Runde steigt beim Überlauf). Kompakte TP auf den Karten; ±1 beim aktiven Charakter, wenn verknüpft. Bedingungen (prone, frightened, …) am aktiven Charakter umschalten. Entfernte Tokens/Charaktere fallen automatisch aus der Reihenfolge.
 - **NPCs** — NPCs spawnen oder platzieren; auswählen, um TP anzupassen (−5/−1/+1/+5), Bedingungen zu setzen und RK/Notizen zu sehen.
 - **Log** — Session-Events und Kampftimer; Kampf **Start** / **Ende**. Das erste **Next** startet automatisch einen Kampf, falls keiner läuft.
 - **Dice** — Ausdrücke wie `2d6+3` eingeben (oder Quick-Chips), serverseitig würfeln, Summe und letzte Rolls sehen. Ergebnisse werden gebroadcastet und erscheinen im Session-Log.
