@@ -431,6 +431,36 @@ export class RoomStore {
     return this.mintGmInvite(roomId);
   }
 
+  changeGmPin(
+    roomId: string,
+    input: { currentPin: string; newPin: string; invalidateInvites?: boolean },
+  ): { inviteInvalidated: boolean } {
+    const room = this.getRoomRow(roomId);
+    if (!room) {
+      throw new Error("Room not found");
+    }
+    if (!this.verifyGmPin(roomId, input.currentPin)) {
+      throw new Error("Invalid GM PIN");
+    }
+    if (input.newPin === input.currentPin && this.hasGmPin(roomId)) {
+      throw new Error("New PIN must differ from the current PIN");
+    }
+    const pinSecret = hashSecret(input.newPin);
+    const invalidate = Boolean(input.invalidateInvites);
+    if (invalidate) {
+      this.db
+        .prepare(
+          `UPDATE rooms SET pin_hash = ?, pin_salt = ?, gm_invite_hash = NULL WHERE id = ?`,
+        )
+        .run(pinSecret.hash, pinSecret.salt, roomId);
+    } else {
+      this.db
+        .prepare(`UPDATE rooms SET pin_hash = ?, pin_salt = ? WHERE id = ?`)
+        .run(pinSecret.hash, pinSecret.salt, roomId);
+    }
+    return { inviteInvalidated: invalidate && Boolean(room.gm_invite_hash) };
+  }
+
   issueUploadToken(roomId: string): string {
     const token = randomToken();
     this.uploadTokens.set(token, {

@@ -127,7 +127,7 @@ See [ADR 0003](../decisions/0003-prep-play-ux.md).
 - Settings: `rooms.screen_hp_quarters` (default 0); snapshot `settings`; `settings:set` / `settings:updated`.
 - Initiative: `room_initiative` includes `round`.
 - Island layout: client-only `localStorage` key `dms-islands:<roomCode>` (Map, Initiative, NPCs, Log, Dice, Fog); defaults use unique docks `tl/tr/mr/br/bl/ml`.
-- Auth: creator-chosen room `code`, hashed `pin_hash`/`pin_salt`, single-use `gm_invite_hash`; GM join needs PIN (+ invite while pending). Upload routes require `X-Dms-Upload-Token` issued on GM `room:join`. See [ADR 0012](../decisions/0012-room-identity-gm-auth.md) and [ADR 0013](../decisions/0013-screen-hp-quarters.md).
+- Auth: creator-chosen room `code`, hashed `pin_hash`/`pin_salt`, single-use `gm_invite_hash`; GM join needs PIN (+ invite while pending). Joined GM may change PIN via `gm:changePin` (optional invite invalidation). Upload routes require `X-Dms-Upload-Token` issued on GM `room:join`. See [ADR 0012](../decisions/0012-room-identity-gm-auth.md) and [ADR 0013](../decisions/0013-screen-hp-quarters.md).
 
 ### Session / battle log
 

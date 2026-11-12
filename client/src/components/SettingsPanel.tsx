@@ -69,6 +69,10 @@ export function SettingsPanel({
     Record<string, { hpCurrent: string; hpMax: string; ac: string }>
   >({});
   const [gmInviteUrl, setGmInviteUrl] = useState<string | null>(null);
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [invalidateInvites, setInvalidateInvites] = useState(true);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const links = useMemo(() => {
@@ -173,6 +177,43 @@ export function SettingsPanel({
       setGmInviteUrl(`${origin}/${hash}`);
       setMessage("New single-use GM invite created — use Copy below");
     });
+  }
+
+  function changeGmPin() {
+    const current = currentPin.trim();
+    const next = newPin.trim();
+    const confirm = confirmPin.trim();
+    if (!/^\d{4,8}$/.test(current) || !/^\d{4,8}$/.test(next)) {
+      setMessage("PIN must be 4–8 digits");
+      return;
+    }
+    if (next !== confirm) {
+      setMessage("New PIN and confirmation do not match");
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    getSocket().emit(
+      ClientEvents.GmChangePin,
+      { currentPin: current, newPin: next, invalidateInvites },
+      (result) => {
+        setBusy(false);
+        if (!result?.ok) {
+          setMessage(result?.error ?? "Could not change PIN");
+          return;
+        }
+        sessionStorage.setItem(`dms-gm-pin:${code}`, next);
+        setCurrentPin("");
+        setNewPin("");
+        setConfirmPin("");
+        if (result.inviteInvalidated) {
+          setGmInviteUrl(null);
+          setMessage("GM PIN updated — pending invite invalidated");
+        } else {
+          setMessage("GM PIN updated");
+        }
+      },
+    );
   }
 
   function setScreenHpQuarters(enabled: boolean) {
@@ -712,8 +753,61 @@ export function SettingsPanel({
         </p>
         <p className="muted">
           There is no forever GM URL. Mint a single-use invite when you need another GM device; PIN
-          alone rejoins after the invite is used. Use Copy next to each link.
+          alone rejoins after the invite is used. Use Copy next to each link. While this GM session
+          is open you can change the PIN below. If you lose the PIN with no active GM session, the
+          table cannot be recovered — there is no recovery code.
         </p>
+
+        <fieldset className="settings-fieldset stack">
+          <legend>Change GM PIN</legend>
+          <label className="stack" htmlFor={`${baseId}-pin-current`}>
+            <span className="muted">Current PIN</span>
+            <input
+              id={`${baseId}-pin-current`}
+              inputMode="numeric"
+              autoComplete="off"
+              value={currentPin}
+              onChange={(event) =>
+                setCurrentPin(event.target.value.replace(/\D/g, "").slice(0, 8))
+              }
+            />
+          </label>
+          <label className="stack" htmlFor={`${baseId}-pin-new`}>
+            <span className="muted">New PIN (4–8 digits)</span>
+            <input
+              id={`${baseId}-pin-new`}
+              inputMode="numeric"
+              autoComplete="off"
+              value={newPin}
+              onChange={(event) => setNewPin(event.target.value.replace(/\D/g, "").slice(0, 8))}
+            />
+          </label>
+          <label className="stack" htmlFor={`${baseId}-pin-confirm`}>
+            <span className="muted">Confirm new PIN</span>
+            <input
+              id={`${baseId}-pin-confirm`}
+              inputMode="numeric"
+              autoComplete="off"
+              value={confirmPin}
+              onChange={(event) =>
+                setConfirmPin(event.target.value.replace(/\D/g, "").slice(0, 8))
+              }
+            />
+          </label>
+          <label className="check-row" htmlFor={`${baseId}-pin-invalidate`}>
+            <input
+              id={`${baseId}-pin-invalidate`}
+              type="checkbox"
+              checked={invalidateInvites}
+              onChange={(event) => setInvalidateInvites(event.target.checked)}
+            />
+            <span>Invalidate pending GM invite</span>
+          </label>
+          <button type="button" className="secondary" disabled={busy} onClick={changeGmPin}>
+            Update PIN
+          </button>
+        </fieldset>
+
         <div className="row">
           <button type="button" className="secondary" disabled={busy} onClick={mintGmInvite}>
             Mint GM invite

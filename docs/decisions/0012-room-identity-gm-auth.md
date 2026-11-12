@@ -13,6 +13,7 @@ Phase 1 used random room codes and treated knowing the code (or a forever `?role
 - Creating a room also sets a **GM PIN** (4–8 digits, hashed at rest).
 - First GM claim uses a **single-use invite token** in the GM URL **and** the PIN. Redeeming clears the invite hash. Later GM rejoins need the PIN only (no forever public `gmUrl`).
 - Lost invite before redeem: `POST /api/rooms/:code/gm-invite` with the PIN mints a new invite. An authenticated GM can also mint via `gm:mintInvite`.
+- A joined GM may change the PIN via `gm:changePin` (persists a new hash; optional `invalidateInvites` clears a pending invite). Lost PIN with no active GM session loses the table — no recovery code.
 - Screen and player joins stay code-based without PIN.
 - `GET /api/rooms/:code/links` returns screen/player URLs and `gmInvitePending` only — never a reusable GM URL.
 - Map/portrait uploads require a short-lived **upload token** issued when a GM socket join succeeds (`X-Dms-Upload-Token`). Map size limit stays **50 MB**.
