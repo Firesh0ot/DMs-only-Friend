@@ -142,6 +142,70 @@ function migrate(db: Db): void {
 
   backfillActiveMaps(db);
   backfillTokenMaps(db);
+  ensureTokensForeignKeys(db);
+}
+
+type TokenForeignKey = {
+  table: string;
+  from: string;
+  to: string;
+  on_delete: string;
+};
+
+function tokensForeignKeysReady(db: Db): boolean {
+  const keys = db.prepare("PRAGMA foreign_key_list(tokens)").all() as TokenForeignKey[];
+  const mapFk = keys.find(
+    (key) => key.from === "map_id" && key.table === "maps" && key.on_delete.toLowerCase() === "cascade",
+  );
+  const characterFk = keys.find(
+    (key) =>
+      key.from === "character_id" &&
+      key.table === "characters" &&
+      key.on_delete.toLowerCase() === "cascade",
+  );
+  return Boolean(mapFk && characterFk);
+}
+
+function ensureTokensForeignKeys(db: Db): void {
+  if (tokensForeignKeysReady(db)) {
+    return;
+  }
+
+  db.exec(`
+    DELETE FROM tokens
+    WHERE map_id IS NOT NULL
+      AND map_id NOT IN (SELECT id FROM maps);
+
+    DELETE FROM tokens
+    WHERE character_id IS NOT NULL
+      AND character_id NOT IN (SELECT id FROM characters);
+
+    CREATE TABLE tokens_fk (
+      id TEXT PRIMARY KEY,
+      room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      label TEXT NOT NULL,
+      image TEXT,
+      x REAL NOT NULL,
+      y REAL NOT NULL,
+      size_cells REAL NOT NULL DEFAULT 1,
+      is_player INT NOT NULL DEFAULT 0,
+      map_id TEXT REFERENCES maps(id) ON DELETE CASCADE,
+      character_id TEXT REFERENCES characters(id) ON DELETE CASCADE
+    );
+
+    INSERT INTO tokens_fk (
+      id, room_id, label, image, x, y, size_cells, is_player, map_id, character_id
+    )
+    SELECT
+      id, room_id, label, image, x, y, size_cells, is_player, map_id, character_id
+    FROM tokens;
+
+    DROP TABLE tokens;
+    ALTER TABLE tokens_fk RENAME TO tokens;
+
+    CREATE INDEX IF NOT EXISTS idx_tokens_map_id ON tokens(map_id);
+    CREATE INDEX IF NOT EXISTS idx_tokens_character_id ON tokens(character_id);
+  `);
 }
 
 function ensureColumn(db: Db, table: string, column: string, definition: string): void {

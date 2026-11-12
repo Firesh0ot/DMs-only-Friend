@@ -326,9 +326,6 @@ export class RoomStore {
     if (!map || map.roomId !== roomId) {
       throw new Error("Map not found");
     }
-    this.db.prepare("DELETE FROM map_fog WHERE map_id = ?").run(mapId);
-    this.db.prepare("DELETE FROM character_maps WHERE map_id = ?").run(mapId);
-    this.db.prepare("DELETE FROM tokens WHERE map_id = ?").run(mapId);
     this.db.prepare("DELETE FROM maps WHERE id = ?").run(mapId);
     const room = this.getRoomRow(roomId);
     if (room?.active_map_id === mapId) {
@@ -700,8 +697,6 @@ export class RoomStore {
     if (!character) {
       throw new Error("Character not found");
     }
-    this.db.prepare("DELETE FROM tokens WHERE character_id = ?").run(characterId);
-    this.db.prepare("DELETE FROM character_maps WHERE character_id = ?").run(characterId);
     this.db.prepare("DELETE FROM characters WHERE id = ?").run(characterId);
     return {
       roomId: character.roomId,
