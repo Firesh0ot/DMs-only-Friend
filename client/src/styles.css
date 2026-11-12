@@ -876,6 +876,11 @@ html[data-lantern="off"] .map-table {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
+.token-list.compact {
+  max-height: 14rem;
+  overflow: auto;
+}
+
 .token-list.compact li {
   padding: 0.4rem 0.5rem;
 }
@@ -1057,9 +1062,14 @@ html[data-lantern="off"] .map-table {
 .play-island {
   position: absolute;
   z-index: 5;
-  width: min(268px, calc(100% - 1.5rem));
-  max-height: min(44vh, 380px);
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+  min-width: min(240px, calc(100% - 1.5rem));
+  max-width: min(300px, calc(100% - 1.5rem));
+  height: auto;
+  max-height: min(72vh, 560px);
+  overflow: visible;
   backdrop-filter: none;
 }
 
@@ -1073,6 +1083,7 @@ html[data-lantern="off"] .map-table {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  flex-shrink: 0;
   padding: 0.65rem 0.75rem 0.35rem;
   border-bottom: 1px solid rgba(60, 40, 20, 0.22);
 }
@@ -1094,7 +1105,10 @@ html[data-lantern="off"] .map-table {
 }
 
 .play-island__body {
+  min-height: 0;
   padding: 0.35rem 0.75rem 0.85rem;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .island-dock--tl {
@@ -1249,8 +1263,9 @@ html[data-lantern="off"] .map-table {
   }
 
   .play-island {
-    width: min(240px, calc(100% - 1rem));
-    max-height: 38vh;
+    min-width: min(220px, calc(100% - 1rem));
+    max-width: min(280px, calc(100% - 1rem));
+    max-height: min(64vh, 480px);
   }
 
   .map-table {
