@@ -20,7 +20,8 @@ import type {
   Role,
   TokenState,
 } from "@dms/shared";
-import { downsamplePoints, drawFogStroke, renderFogMask } from "./fogRender";
+import { downsamplePoints } from "./fogPoints";
+import { drawFogStroke, renderFogMask } from "./fogRender";
 
 export type FogToolMode = "off" | "brush" | "rect";
 
