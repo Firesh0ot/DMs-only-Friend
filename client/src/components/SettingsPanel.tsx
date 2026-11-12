@@ -734,7 +734,7 @@ export function SettingsPanel({
           75 / 100%), never exact numbers. Off keeps the current redaction (PC exact HP; NPC HP
           hidden).
         </p>
-        <label className="row" htmlFor={`${baseId}-hp-quarters`}>
+        <label className="check-row" htmlFor={`${baseId}-hp-quarters`}>
           <input
             id={`${baseId}-hp-quarters`}
             type="checkbox"
