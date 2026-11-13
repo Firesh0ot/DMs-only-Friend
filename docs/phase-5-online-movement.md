@@ -2,7 +2,7 @@
 
 ## Ziel
 
-1. **Spawn-Bereiche pro Karte:** GM definiert pro Karte Startpunkte; beim Enthüllen/Aktivieren einer Karte werden Spieler-Charaktere automatisch an ihrem Spawn platziert.
+1. **Spawn-Bereiche pro Karte:** GM definiert pro Karte Startpunkte und platziert die Gruppe über die explizite Aktion `spawn:apply` (kein automatisches Platzieren bei Karten-Aktivierung).
 2. **Bewegungsradius:** Ist ein Spieler an der Reihe (aktiver Initiative-Eintrag), darf er seinen Token nur innerhalb seiner Bewegungsreichweite bewegen. Der Server erzwingt das.
 
 ## Design-Entscheidungen
@@ -17,7 +17,7 @@
   - Bewegung konsumiert Budget: jede Teilbewegung reduziert `remaining_cells` um die Distanz vom letzten gültigen Punkt. Der Spieler darf also mehrfach hintereinander ziehen, bis das Budget aufgebraucht ist (wichtig für verschachtelte Züge).
   - Der GM darf **jeden Token jederzeit unbegrenzt** bewegen (Ausnahme-Regel fürs Erzählen).
   - `remaining_cells` wird an alle Sessions gebroadcastet; der aktive Spieler sieht seinen Radius als Overlay.
-- **Radius-Overlay:** Kreis/Quadrat um die Startposition der Runde, halbtransparent; schrumpft mit verbrauchtem Budget. Nur für den aktiven Spieler sichtbar (Spieler-Ansicht) und für den GM (Kontrolle), nicht auf dem Player-Screen.
+- **Radius-Overlay (visualisiert das Budget, konsistent zum Pfad-Summen-Modell):** Haltransparentes Quadrat/Kreis **um die aktuelle Token-Position** mit Radius = `remaining_cells` – nicht um `turn_start`. Grund: das Budget ist eine Pfad-Summe (3 Zellen hin + 3 zurück = 6 verbraucht), ein Kreis um `turn_start` würde fälschlich „noch 6 frei“ zeigen, obwohl das Budget aufgebraucht ist. Die Runden-Startposition wird zusätzlich als dezente Marke angezeigt. Nur für den aktiven Spieler (Spieler-Ansicht) und den GM (Kontrolle) sichtbar, nicht auf dem Player-Screen.
 - **Kein Wand-Pathfinding in dieser Phase:** Der Radius prüft nur die Distanz, nicht, ob der Weg durch Wände führt – Bewegung „durch Wände" bleibt vorerst möglich und ist als bekanntes, dokumentiertes Loch akzeptiert. (Anmerkung: LoS-Fog ist auf `main` bereits implementiert – Vision-Polygone aus Wänden/Portalen, siehe PRs #40/#42. Ein späterer Ausbau kann diese Wanddaten für Movement-Checks wiederverwenden; bewusst nicht Teil dieser Phase.)
 
 ## Abgrenzung (bewusst NICHT drin)
@@ -66,14 +66,14 @@ Server → Clients:
 ## Client-Verhalten
 
 - **GM (Map-Editing):** Spawn-Werkzeug im MapControlIsland: Klick auf Karte setzt Punkt, Drag verschiebt, Kontextmenü: „Charakter zuweisen…", „Löschen". „Auf Spawn setzen"-Button wendet `spawn:apply` an.
-- **Spieler-Ansicht:** Wenn `movement:updated` mit `active && tokenId == eigener Token`: Radius-Overlay um `turnStart` (Radius = `remainingCells`), Züge ausserhalb werden beim Loslassen abgewiesen (optimistisch erlauben, bei `movement:rejected` zurückfedern). Anzeige „Bewegung übrig: N Zellen".
+- **Spieler-Ansicht:** Wenn `movement:updated` mit `active && tokenId == eigener Token`: Radius-Overlay um die **aktuelle Token-Position** (Radius = `remainingCells`, siehe Design-Entscheidung; `turnStart` nur als dezente Startmarke), Züge ausserhalb werden beim Loslassen abgewiesen (optimistisch erlauben, bei `movement:rejected` zurückfedern). Anzeige „Bewegung übrig: N Zellen".
 - **Player-Screen:** Zeigt keine Spawn-Punkte und kein Radius-Overlay (saubere Tischansicht).
 - **Initiative-Rail:** kleine Zellen-Anzeige beim aktiven Eintrag (nur GM + Spieler-Ansicht).
 
 ## Abnahmekriterien
 
 1. GM setzt 4 Spawn-Punkte auf einer Karte, `spawn:apply` platziert 4 Spieler-Charaktere korrekt; ein fünfter Charakter bleibt unverändert.
-2. `assigned_character_id` wird respektiert; zwei Charakterneverdoppeln einen Punkt.
+2. `assigned_character_id` wird respektiert; zwei Charaktere belegen nie denselben Punkt.
 3. Spieler bewegt in seinem Zug maximal `speed_cells` (Chebyshev); Versuch darüber hinaus → Server weist ab, Token federt zurück, Grund ist sichtbar.
 4. Teilbewegungen summieren sich korrekt (3 + 2 Zellen bei Speed 6 = 1 Rest).
 5. GM kann jeden Token jederzeit ohne Limit bewegen.

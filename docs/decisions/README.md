@@ -59,3 +59,5 @@ What becomes easier, harder, or out of scope.
 | [0018](0018-dd2vtt-lights-overlay.md) | Soft lights from dd2vtt | accepted |
 | [0019](0019-page-wide-candlelit-flicker.md) | Page-wide candlelit flicker | accepted |
 | [0020](0020-play-island-dock-rails.md) | Play island dock rails (replace Snap) | accepted |
+| [0021](0021-roadmap-reorder-offline-online.md) | Roadmap reordering: insert Offline/Online phases before KI/MCP | accepted |
+| [0022](0022-physical-screen-camera-supersede.md) | Physical screen mode supersedes ADR 0002 Follow-GM camera (partial) | accepted |

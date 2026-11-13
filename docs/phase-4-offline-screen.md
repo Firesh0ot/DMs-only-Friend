@@ -8,8 +8,11 @@ Der Player-Screen (Monitor auf dem Tisch) kann so kalibriert werden, dass **eine
 
 - Aus Monitor-Diagonale (Zoll) und Auflösung ergibt sich die Pixeldichte:
   `ppi = sqrt(W² + H²) / diagonaleInch`
-- Für eine Zielgrösse von `c` cm pro Zelle:
-  `px pro Zelle = (c / 2.54) * ppi * devicePixelRatio`
+- **Pixelräume klar trennen:** Der Monitor liefert `ppi` in **Device-Pixeln**; der Browser rechnet in **CSS-Pixeln**. Gespeichertes `pxPerCm` ist einheitlich in **CSS-Pixeln**:
+  `ppi_device = sqrt(W² + H²) / diagonaleInch`
+  `pxPerCm (CSS) = ppi_device / (2.54 * devicePixelRatio)`
+  `CSS-px pro Zelle = pxPerCm * c`
+  Die Lineal-Methode misst direkt in CSS-Pixeln und benötigt keine `devicePixelRatio`-Korrektur – die Auto-Formel schon.
 - **Achtung:** OS-Display-Skalierung (z. B. 150 %), Browser-Zoom und `devicePixelRatio` machen die reine Formel ungenau. Deshalb zwei Kalibrierungswege:
   1. **Auto-Berechnung** (Zoll + Auflösung + Skalierungsfaktor) als Startwert.
   2. **Lineal-Kalibrierung** (genau): Nutzer legt ein Lineal auf den Bildschirm und zieht eine Linie über eine bekannte Strecke (z. B. 10 cm). Daraus berechnet der Client `pxProCm` direkt – alle Skalierungseinflüsse sind automatisch eingerechnet.
