@@ -1,6 +1,6 @@
 # SRD-Monster-Bibliothek (On-Demand + Cache) – Spezifikation
 
-Erweiterung von Phase 2 (DM-Werkzeuge). GM kann per Namenssuche Monster aus dem D&D 5e SRD suchen und als NPC (Charakter + Token mit Stats) in den Raum importieren. Der Tisch läuft danach offline weiter: Jedes einmal importierte Monster ist persistiert, die Suche funktioniert über ein kleinges lokales Indexfile offline.
+Erweiterung von Phase 2 (DM-Werkzeuge). GM kann per Namenssuche Monster aus dem D&D 5e SRD suchen und als NPC (Charakter + Token mit Stats) in den Raum importieren. Der Tisch läuft danach offline weiter: Jedes einmal importierte Monster ist persistiert, die Suche funktioniert über ein kleines lokales Indexfile offline.
 
 ## Lizenz-Grundlage (verbindlich, siehe ADR 0023)
 
@@ -11,8 +11,8 @@ Erweiterung von Phase 2 (DM-Werkzeuge). GM kann per Namenssuche Monster aus dem 
 ## Datenquellen
 
 - **Primär:** [dnd5eapi.co](https://www.dnd5eapi.co/) (5e-bits, Open Source) – REST, JSON, Version `2014` Endpunkte.
-  - Suche/Trefferliste: `GET /api/2014/monsters?name={query}` (liefert `index, name, url`)
-  - Detail: `GET /api/2014/monsters/{index}` (voller Statblock)
+  - **Detail-Fetch:** `GET /api/2014/monsters/{index}` (voller Statblock) – der **einzige** API-Call dieses Features, einmal pro Monster.
+  - **Die Suche schlägt nie gegen die API:** Trefferlisten kommen ausschliesslich aus dem lokalen Indexfile (siehe Architektur-Fluss). Das hält die Suche offline-fähig und API-unabhängig.
 - **Fallback (offline / API weg):** Einmal heruntergeladene Voll-Zusammenfassung als lokale Datei (siehe „Offline-Fallback"), plus bereits importierte Monster aus dem Cache.
 - Alle Fetches laufen **serverseitig** (kein Browser-Fetch: kein CORS, zentrale Normalisierung, Cache-Kontrolle). Timeout 5 s, 1 Retry, danach klarer Fehler an die UI.
 
@@ -47,7 +47,7 @@ srd_cache(
 );
 ```
 
-Das importierte Monster selbst wird als normale Zeile in `characters` angelegt (bestehende Tabelle, kein Schema-Change dort). `statblock_json` ist das **eigene Normalisierungsformat**, damit spätere API-Änderungen keine Migrationen an importierten NPCs auslösen:
+Das importierte Monster selbst wird als normale Zeile in `characters` angelegt (bestehende Tabelle). **Mapping-Regel für die reichen Felder** (`attacks`, `abilities`, `specials`, `speed`, `languages`, `senses`): Es gibt dafür **keine eigenen Spalten** in `characters` (Live-`CharacterUpsertPayloadSchema` hat nur `name/kind/image/notes/sizeCells/hp*/ac/conditions`). Diese Felder werden vom Server beim Import in einen **formatierten Klartext-Statblock** gerendert (Abschnitte wie `STR 8 DEX 14 …`, `Scimitar +4, 1d6+2 slashing`, `Speed 30 ft.`) und **in `notes` gespeichert** – der GM kann sie dort wie jede Notiz lesen und editieren. Dafür wird in diesem Slice das `notes`-Maximum von 500 auf **2000** Zeichen angehoben (zod-Schema + ggf. UI-Hinweis). `srd_cache.statblock_json` behält die strukturierten Daten für mögliche spätere Schema-Slices (z. B. klickbare Attacken) – **keine** neuen `characters`-Spalten in dieser Phase. `statblock_json` ist das **eigene Normalisierungsformat**, damit spätere API-Änderungen keine Migrationen an importierten NPCs auslösen:
 
 ```json
 {
@@ -81,7 +81,7 @@ Server → Clients:
 
 ## Client-Verhalten
 
-- **NpcIsland:** Suchfeld mit Debounce (300 ms), Trefferliste (Name, CR, Typ), Klick → Import; bei `monster:import`-Fehler roter Toast mit Grund (z. B. „SRD-API nicht erreichbar – bitte Voll-Datensatz installieren oder später erneut versuchen").
+- **UI-Ziel (Zwei Orte, NpcIsland nur Interim):** Die Suche/Import-UI gehört primär in die **Settings-Ansicht, Bereich Characters (Prep)**; im Play-Bildschirm ist ein **kompakter NPC-Slot im künftigen Play-HUD** vorgesehen (siehe Play-HUD-Präferenzen 2026-11-13). Das heutige `NpcIsland` ist als **Interim-Platzierung** dokumentiert und darf dafür verwendet werden, ist aber kein Dauerzustand. Suchfeld mit Debounce (300 ms), Trefferliste (Name, CR, Typ), Klick → Import; bei `monster:import`-Fehler roter Toast mit Grund (z. B. „SRD-API nicht erreichbar – bitte Voll-Datensatz installieren oder später erneut versuchen").
 - **Offline-Badge:** Wenn `monster:search` `source: "cache"` meldet oder fehlschlägt: Hinweis „Offline: N Monster aus Cache verfügbar".
 - **Attribution:** Statischer Textblock im SettingsPanel (siehe Lizenz).
 
@@ -93,7 +93,7 @@ Kein Bestiarium-Editor, keine Spell-Datenbank, kein automatisches Würfeln von A
 
 1. Suche „goblin" liefert offline (ohne Internet) Treffer aus dem Indexfile; Import scheitert offline ohne Voll-Datei mit klarem Fehler, mit Voll-Datei funktioniert er komplett offline.
 2. Import mit Internet: API-Fetch genau beim ersten Import des Monsters; zweiter Import desselben Monsters löst **keinen** HTTP-Request aus (Cache-Hit, per Test verifiziert).
-3. Importiertes Monster verhält sich wie ein per `character:upsert` angelegter NPC: Token auf der Karte, HP/AC/Conditions editierbar, sichtbar auf allen Screens, überlebt Reload.
+3. Importiertes Monster verhält sich wie ein per `character:upsert` angelegter NPC: Token auf der Karte, HP/AC/Conditions editierbar, sichtbar auf allen Screens, überlebt Reload. Die reichen Felder liegen als formatierter Statblock in `notes` (max. 2000 Zeichen, editierbar) – keine zusätzlichen `characters`-Spalten.
 4. `rollHp: true` würfelt `2d6` für einen Goblin serverseitig und setzt `hpCurrent` entsprechend.
 5. Attribution-Text steht im SettingsPanel.
 6. API-Ausfall (Timeout) während des Imports zerstört nichts: Fehler-Toast, kein halber Datensatz.
@@ -105,6 +105,6 @@ Kein Bestiarium-Editor, keine Spell-Datenbank, kein automatisches Würfeln von A
 2. `shared/`: `MonsterSearchResult`/`MonsterImportPayload`-Typen + zod-Schemas.
 3. Server: `srdMonster.ts` (Fetch + Normalisierung + Cache) mit Fixture-Tests.
 4. Server: Events (`monster:search/import/cache:list`) in `events/`.
-5. Client: NpcIsland-Suchfeld + Import-Flow + Offline-Badge.
+5. Client: Suchfeld + Import-Flow + Offline-Badge (Settings/Characters als primärer Ort, NpcIsland als Interim).
 6. `scripts/fetch-srd-full.ts` + Doku in `docs/developing/README.md`.
 7. Abnahmekriterien durchtesten.
