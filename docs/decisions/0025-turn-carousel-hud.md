@@ -6,7 +6,7 @@
 
 ## Context
 
-Turn order today is a flat list with a next button; the DM wants a game-table-feel HUD: the active character as a large card in the center, initiative neighbours as partially visible rotated cards left and right, rotating on turn change — identical on GM view, player views, and the offline table monitor. Initiative must work both online (server rolls) and offline (physical dice, GM enters values). Phase 5 already adds a server-enforced movement budget.
+Turn order today is a flat list with a next button; the DM wants a game-table-feel HUD: the active character as a large card in the center, initiative neighbours as partially visible rotated cards left and right, rotating on turn change — identical on GM view, player views, and the offline table monitor. Initiative must work both online (server rolls) and offline (physical dice, GM enters values). Phase 5 (spec'd in docs/phase-5-online-movement.md, not yet shipped) will add a server-enforced movement budget; the carousel must not depend on it.
 
 ## Decision
 

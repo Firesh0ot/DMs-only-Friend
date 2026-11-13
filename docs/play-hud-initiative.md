@@ -13,7 +13,7 @@ Erweiterung von Phase 2 (DM-Werkzeuge), baut auf Phase 5 (Bewegungsbudget) auf. 
 ### Würfeln – zwei gleichwertige Wege, identischer Ergebnis-Zustand
 
 - **Online:** `initiative:roll` (GM only) – der Server würfelt für jeden Charakter auf der aktiven Karte `1d20 + initiativeBonus` (bestehender Dice-Parser), sortiert absteigend, persistiert als `InitiativeState` (wie heute `initiative:set`), broadcastet `initiative:updated` und loggt jeden Einzelwurf (`Goblin: 1d20+2 → 14`). Spieler können für **ihren eigenen** Charakter mit `initiative:rollSelf` selbst würfeln (Server, GM kann danach jederzeit neu ordnen).
-- **Offline:** Der heutige manuelle Weg bleibt voll erhalten: Spieler würfeln physisch, GM gibt die Werte über `initiative:set` ein (Feld „Initiative" pro Charakter im Initiative-Rail). Beide Wege erzeugen denselben `InitiativeState` – die UI unterscheidet sie nicht.
+- **Offline:** Der heutige manuelle Weg bleibt voll erhalten: Spieler würfeln physisch, GM gibt die Werte über `initiative:set` ein (Eingabefeld „Initiative“ pro Charakter in der linken HUD-Sektion Initiative, heute `HudInitiative`). Beide Wege erzeugen denselben `InitiativeState` – die UI unterscheidet sie nicht.
 - **Tie-Break** (beide Wege): höhere Initiative → höheres `initiativeBonus` → Name aufsteigend.
 - **`initiativeBonus` pro Charakter** (neu): Spalte `characters.initiative_bonus INT NOT NULL DEFAULT 0`. GM editierbar im Charakterblatt; beim SRD-Import wird der DEX-Modifikator automatisch übernommen (siehe `docs/srd-monster-library.md`).
 
@@ -99,7 +99,7 @@ Keine Reactions, keine Legendary Actions, keine Aktionen-Definitionen (Attack/Au
 3. Spieler kann via `initiative:rollSelf` nur den eigenen Charakter würfeln; Server weist fremde Versuche ab (Test).
 4. Mitte-Karte zeigt Portrait, Name, INI, HP (Viertel-Färbung auf dem Screen gemäss `screenHpQuarters`), AC, Conditions.
 5. Aktion/Bonus-Toggle: nur GM und der aktive Spieler können schalten; Zustand ist auf allen Screens synchron und überlebt Reload.
-6. „End Turn" rotiert das Carousel in ~300 ms; bei Wrap zählt die Runde hoch; Bewegungsbudget und Flags des neuen Tokens sind frisch.
+6. „End Turn“ rotiert das Carousel in ~300 ms; bei Wrap zählt die Runde hoch; die Zug-Flags des neuen Tokens sind frisch. Der Move-Control ist bis Phase 5 ein sichtbarer Stub (z. B. „–“, deaktiviert) – kein harter Test auf Bewegungswerte in diesem Slice.
 7. Nur eigene/aktive Bedienelemente sind klickbar (Rollen-Tests); Screen hat keinerlei Bedienung. Der aktive Spieler kann „End Turn“ nur für seinen eigenen Zug senden; ein nicht-aktiver Spieler wird abgewiesen (Server-Test).
 8. `npm run lint && npm run test && npm run build` grün; neue Tests: Initiative-Wurf + Tie-Break (pure Funktion `rollInitiative`), Zug-Reset bei `initiative:next`, `rollSelf`-Berechtigung.
 
