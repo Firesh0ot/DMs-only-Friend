@@ -17,6 +17,7 @@ import {
 } from "@dms/shared";
 import { create } from "zustand";
 import { getSocket } from "../socket/socket";
+import { toReconnectCredentials, type JoinCredentials } from "./joinCredentials";
 
 type JoinOptions = {
   code: string;
@@ -33,10 +34,12 @@ type RoomStore = {
   error: string | null;
   snapshot: Snapshot | null;
   uploadToken: string | null;
+  joinCredentials: JoinCredentials | null;
   lastDice: DiceRolled | null;
   recentDice: DiceRolled[];
   optimisticTokens: Record<string, TokenState>;
   joinRoom: (options: JoinOptions) => Promise<void>;
+  clearJoinCredentials: () => void;
   applySnapshot: (snapshot: Snapshot) => void;
   setMap: (map: MapState | null) => void;
   setMaps: (maps: MapState[]) => void;
@@ -62,11 +65,13 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
   error: null,
   snapshot: null,
   uploadToken: null,
+  joinCredentials: null,
   lastDice: null,
   recentDice: [],
   optimisticTokens: {},
 
   clearError: () => set({ error: null }),
+  clearJoinCredentials: () => set({ joinCredentials: null, uploadToken: null }),
 
   applySnapshot: (snapshot) =>
     set({
@@ -262,7 +267,16 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
               return;
             }
             get().applySnapshot(result.snapshot);
-            set({ uploadToken: result.uploadToken ?? null });
+            set({
+              uploadToken: result.uploadToken ?? null,
+              joinCredentials: toReconnectCredentials({
+                code,
+                role,
+                name,
+                characterId,
+                pin,
+              }),
+            });
             resolve();
           },
         );
@@ -287,6 +301,13 @@ export function bindSocketListeners(): void {
 
   socket.on("connect", () => useRoomStore.setState({ connected: true }));
   socket.on("disconnect", () => useRoomStore.setState({ connected: false }));
+  socket.io.on("reconnect", () => {
+    const { joinCredentials, joining, joinRoom } = store();
+    if (!joinCredentials || joining) {
+      return;
+    }
+    void joinRoom(joinCredentials).catch(() => undefined);
+  });
 
   socket.on(ServerEvents.Snapshot, (snapshot) => store().applySnapshot(snapshot));
   socket.on(ServerEvents.MapSet, (map) => store().setMap(map));

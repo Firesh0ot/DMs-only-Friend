@@ -93,6 +93,12 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
       .catch(() => undefined);
   }, [code, role, name, characterId, invite, joinRoom, pinReady, gmPin]);
 
+  useEffect(() => {
+    return () => {
+      useRoomStore.getState().clearJoinCredentials();
+    };
+  }, []);
+
   const activeTokenId = useMemo(() => {
     const initiative = snapshot?.initiative;
     if (!initiative || initiative.order.length === 0) {
