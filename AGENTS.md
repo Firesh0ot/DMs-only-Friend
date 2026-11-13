@@ -16,8 +16,8 @@ Dieses Dokument ist der verbindliche Kontext für alle Coding-Agenten (Cursor et
 - **Auth**: Selbst gewählte Raum-Codes, kein Account-Zwang. GM braucht PIN + einmaligen Invite-Link (danach PIN zum Rejoin). Rollen: `gm`, `screen` (Player-Screen), `player` (remote).
 - **Berechtigungen**: Nur `gm` darf `map:*`, HTTP-Uploads und `token:create/remove`. Spieler dürfen nur ihren eigenen Token bewegen.
 - **Karten-Import**: Universal VTT (`.dd2vtt`) als Standardformat (unterstützt Dungeon Map Builder, Dungeon Scrawl, Dungeondraft, Dungeon Alchemist). Fallback: PNG/JPG mit manuellem Grid; animiertes WebM als optionaler Hintergrund-Layer. Kein Einbetten externer Editoren.
-- **KI-Maps** (Phase 4): prozedurales Layout (BSP/WFC) → dd2vtt-konforme Daten; optionale Bild-Stilisierung (Stable Diffusion/ControlNet, grid-genau) als Hintergrund-Layer.
-- **MCP-Server** (Phase 5): separater Node-Service, spricht die Backend-API an, exponiert Tools wie `place_token`, `roll`, `next_turn`, `reveal_area`.
+- **KI-Maps** (Phase 6): prozedurales Layout (BSP/WFC) → dd2vtt-konforme Daten; optionale Bild-Stilisierung (Stable Diffusion/ControlNet, grid-genau) als Hintergrund-Layer.
+- **MCP-Server** (Phase 7): separater Node-Service, spricht die Backend-API an, exponiert Tools wie `place_token`, `roll`, `next_turn`, `reveal_area`.
 
 ## Konventionen
 
@@ -33,8 +33,10 @@ Dieses Dokument ist der verbindliche Kontext für alle Coding-Agenten (Cursor et
 1. **Phase 1 – Tisch-Kern:** Raum-System, statische Karte (PNG) + Grid, Tokens draggen, WebSocket-Sync, Player-Screen via Link, einfache Würfel. → [docs/phase-1.md](docs/phase-1.md)
 2. **Phase 2 – DM-Werkzeuge:** Initiative-Tracker (persistente Rundenreihenfolge, Next-Turn, HP-Tracking), Monster-Quickstats, manuelle Fog-of-War-Ebene (Pinsel/Rechtecke), Bedingungen auf Tokens (prone, frightened, …).
 3. **Phase 3 – Map-Integration:** `.dd2vtt`-Importer (PNG, Grid, Wände, Türen, Lichter), Map-Paket-Manifest (JSON: referenziert dd2vtt + optionales animiertes WebM), automatischer Line-of-Sight-Fog aus Wanddaten, PNG-Fallback mit Grid-Einstellung.
-4. **Phase 4 – KI:** prozeduraler Dungeon-Generator (BSP) mit dd2vtt-Export, danach Bild-Stilisierung als optionaler Layer.
-5. **Phase 5 – MCP & Feinschliff:** MCP-Server, Sounds, Makros.
+4. **Phase 4 – Offline-Spielerfahrung:** Physische Rastergrösse auf dem Tisch-Monitor. Kalibrierung: Auto aus Zoll+Auflösung, exakt per Lineal-Methode; Zoom-Lock im `physical` Screen-Modus; Kalibrierung gerätelokal in localStorage, Zielgrösse als Raum-Setting. → [docs/phase-4-offline-screen.md](docs/phase-4-offline-screen.md)
+5. **Phase 5 – Online-Spielerfahrung:** Spawn-Punkte pro Karte (mit Charakter-Zuweisung, `spawn:apply` platziert Spieler) und server-erzwungenes Bewegungsbudget bei aktiver Initiative (Chebyshev-Distanz, Teilbewegungen konsumieren Budget, GM ausgenommen). → [docs/phase-5-online-movement.md](docs/phase-5-online-movement.md)
+6. **Phase 6 – KI:** prozeduraler Dungeon-Generator (BSP) mit dd2vtt-Export, danach Bild-Stilisierung als optionaler Layer.
+7. **Phase 7 – MCP & Feinschliff:** MCP-Server, Sounds, Makros.
 
 ## Arbeitsweise
 

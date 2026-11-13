@@ -24,6 +24,10 @@ Related product prefs (not re-litigated here): dice/HP are lower priority than t
 - Remote players are supported via join links but remain secondary to the LAN table.
 - Map fidelity (walls, LOS fog, animated backgrounds) and prep/play island UX land in later work, guided by separate ADRs or phase specs when those milestones close.
 
+## Superseded (partially)
+
+- Point 2 (Follow-GM camera) is superseded for the `physical` screen mode by [ADR 0022](0022-physical-screen-camera-supersede.md): zoom locks to the calibrated physical cell size, independent pan is allowed. The default `fit` mode keeps Follow-GM as decided here.
+
 ## References
 
 - [docs/phase-1.md](../phase-1.md)
