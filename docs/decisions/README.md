@@ -41,11 +41,11 @@ What becomes easier, harder, or out of scope.
 |---|---|---|
 | [0001](0001-docs-strategy.md) | Docs strategy (repo manuals + Context pointers) | accepted |
 | [0002](0002-phase1-table-core.md) | Phase 1 table-core decisions | accepted |
-| [0003](0003-prep-play-ux.md) | Prep Settings and Play control islands | accepted |
+| [0003](0003-prep-play-ux.md) | Prep Settings and Play HUD | accepted |
 | [0004](0004-session-battle-log.md) | Session / battle event log | accepted |
 | [0005](0005-tavern-theme-lantern.md) | Medieval tavern theme and lantern modes | accepted |
 | [0006](0006-character-portraits-notes.md) | Character portraits and notes | accepted |
-| [0007](0007-dice-play-island.md) | Dice Play island | accepted |
+| [0007](0007-dice-play-island.md) | Dice in Play HUD | accepted |
 | [0008](0008-dd2vtt-map-import.md) | Universal VTT (.dd2vtt) map import | accepted |
 | [0009](0009-hp-screen-visibility.md) | HP / monster stats screen visibility | accepted |
 | [0010](0010-manual-fog-of-war.md) | Manual Fog of War (brush / rect) | accepted |
@@ -58,8 +58,8 @@ What becomes easier, harder, or out of scope.
 | [0017](0017-dd2vtt-doors-portals.md) | dd2vtt doors / portals and LoS | accepted |
 | [0018](0018-dd2vtt-lights-overlay.md) | Soft lights from dd2vtt | accepted |
 | [0019](0019-page-wide-candlelit-flicker.md) | Page-wide candlelit flicker | accepted |
-| [0020](0020-play-island-dock-rails.md) | Play island dock rails (replace Snap) | accepted |
+| [0020](0020-play-island-dock-rails.md) | Play island dock rails (replace Snap) | superseded by 0024 |
 | [0021](0021-roadmap-reorder-offline-online.md) | Roadmap reordering: insert Offline/Online phases before KI/MCP | accepted |
 | [0022](0022-physical-screen-camera-supersede.md) | Physical screen mode supersedes ADR 0002 Follow-GM camera (partial) | accepted |
-| [0024](0024-turn-carousel-hud.md) | Turn carousel HUD, system-agnostic turn model, dual initiative paths | accepted |
+| [0024](0024-play-game-hud.md) | Play game-style HUD (replace islands) | accepted |
 | [0025](0025-turn-carousel-hud.md) | Turn carousel HUD, system-agnostic turn model, dual initiative paths | proposed |
