@@ -25,7 +25,7 @@ Kompaktes **Game-HUD** um die Karte (keine schwebenden Inseln):
 
 - **Links — Dice** — Ausdrücke wie `2d6+3` (oder Quick-Chips), Server-Würfel, letzte Summen. Ergebnisse landen im Session-Log.
 - **Links — Initiative** — Runde, aktiver Charakter, **Next**, Reihenfolge setzen (aufklappen), ±1 TP und Bedingungen am Aktiven. **PCs / NPCs anzeigen** steuert die Sichtbarkeit auf dem Brett. Entfernte Tokens/Charaktere fallen aus der Reihenfolge.
-- **Rechts — Fog** — Pinsel oder Rechteck zum **Reveal** / **Hide**; **Cover** / **Clear**; **LoS** bei `.dd2vtt` mit Wänden/Türen. Türen im Fog-HUD oder per Klick auf der Karte (Fog-Tool **Off**). Fog für dich durchscheinend, für Screen/Spieler deckend.
+- **Rechts — Fog** — kompakte vertikale Icon-Leiste (Pinsel / Rechteck, Größe −/+, Reveal/Hide, Cover/Clear-Augen, LoS-Strahlen; Tür-Icons falls vorhanden). Tür auch per Klick auf der Karte bei Tool **aus** (Hand). Fog für dich durchscheinend, für Screen/Spieler deckend.
 - **Untere Leiste** — Kampf **Start** / **Ende** und Timer; **Next turn**; **Log** (standardmäßig eingeklappt); **More** für kompakten Kartenwechsel. Karten-Upload/Raster und NPC-Roster bleiben in **Settings**.
 
 Abschnitte über den Titel einklappen, um Kartenfläche freizugeben. Collapse-Prefs bleiben pro Raumcode im Browser; ältere Insel-/Dock-Layouts werden gelöscht.

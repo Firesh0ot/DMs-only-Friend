@@ -544,6 +544,7 @@ html[data-lantern="off"] .brand {
 .panel,
 .settings-panel,
 .hud-panel,
+.hud-fog-rail,
 .hud-bottom,
 .session-strip,
 .initiative-rail,
@@ -572,6 +573,7 @@ html[data-lantern="off"] .brand {
 .panel::before,
 .settings-panel::before,
 .hud-panel::before,
+.hud-fog-rail::before,
 .hud-bottom::before,
 .session-strip::before,
 .initiative-rail::before,
@@ -588,6 +590,7 @@ html[data-lantern="off"] .brand {
 .panel::after,
 .settings-panel::after,
 .hud-panel::after,
+.hud-fog-rail::after,
 .hud-bottom::after,
 .session-strip::after,
 .initiative-rail::after,
@@ -606,6 +609,7 @@ html[data-lantern="off"] .brand {
 }
 
 .hud-panel,
+.hud-fog-rail,
 .hud-bottom {
   background-color: color-mix(in srgb, var(--parchment) 94%, transparent);
 }
@@ -922,13 +926,6 @@ html[data-lantern="off"] .map-table {
   cursor: crosshair;
 }
 
-.hud-fog__tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.28rem;
-}
-
-.hud-fog__tools .hud-chip.is-active,
 button.hud-chip.is-active {
   background:
     linear-gradient(180deg, rgba(255, 210, 140, 0.28), transparent 45%),
@@ -939,15 +936,96 @@ button.hud-chip.is-active {
     0 1px 0 rgba(255, 220, 160, 0.25) inset;
 }
 
-.hud-fog__brush {
-  display: grid;
-  gap: 0.2rem;
-  font-size: 0.72rem;
+.hud-fog-rail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  width: 3.15rem;
+  padding: 0.4rem 0.28rem;
+  overflow: visible;
 }
 
-.hud-fog__doors {
+.hud-fog-rail > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hud-fog-rail__group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.28rem;
+  width: 100%;
+}
+
+.hud-fog-rail__group + .hud-fog-rail__group {
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(60, 40, 20, 0.22);
+}
+
+button.hud-fog-rail__btn {
+  position: relative;
   display: grid;
-  gap: 0.3rem;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  min-width: 2.35rem;
+  min-height: 2.35rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(60, 40, 20, 0.35);
+  background:
+    linear-gradient(180deg, rgba(255, 248, 230, 0.55), transparent 55%),
+    var(--parchment-deep);
+  color: var(--wood-deep);
+  box-shadow:
+    0 1px 0 rgba(255, 240, 200, 0.35) inset,
+    0 2px 4px rgba(20, 10, 4, 0.28);
+  text-shadow: none;
+}
+
+button.hud-fog-rail__btn:hover:not(:disabled) {
+  filter: brightness(1.04);
+}
+
+button.hud-fog-rail__btn:disabled {
+  opacity: 0.42;
+}
+
+button.hud-fog-rail__btn.is-active {
+  background:
+    linear-gradient(180deg, rgba(255, 210, 140, 0.3), transparent 45%),
+    linear-gradient(180deg, var(--wood-mid), var(--wood-deep));
+  color: #fff6e4;
+  border-color: rgba(20, 10, 4, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(255, 200, 120, 0.28),
+    0 1px 0 rgba(255, 220, 160, 0.25) inset;
+}
+
+.hud-fog-rail__glyph {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: block;
+}
+
+.hud-fog-rail__size {
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--ink-soft);
+  line-height: 1;
+}
+
+.hud-fog-rail__door-n {
+  position: absolute;
+  right: 0.12rem;
+  bottom: 0.08rem;
+  font-size: 0.55rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .token-list {
@@ -1174,7 +1252,7 @@ button.hud-chip.is-active {
   z-index: 5;
   inset: 0.45rem;
   display: grid;
-  grid-template-columns: minmax(11.5rem, 14.5rem) 1fr minmax(11.5rem, 14.5rem);
+  grid-template-columns: minmax(11.5rem, 14.5rem) 1fr 3.4rem;
   grid-template-rows: 1fr auto;
   grid-template-areas:
     "left . right"
@@ -1201,9 +1279,11 @@ button.hud-chip.is-active {
 
 .play-hud__right {
   grid-area: right;
-  align-self: start;
+  align-self: center;
+  justify-self: end;
   max-height: calc(100% - 0.25rem);
-  overflow: auto;
+  overflow: visible;
+  width: 3.4rem;
 }
 
 .play-hud__bottom {
@@ -1537,9 +1617,20 @@ button.hud-panel__collapse:focus-visible {
   }
 
   .play-hud {
-    grid-template-columns: minmax(9.5rem, 12rem) 1fr minmax(9.5rem, 12rem);
+    grid-template-columns: minmax(9.5rem, 12rem) 1fr 3.2rem;
     inset: 0.3rem;
     gap: 0.35rem;
+  }
+
+  .play-hud__right {
+    width: 3.2rem;
+  }
+
+  button.hud-fog-rail__btn {
+    width: 2.2rem;
+    height: 2.2rem;
+    min-width: 2.2rem;
+    min-height: 2.2rem;
   }
 
   .hud-chip {

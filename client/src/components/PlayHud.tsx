@@ -116,26 +116,20 @@ export function PlayHud({
         </HudPanel>
       </div>
 
-      <div className="play-hud__right stack">
-        <HudPanel
-          title="Fog"
-          collapsed={isHudCollapsed(prefs, "fog")}
-          onToggleCollapsed={() => toggle("fog")}
-        >
-          <HudFog
-            mapId={activeMap?.id ?? null}
-            hasLosGeometry={hasLosGeometry}
-            portals={portals}
-            losEnabled={losEnabled}
-            tool={fogTool}
-            paintMode={fogPaintMode}
-            brushRadius={fogBrushRadius}
-            onToolChange={onFogToolChange}
-            onPaintModeChange={onFogPaintModeChange}
-            onBrushRadiusChange={onFogBrushRadiusChange}
-            onPortalToggle={onPortalToggle}
-          />
-        </HudPanel>
+      <div className="play-hud__right">
+        <HudFog
+          mapId={activeMap?.id ?? null}
+          hasLosGeometry={hasLosGeometry}
+          portals={portals}
+          losEnabled={losEnabled}
+          tool={fogTool}
+          paintMode={fogPaintMode}
+          brushRadius={fogBrushRadius}
+          onToolChange={onFogToolChange}
+          onPaintModeChange={onFogPaintModeChange}
+          onBrushRadiusChange={onFogBrushRadiusChange}
+          onPortalToggle={onPortalToggle}
+        />
       </div>
 
       <div className="play-hud__bottom">
