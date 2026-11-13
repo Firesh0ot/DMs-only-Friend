@@ -63,3 +63,4 @@ What becomes easier, harder, or out of scope.
 | [0022](0022-physical-screen-camera-supersede.md) | Physical screen mode supersedes ADR 0002 Follow-GM camera (partial) | accepted |
 | [0024](0024-play-game-hud.md) | Play game-style HUD (replace islands) | accepted |
 | [0025](0025-turn-carousel-hud.md) | Turn carousel HUD, system-agnostic turn model, dual initiative paths | proposed |
+| [0026](0026-procedural-bsp-dd2vtt.md) | Procedural BSP dungeon to dd2vtt | accepted |

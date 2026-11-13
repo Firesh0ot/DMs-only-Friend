@@ -36,7 +36,7 @@ Dieses Dokument ist der verbindliche Kontext für alle Coding-Agenten (Cursor et
 3. **Phase 3 – Map-Integration:** `.dd2vtt`-Importer (PNG, Grid, Wände, Türen, Lichter), Map-Paket-Manifest (JSON: referenziert dd2vtt + optionales animiertes WebM), automatischer Line-of-Sight-Fog aus Wanddaten, PNG-Fallback mit Grid-Einstellung.
 4. **Phase 4 – Offline-Spielerfahrung:** Physische Rastergrösse auf dem Tisch-Monitor. Kalibrierung: Auto aus Zoll+Auflösung, exakt per Lineal-Methode; Zoom-Lock im `physical` Screen-Modus; Kalibrierung gerätelokal in localStorage, Zielgrösse als Raum-Setting. → [docs/phase-4-offline-screen.md](docs/phase-4-offline-screen.md)
 5. **Phase 5 – Online-Spielerfahrung:** Spawn-Punkte pro Karte (mit Charakter-Zuweisung, `spawn:apply` platziert Spieler) und server-erzwungenes Bewegungsbudget bei aktiver Initiative (Chebyshev-Distanz, Teilbewegungen konsumieren Budget, GM ausgenommen). → [docs/phase-5-online-movement.md](docs/phase-5-online-movement.md)
-6. **Phase 6 – KI:** prozeduraler Dungeon-Generator (BSP) mit dd2vtt-Export, danach Bild-Stilisierung als optionaler Layer.
+6. **Phase 6 – KI:** prozeduraler Dungeon-Generator (BSP) mit dd2vtt-Export, danach Bild-Stilisierung als optionaler Layer. → [docs/phase-6-procedural-dungeon.md](docs/phase-6-procedural-dungeon.md)
 7. **Phase 7 – MCP & Feinschliff:** MCP-Server, Sounds, Makros.
 
 ## Arbeitsweise
