@@ -7,16 +7,18 @@
 
 ## Design-Entscheidungen
 
-- **Spawn = Punktliste pro Karte mit Rollen-Zuordnung**, kein Freihand-Bereich: `spawn_points(map_id, label, x, y, assigned_to)`. `assigned_to` ist `null` (frei, „wer zuerst kommt") oder eine `character_id` (fester Platz, z. B. für die Tür). Punkte sind Grid-Zellen-Koordinaten.
+- **Spawn = Punktliste pro Karte mit Rollen-Zuordnung**, kein Freihand-Bereich: Tabelle `spawn_points` mit Spalte `assigned_character_id` (durchgängig so benannt, auch in Events/UI). `NULL` = frei („wer zuerst kommt"), sonst `character_id` = fester Platz (z. B. für die Tür). Punkte sind Grid-Zellen-Koordinaten.
+- **„Karte enthüllen" = Map-Aktivierung** (`map:activate` / `MapActivate`): Es gibt keinen separaten Reveal-Mechanismus. `spawn:apply` ist eine explizite GM-Aktion, die typischerweise direkt nach dem Aktivieren der Karte ausgeführt wird; ein Auto-Apply beim Aktivieren ist bewusst **nicht** Teil dieser Phase.
 - **Bewegungsmodell (bewusst einfach, 5e-kompatibel):**
   - `speed_cells` pro Charakter (Default 6 = 30 ft, GM editierbar; NPC-Monster ebenfalls).
   - Bei `initiative:next` speichert der Server die **Startposition des aktiven Tokens** (`turn_start_x/y`).
+  - **Sperrmodus (Klarstellung zum heutigen Verhalten):** Heute können Spieler ihren Token jederzeit bewegen. Ab dieser Phase gilt: **Wenn eine Initiative-Ordnung existiert und ein Kampf/Battle läuft**, darf ein Spieler seinen Token nur bewegen, wenn sein Token der aktive Initiative-Eintrag ist. **Ohne aktive Initiative/Battle** bleibt der heutige Zustand (freie Bewegung des eigenen Tokens) unverändert. Der GM ist von jeder Sperre ausgenommen.
   - Erlaubte Zielpositionen: **Chebyshev-Distanz** (Diagonale zählt 1 Zelle – 5e-Vereinfachung) ≤ verbleibende Reichweite.
   - Bewegung konsumiert Budget: jede Teilbewegung reduziert `remaining_cells` um die Distanz vom letzten gültigen Punkt. Der Spieler darf also mehrfach hintereinander ziehen, bis das Budget aufgebraucht ist (wichtig für verschachtelte Züge).
   - Der GM darf **jeden Token jederzeit unbegrenzt** bewegen (Ausnahme-Regel fürs Erzählen).
   - `remaining_cells` wird an alle Sessions gebroadcastet; der aktive Spieler sieht seinen Radius als Overlay.
 - **Radius-Overlay:** Kreis/Quadrat um die Startposition der Runde, halbtransparent; schrumpft mit verbrauchtem Budget. Nur für den aktiven Spieler sichtbar (Spieler-Ansicht) und für den GM (Kontrolle), nicht auf dem Player-Screen.
-- **Kein Wand-Pathfinding in dieser Phase:** Der Radius prüft nur Distanz, nicht Sichtlinien. Bewegung „durch Wände" wird erst mit LoS (später) verhindert – als bekanntes, dokumentiertes Loch akzeptiert.
+- **Kein Wand-Pathfinding in dieser Phase:** Der Radius prüft nur die Distanz, nicht, ob der Weg durch Wände führt – Bewegung „durch Wände" bleibt vorerst möglich und ist als bekanntes, dokumentiertes Loch akzeptiert. (Anmerkung: LoS-Fog ist auf `main` bereits implementiert – Vision-Polygone aus Wänden/Portalen, siehe PRs #40/#42. Ein späterer Ausbau kann diese Wanddaten für Movement-Checks wiederverwenden; bewusst nicht Teil dieser Phase.)
 
 ## Abgrenzung (bewusst NICHT drin)
 

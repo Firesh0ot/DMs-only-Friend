@@ -61,8 +61,8 @@ docker compose pull && docker compose up -d
 - **Persistenz**: SQLite, Dateien auf Disk. Self-Hosting via Docker/GHCR (`ghcr.io/firesh0ot/dms-only-friend`).
 - **Auth**: Raum-Codes (kein Account-Zwang). GM erstellt Raum → Spieler/Screen joinen per Code/Link.
 - **Karten-Import**: Universal VTT (`.dd2vtt`) als Standardformat → unterstützt Dungeon Map Builder, Dungeon Scrawl, Dungeondraft, Dungeon Alchemist. Fallback: PNG/JPG (manuelles Grid), animiertes WebM als Hintergrund-Layer.
-- **KI-Maps (Roadmap Phase 4)**: prozedurales Layout (BSP/WFC) mit dd2vtt-kompatiblen Daten, optionale Bild-Stilisierung (Stable Diffusion/ControlNet, grid-genau) als Hintergrund-Layer.
-- **MCP-Server (Roadmap Phase 5)**: separater Node-Service, exponiert GM-Aktionen als MCP-Tools.
+- **KI-Maps (Roadmap Phase 6)**: prozedurales Layout (BSP/WFC) mit dd2vtt-kompatiblen Daten, optionale Bild-Stilisierung (Stable Diffusion/ControlNet, grid-genau) als Hintergrund-Layer.
+- **MCP-Server (Roadmap Phase 7)**: separater Node-Service, exponiert GM-Aktionen als MCP-Tools.
 
 ## Rollen
 

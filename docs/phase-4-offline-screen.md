@@ -23,12 +23,14 @@ Der Player-Screen (Monitor auf dem Tisch) kann so kalibriert werden, dass **eine
 
 ## Datenmodell
 
-Keine Server-DB-Änderung ausserhalb der Room-Settings:
+Settings liegen in diesem Projekt als Spalten auf der **`rooms`-Tabelle** (via `ensureColumn`, siehe `server/src/db.ts`), nicht in einer separaten Settings-Tabelle:
 
 ```sql
--- rooms_settings (bestehende Tabelle um ein Feld erweitern)
-physical_cell_cm REAL   -- Zielgrösse einer Rasterzelle in cm, NULL = Modus aus
+-- server/src/db.ts, analog zu screen_hp_quarters:
+ensureColumn(db, "rooms", "physical_cell_cm", "REAL");  -- NULL = Modus aus
 ```
+
+Zusätzlich `SettingsSetPayloadSchema` (in `shared/src/events.ts`) um das optionale Feld `physicalCellCm` erweitern; Broadcast läuft über das bestehende `settings:set` / `settings:updated`.
 
 Client-lokal (localStorage, Key `dms.screen.calibration.v1`):
 
@@ -51,10 +53,11 @@ Rein clientseitig (kein Server-Event):
 1. **Anzeige-Modi:** `fit` (heutiges Verhalten) und `physical` (neu). Umschalter im Screen-Menü (unauffällig, damit im Spiel niemand versehentlich umschaltet: Bestätigungsdialog oder lange drücken).
 2. **Modus `physical`:** Zoom wird festgesetzt auf
    `zoom = pxProCm * physicalCellCm / map.gridPx`
-   Zoom-Gesten und Zoom-Buttons sind deaktiviert; **Pan bleibt erlaubt** (Tisch kann grösser sein als die Karte). GM-Kamera-Follow ist im `physical`-Modus deaktiviert bzw. reduziert sich auf sanftes Pan.
-3. **Kalibrierungs-Assistent** (im Screen-Modus erreichbar, GM kann ihn auch auf dem Screen fernöffnen):
+   Zoom-Gesten, Zoom-Buttons und GM-**Zoom**-Follow sind deaktiviert; **Pan bleibt erlaubt** (Tisch kann grösser sein als die Karte). GM-Kamera-Follow reduziert sich auf sanftes Pan (kein Zoom).
+   **Bezug zu ADR 0002:** Die Follow-GM-Kamera (ADR 0002, Punkt 2) gilt unverändert im `fit`-Modus; im `physical`-Modus wird sie durch [ADR 0022](decisions/0022-physical-screen-camera-supersede.md) partiell superseded (Zoom-Lock, unabhängiges Pan).
+3. **Kalibrierungs-Assistent** (im Screen-Modus erreichbar; der GM kann ihn per Socket-Event auf allen verbundenen Screens fernöffnen — `screen:command` mit `{ type: "open-calibration" }`, GM only, Broadcast an Sessions mit Rolle `screen`, Anzeige modal):
    - Schritt 1: Auto – Eingabe Diagonale (Zoll) + Auflösung + OS-Skalierung; Button „Berechnen".
-   - Schritt 2: Lineal – eine horizontale Messlinie mit Ziehgriff; Nutzer gibt die Soll-Länge in cm ein (`default: 10`), zieht die Linie entlang des Lineals, Bestätigen → `pxPerCm` wird aus der gezogenen Pixelstrecke berechnet.
+   - Schritt 2 (exakt, empfohlen): Lineal – eine horizontale Messlinie mit Ziehgriff; Nutzer gibt die Soll-Länge in cm ein (`default: 10`), zieht die Linie entlang des Lineals, Bestätigen → `pxPerCm` wird aus der gezogenen Pixelstrecke berechnet.
    - Schritt 3: Kontrolle – eine Rasterzelle wird mit `physicalCellCm` gerendert; Nutzer prüft mit Lineal, optional Feinkorrektur (±0.1 cm).
 4. **Anzeige der Ist-Grösse:** Im Screen-Status (dezent, nur bei aktivem `physical`-Modus): „1 Zelle = 3.0 cm".
 5. **Gerätewechsel:** Kalibrierung ist an den Browser des Geräts gebunden; beim ersten Aktivieren von `physical` ohne gespeicherte Kalibrierung startet der Assistent automatisch.
