@@ -11,6 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Server as IoServer } from "socket.io";
 import { isDd2vttUpload, parseDd2vtt } from "./dd2vtt.js";
+import { generateDungeonDd2vtt } from "./dungeon/toDd2vtt.js";
 import { emitCharactersUpdated } from "./events/handlers.js";
 import { readImageSize } from "./imageSize.js";
 import { roomChannel, type RoomStore } from "./rooms.js";
@@ -213,6 +214,87 @@ export function createHttpApp(deps: HttpDeps): Express {
       }
     },
   );
+
+  app.post("/api/rooms/:code/map/generate", requireGmUpload, (req: AuthedRequest, res: Response) => {
+    const roomId = req.dmsRoomId;
+    if (!roomId) {
+      res.status(401).json({ error: "GM upload token required" });
+      return;
+    }
+    const room = deps.rooms.getRoomById(roomId);
+    if (!room) {
+      res.status(404).json({ error: "Room not found" });
+      return;
+    }
+
+    try {
+      const body = (req.body ?? {}) as {
+        width?: number;
+        height?: number;
+        seed?: number;
+        gridPx?: number;
+        name?: string;
+      };
+      const generated = generateDungeonDd2vtt({
+        width: body.width,
+        height: body.height,
+        seed: body.seed,
+        gridPx: body.gridPx,
+      });
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+      fs.writeFileSync(path.join(deps.uploadsDir, filename), generated.imageBuffer);
+      const displayName =
+        typeof body.name === "string" && body.name.trim()
+          ? body.name.trim()
+          : `Generated dungeon (${generated.seed})`;
+      const previousActive = deps.rooms.getActiveMap(room.id);
+      const map = deps.rooms.addMap(room.id, {
+        name: displayName,
+        filename,
+        width: generated.widthPx,
+        height: generated.heightPx,
+        gridPx: generated.gridPx,
+        offsetX: 0,
+        offsetY: 0,
+        walls: generated.walls,
+        portals: [],
+        lights: parseDd2vtt(generated.dd2vttJson).lights,
+      });
+      deps.rooms.syncTokensForActiveMap(room.id);
+      const active = deps.rooms.getActiveMap(room.id);
+      deps.io.to(roomChannel(room.id)).emit(ServerEvents.MapsUpdated, deps.rooms.listMaps(room.id));
+      deps.io.to(roomChannel(room.id)).emit(ServerEvents.MapSet, active);
+      deps.io
+        .to(roomChannel(room.id))
+        .emit(ServerEvents.TokensSynced, deps.rooms.listVisibleTokens(room.id));
+      deps.io
+        .to(roomChannel(room.id))
+        .emit(ServerEvents.FogUpdated, deps.rooms.getActiveFog(room.id));
+      if (active && previousActive?.id !== active.id) {
+        const event = deps.rooms.appendEvent({
+          roomId: room.id,
+          type: "map_change",
+          summary: `Map: ${active.name}`,
+          payload: {
+            mapId: active.id,
+            name: active.name,
+            generated: true,
+            seed: generated.seed,
+          },
+        });
+        deps.io.to(roomChannel(room.id)).emit(ServerEvents.LogAppended, event);
+      }
+      res.status(201).json({
+        map,
+        maps: deps.rooms.listMaps(room.id),
+        seed: generated.seed,
+        roomCount: generated.roomCount,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Generate failed";
+      res.status(400).json({ error: message });
+    }
+  });
 
   const portraitUpload = multer({
     storage,

@@ -63,6 +63,7 @@ export function SettingsPanel({
   const baseId = useId();
   const [uploadGridPx, setUploadGridPx] = useState("70");
   const [mapName, setMapName] = useState("");
+  const [generateSeed, setGenerateSeed] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftCharacter>(emptyDraft);
@@ -103,6 +104,56 @@ export function SettingsPanel({
       return {};
     }
     return { "X-Dms-Upload-Token": uploadToken };
+  }
+
+  async function onGenerateDungeon() {
+    if (!uploadToken) {
+      setMessage("Rejoin as GM to generate maps");
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    try {
+      const seedRaw = generateSeed.trim();
+      const payload: {
+        name?: string;
+        seed?: number;
+        gridPx?: number;
+      } = {
+        gridPx: Number(uploadGridPx) || 70,
+      };
+      if (mapName.trim()) {
+        payload.name = mapName.trim();
+      }
+      if (seedRaw) {
+        const seed = Number(seedRaw);
+        if (!Number.isInteger(seed)) {
+          throw new Error("Seed must be an integer");
+        }
+        payload.seed = seed;
+      }
+      const response = await fetch(`/api/rooms/${roomCodePathSegment(code)}/map/generate`, {
+        method: "POST",
+        headers: {
+          ...uploadHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      const body = (await response.json()) as { error?: string; seed?: number; roomCount?: number };
+      if (!response.ok) {
+        throw new Error(body.error ?? "Generate failed");
+      }
+      setMessage(
+        `Generated dungeon seed ${body.seed ?? "?"}${
+          body.roomCount ? ` · ${body.roomCount} rooms` : ""
+        }`,
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Generate failed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function onUploadMap(file: File | null) {
@@ -581,7 +632,8 @@ export function SettingsPanel({
         </label>
         <p className="muted">
           Upload PNG/JPG/WebP (set grid_px) or Universal VTT <code>.dd2vtt</code> (grid, walls, doors,
-          and lights come from the file when present).
+          and lights come from the file when present). Or generate a procedural BSP dungeon (Phase 6
+          slice — walls + soft lights, no AI stylization yet).
         </p>
         <div className="row settings-upload-row">
           <label className="stack" htmlFor={`${baseId}-grid`}>
@@ -604,6 +656,22 @@ export function SettingsPanel({
               onChange={(event) => void onUploadMap(event.target.files?.[0] ?? null)}
             />
           </label>
+        </div>
+        <div className="row settings-upload-row">
+          <label className="stack" htmlFor={`${baseId}-gen-seed`}>
+            <span className="muted">Seed (optional)</span>
+            <input
+              id={`${baseId}-gen-seed`}
+              style={{ maxWidth: "8rem" }}
+              value={generateSeed}
+              inputMode="numeric"
+              placeholder="random"
+              onChange={(event) => setGenerateSeed(event.target.value)}
+            />
+          </label>
+          <button type="button" disabled={busy || !uploadToken} onClick={() => void onGenerateDungeon()}>
+            Generate dungeon
+          </button>
         </div>
 
         <ul className="token-list">
