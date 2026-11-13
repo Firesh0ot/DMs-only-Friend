@@ -61,6 +61,7 @@ Optionale Traefik-Labels (`TRAEFIK_ENABLE` / `FQDN`) hängen an bestehendes Trae
 - English: [../en/README.md](../en/README.md)
 - Phase-1-Spezifikation: [../../phase-1.md](../../phase-1.md)
 - Prep/Play-ADR: [../../decisions/0003-prep-play-ux.md](../../decisions/0003-prep-play-ux.md)
+- Play-Insel-Dock-Rails-ADR: [../../decisions/0020-play-island-dock-rails.md](../../decisions/0020-play-island-dock-rails.md)
 - Session-Log-ADR: [../../decisions/0004-session-battle-log.md](../../decisions/0004-session-battle-log.md)
 - Tavernen-Theme-ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
 - Seitenweites Kerzenflackern-ADR: [../../decisions/0019-page-wide-candlelit-flicker.md](../../decisions/0019-page-wide-candlelit-flicker.md)

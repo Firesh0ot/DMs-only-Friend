@@ -61,6 +61,7 @@ Optional Traefik labels (`TRAEFIK_ENABLE` / `FQDN`) attach to an existing Traefi
 - German: [../de/README.md](../de/README.md)
 - Phase 1 spec: [../../phase-1.md](../../phase-1.md)
 - Prep/Play ADR: [../../decisions/0003-prep-play-ux.md](../../decisions/0003-prep-play-ux.md)
+- Play island dock rails ADR: [../../decisions/0020-play-island-dock-rails.md](../../decisions/0020-play-island-dock-rails.md)
 - Session log ADR: [../../decisions/0004-session-battle-log.md](../../decisions/0004-session-battle-log.md)
 - Tavern theme ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
 - Page-wide candlelit flicker ADR: [../../decisions/0019-page-wide-candlelit-flicker.md](../../decisions/0019-page-wide-candlelit-flicker.md)

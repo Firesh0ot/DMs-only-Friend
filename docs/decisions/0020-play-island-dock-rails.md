@@ -1,4 +1,4 @@
-# ADR 0019 — Play island dock rails
+# ADR 0020 — Play island dock rails
 
 - **Status:** accepted
 - **Date:** 2026-11-13

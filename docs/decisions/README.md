@@ -58,3 +58,4 @@ What becomes easier, harder, or out of scope.
 | [0017](0017-dd2vtt-doors-portals.md) | dd2vtt doors / portals and LoS | accepted |
 | [0018](0018-dd2vtt-lights-overlay.md) | Soft lights from dd2vtt | accepted |
 | [0019](0019-page-wide-candlelit-flicker.md) | Page-wide candlelit flicker | accepted |
+| [0020](0020-play-island-dock-rails.md) | Play island dock rails (replace Snap) | accepted |
