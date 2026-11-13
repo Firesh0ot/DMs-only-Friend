@@ -1,21 +1,30 @@
 import { useMemo, useState } from "react";
 import { ClientEvents, type CharacterState, type TokenState } from "@dms/shared";
 import { formatHp } from "../lib/hp";
-import type { Corner } from "../lib/islandLayout";
 import { getSocket } from "../socket/socket";
 import { ConditionBadges } from "./ConditionBadges";
 import { ConditionToggles } from "./ConditionToggles";
+import type { IslandDockProps } from "./islandDock";
 import { PlayIsland } from "./PlayIsland";
 
-type Props = {
+type Props = IslandDockProps & {
   characters: CharacterState[];
   tokens: TokenState[];
   activeMapId: string | null;
-  corner: Corner;
-  onCycleCorner: () => void;
 };
 
-export function NpcIsland({ characters, tokens, activeMapId, corner, onCycleCorner }: Props) {
+export function NpcIsland({
+  characters,
+  tokens,
+  activeMapId,
+  side,
+  collapsed,
+  canMoveUp,
+  canMoveDown,
+  onToggleCollapsed,
+  onDockSide,
+  onMoveInSide,
+}: Props) {
   const [label, setLabel] = useState("Goblin");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hpDraft, setHpDraft] = useState<string | null>(null);
@@ -105,7 +114,16 @@ export function NpcIsland({ characters, tokens, activeMapId, corner, onCycleCorn
   }
 
   return (
-    <PlayIsland title="NPCs" corner={corner} onCycleCorner={onCycleCorner}>
+    <PlayIsland
+      title="NPCs"
+      side={side}
+      collapsed={collapsed}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
+      onToggleCollapsed={onToggleCollapsed}
+      onDockSide={onDockSide}
+      onMoveInSide={onMoveInSide}
+    >
       <div className="row">
         <input value={label} onChange={(event) => setLabel(event.target.value)} />
         <button onClick={spawnNpc} disabled={!activeMapId}>

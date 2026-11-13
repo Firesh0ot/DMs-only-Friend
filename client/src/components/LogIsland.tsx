@@ -1,18 +1,26 @@
 import { useEffect, useState } from "react";
 import { ClientEvents, type BattleState, type SessionEvent } from "@dms/shared";
 import { battleElapsedMs, formatDuration } from "../lib/formatDuration";
-import type { Corner } from "../lib/islandLayout";
 import { getSocket } from "../socket/socket";
+import type { IslandDockProps } from "./islandDock";
 import { PlayIsland } from "./PlayIsland";
 
-type Props = {
+type Props = IslandDockProps & {
   events: SessionEvent[];
   battle: BattleState | null;
-  corner: Corner;
-  onCycleCorner: () => void;
 };
 
-export function LogIsland({ events, battle, corner, onCycleCorner }: Props) {
+export function LogIsland({
+  events,
+  battle,
+  side,
+  collapsed,
+  canMoveUp,
+  canMoveDown,
+  onToggleCollapsed,
+  onDockSide,
+  onMoveInSide,
+}: Props) {
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -29,7 +37,16 @@ export function LogIsland({ events, battle, corner, onCycleCorner }: Props) {
   const recent = [...events].reverse().slice(0, 40);
 
   return (
-    <PlayIsland title="Log" corner={corner} onCycleCorner={onCycleCorner}>
+    <PlayIsland
+      title="Log"
+      side={side}
+      collapsed={collapsed}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
+      onToggleCollapsed={onToggleCollapsed}
+      onDockSide={onDockSide}
+      onMoveInSide={onMoveInSide}
+    >
       <div className="row log-island__battle">
         <span className="muted">{battle && !battle.endedAt ? `Battle ${elapsed}` : "No battle"}</span>
         {battle && !battle.endedAt ? (

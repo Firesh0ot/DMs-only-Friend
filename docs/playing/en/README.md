@@ -30,7 +30,7 @@ Floating islands around the map:
 - **Dice** — enter expressions such as `2d6+3` (or use quick chips), roll on the server, see totals and recent rolls. Results are broadcast and appear in the session log.
 - **Fog** — brush or rectangle to **Reveal** / **Hide** areas; **Cover all** / **Clear all**. New maps start fully covered. On `.dd2vtt` maps with walls or doors, toggle **LoS** so screen/players only see what PC tokens can see through walls; **closed doors block vision**, open doors do not. Toggle doors from the Fog island or by clicking a door on the map (fog tool **Off**). Manual fog still applies on top. Fog is translucent for you and solid for screen/players.
 
-Use **Snap** on an island to cycle dock slots (four corners plus mid-left/mid-right). First visit uses a non-overlapping default layout; positions are remembered per room code in the browser.
+Islands sit in **left** and **right** dock columns so they stack with a gap instead of overlapping. Use **Left** / **Right** to move an island, **↑** / **↓** to reorder in its column, and the title chevron to collapse or expand. First visit uses a non-overlapping default (Map/Dice/Log left; Initiative/Fog/NPCs right). Layout is remembered per room code in the browser; older corner “Snap” layouts reset to that default.
 
 Changing the active map brings in characters linked to that map (and drops the others). Tokens snap to grid and sync live. Camera pan/zoom on the GM side is followed by screen and players. Fog is stored per map.
 

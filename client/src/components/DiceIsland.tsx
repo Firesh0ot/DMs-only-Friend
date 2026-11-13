@@ -1,19 +1,27 @@
 import { useState, type FormEvent } from "react";
 import { ClientEvents, type DiceRolled } from "@dms/shared";
-import type { Corner } from "../lib/islandLayout";
 import { getSocket } from "../socket/socket";
+import type { IslandDockProps } from "./islandDock";
 import { PlayIsland } from "./PlayIsland";
 
 const QUICK_EXPRS = ["d20", "d20+5", "2d6", "2d6+3", "d100"] as const;
 
-type Props = {
+type Props = IslandDockProps & {
   lastDice: DiceRolled | null;
   recent: DiceRolled[];
-  corner: Corner;
-  onCycleCorner: () => void;
 };
 
-export function DiceIsland({ lastDice, recent, corner, onCycleCorner }: Props) {
+export function DiceIsland({
+  lastDice,
+  recent,
+  side,
+  collapsed,
+  canMoveUp,
+  canMoveDown,
+  onToggleCollapsed,
+  onDockSide,
+  onMoveInSide,
+}: Props) {
   const [expr, setExpr] = useState("2d6+3");
 
   function submit(event: FormEvent) {
@@ -31,7 +39,16 @@ export function DiceIsland({ lastDice, recent, corner, onCycleCorner }: Props) {
   }
 
   return (
-    <PlayIsland title="Dice" corner={corner} onCycleCorner={onCycleCorner}>
+    <PlayIsland
+      title="Dice"
+      side={side}
+      collapsed={collapsed}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
+      onToggleCollapsed={onToggleCollapsed}
+      onDockSide={onDockSide}
+      onMoveInSide={onMoveInSide}
+    >
       <form className="dice-island__form" onSubmit={submit}>
         <label className="dice-island__label" htmlFor="dice-expr">
           Expression

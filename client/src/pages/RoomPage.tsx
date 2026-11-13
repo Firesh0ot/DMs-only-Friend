@@ -20,10 +20,15 @@ import { NpcIsland } from "../components/NpcIsland";
 import { SessionStrip } from "../components/SessionStrip";
 import { LanternToggle } from "../components/LanternToggle";
 import { SettingsPanel } from "../components/SettingsPanel";
+import type { IslandDockProps } from "../components/islandDock";
 import {
+  dockIsland,
+  isIslandCollapsed,
   loadIslandLayout,
-  nextCorner,
+  moveIslandInSide,
   saveIslandLayout,
+  toggleIslandCollapsed,
+  type DockSide,
   type IslandId,
   type IslandLayout,
 } from "../lib/islandLayout";
@@ -134,13 +139,111 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
     getSocket().emit(ClientEvents.FogPaint, { mapId: snapshot.map.id, stroke });
   }
 
-  function cycleIsland(id: IslandId) {
-    if (!islandLayout) {
-      return;
-    }
-    const next = { ...islandLayout, [id]: nextCorner(islandLayout[id]) };
+  function patchIslandLayout(next: IslandLayout) {
     setIslandLayout(next);
     saveIslandLayout(code, next);
+  }
+
+  function dockPropsFor(id: IslandId, side: DockSide, order: IslandId[]): IslandDockProps {
+    const index = order.indexOf(id);
+    return {
+      side,
+      collapsed: islandLayout ? isIslandCollapsed(islandLayout, id) : false,
+      canMoveUp: index > 0,
+      canMoveDown: index >= 0 && index < order.length - 1,
+      onToggleCollapsed: () => {
+        if (!islandLayout) {
+          return;
+        }
+        patchIslandLayout(toggleIslandCollapsed(islandLayout, id));
+      },
+      onDockSide: (nextSide) => {
+        if (!islandLayout) {
+          return;
+        }
+        patchIslandLayout(dockIsland(islandLayout, id, nextSide));
+      },
+      onMoveInSide: (direction) => {
+        if (!islandLayout) {
+          return;
+        }
+        patchIslandLayout(moveIslandInSide(islandLayout, id, direction));
+      },
+    };
+  }
+
+  function renderPlayIsland(id: IslandId, side: DockSide, order: IslandId[]) {
+    if (!snapshot || !islandLayout) {
+      return null;
+    }
+    const dock = dockPropsFor(id, side, order);
+    switch (id) {
+      case "map":
+        return (
+          <MapControlIsland
+            key={id}
+            maps={snapshot.maps}
+            activeMap={snapshot.map}
+            visibility={snapshot.visibility}
+            {...dock}
+          />
+        );
+      case "initiative":
+        return (
+          <InitiativeIsland
+            key={id}
+            tokens={tokens}
+            characters={snapshot.characters}
+            initiative={snapshot.initiative}
+            {...dock}
+          />
+        );
+      case "npcs":
+        return (
+          <NpcIsland
+            key={id}
+            characters={snapshot.characters}
+            tokens={tokens}
+            activeMapId={snapshot.map?.id ?? null}
+            {...dock}
+          />
+        );
+      case "log":
+        return (
+          <LogIsland
+            key={id}
+            events={snapshot.eventLog}
+            battle={snapshot.battle}
+            {...dock}
+          />
+        );
+      case "dice":
+        return (
+          <DiceIsland key={id} lastDice={lastDice} recent={recentDice} {...dock} />
+        );
+      case "fog":
+        return (
+          <FogIsland
+            key={id}
+            mapId={snapshot.map?.id ?? null}
+            hasLosGeometry={
+              (snapshot.map?.walls.length ?? 0) > 0 || (snapshot.map?.portals.length ?? 0) > 0
+            }
+            portals={snapshot.map?.portals ?? []}
+            losEnabled={snapshot.fog?.losEnabled ?? false}
+            tool={fogTool}
+            paintMode={fogPaintMode}
+            brushRadius={fogBrushRadius}
+            onToolChange={setFogTool}
+            onPaintModeChange={setFogPaintMode}
+            onBrushRadiusChange={setFogBrushRadius}
+            onPortalToggle={onPortalToggle}
+            {...dock}
+          />
+        );
+      default:
+        return null;
+    }
   }
 
   const isGm = role === "gm";
@@ -280,59 +383,18 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
               </div>
             </div>
 
-            {showPlayChrome ? (
+            {showPlayChrome && islandLayout ? (
               <>
-                <MapControlIsland
-                  maps={snapshot.maps}
-                  activeMap={snapshot.map}
-                  visibility={snapshot.visibility}
-                  corner={islandLayout.map}
-                  onCycleCorner={() => cycleIsland("map")}
-                />
-                <InitiativeIsland
-                  tokens={tokens}
-                  characters={snapshot.characters}
-                  initiative={snapshot.initiative}
-                  corner={islandLayout.initiative}
-                  onCycleCorner={() => cycleIsland("initiative")}
-                />
-                <NpcIsland
-                  characters={snapshot.characters}
-                  tokens={tokens}
-                  activeMapId={snapshot.map?.id ?? null}
-                  corner={islandLayout.npcs}
-                  onCycleCorner={() => cycleIsland("npcs")}
-                />
-                <LogIsland
-                  events={snapshot.eventLog}
-                  battle={snapshot.battle}
-                  corner={islandLayout.log}
-                  onCycleCorner={() => cycleIsland("log")}
-                />
-                <DiceIsland
-                  lastDice={lastDice}
-                  recent={recentDice}
-                  corner={islandLayout.dice}
-                  onCycleCorner={() => cycleIsland("dice")}
-                />
-                <FogIsland
-                  mapId={snapshot.map?.id ?? null}
-                  hasLosGeometry={
-                    (snapshot.map?.walls.length ?? 0) > 0 ||
-                    (snapshot.map?.portals.length ?? 0) > 0
-                  }
-                  portals={snapshot.map?.portals ?? []}
-                  losEnabled={snapshot.fog?.losEnabled ?? false}
-                  tool={fogTool}
-                  paintMode={fogPaintMode}
-                  brushRadius={fogBrushRadius}
-                  corner={islandLayout.fog}
-                  onToolChange={setFogTool}
-                  onPaintModeChange={setFogPaintMode}
-                  onBrushRadiusChange={setFogBrushRadius}
-                  onCycleCorner={() => cycleIsland("fog")}
-                  onPortalToggle={onPortalToggle}
-                />
+                <div className="island-rail island-rail--left" aria-label="Left dock">
+                  {islandLayout.left.map((id) =>
+                    renderPlayIsland(id, "left", islandLayout.left),
+                  )}
+                </div>
+                <div className="island-rail island-rail--right" aria-label="Right dock">
+                  {islandLayout.right.map((id) =>
+                    renderPlayIsland(id, "right", islandLayout.right),
+                  )}
+                </div>
               </>
             ) : null}
 

@@ -30,7 +30,7 @@ Schwebende Inseln um die Karte:
 - **Dice** — Ausdrücke wie `2d6+3` eingeben (oder Quick-Chips), serverseitig würfeln, Summe und letzte Rolls sehen. Ergebnisse werden gebroadcastet und erscheinen im Session-Log.
 - **Fog** — Pinsel oder Rechteck zum **Reveal** / **Hide**; **Cover all** / **Clear all**. Neue Karten starten voll verdeckt. Bei `.dd2vtt`-Karten mit Wänden oder Türen **LoS** einschalten: Screen/Spieler sehen nur, was PC-Tokens durch die Wände sehen können; **geschlossene Türen blockieren Sicht**, offene nicht. Türen im Fog-Island oder per Klick auf die Tür auf der Karte (Fog-Tool **Off**) umschalten. Manueller Fog gilt weiterhin. Für dich ist Fog durchscheinend, für Screen/Spieler deckend.
 
-**Snap** verschiebt eine Insel zum nächsten Dock-Slot (vier Ecken plus Mitte links/rechts). Beim ersten Besuch gilt ein nicht überlappendes Standard-Layout; Positionen bleiben pro Raumcode im Browser erhalten.
+Inseln liegen in **linken** und **rechten** Dock-Spalten und stapeln sich mit Abstand statt sich zu überlappen. Mit **Left** / **Right** verschieben, mit **↑** / **↓** in der Spalte umordnen, über den Titel-Chevron einklappen/ausklappen. Beim ersten Besuch gilt ein nicht überlappendes Standard-Layout (Map/Dice/Log links; Initiative/Fog/NPCs rechts). Das Layout bleibt pro Raumcode im Browser erhalten; ältere Eck-/Snap-Layouts werden auf diesen Standard zurückgesetzt.
 
 Kartenwechsel lädt die verknüpften Charaktere und entfernt die übrigen. Tokens snappen aufs Raster und syncen live. Pan/Zoom der GM-Ansicht folgen Screen und Spieler. Fog wird pro Karte gespeichert.
 

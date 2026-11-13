@@ -10,7 +10,7 @@ Server-side dice (`parseExpr` / `roll`), `dice:roll` / `dice:rolled`, and `dice_
 
 ## Decision
 
-- GM Play gets a **Dice** island (expression input, quick chips, last/recent results) using the same corner-snap + per-room `localStorage` layout as other islands.
+- GM Play gets a **Dice** island (expression input, quick chips, last/recent results) using the same left/right dock-rail + per-room `localStorage` layout as other islands (see [0019](0019-play-island-dock-rails.md)).
 - Rolls stay server-authoritative: clients emit `dice:roll`; the server parses/rolls, writes `dice_log`, broadcasts `dice:rolled`, and appends a `dice_roll` session event for the Log island / screen strip.
 - Screen and remote players get a light **toast** for the latest roll (no Dice island).
 - No extra persistence beyond existing `dice_log` and the session event row.
@@ -18,5 +18,5 @@ Server-side dice (`parseExpr` / `roll`), `dice:roll` / `dice:rolled`, and `dice_
 ## Consequences
 
 - `SessionEventType` gains `dice_roll`.
-- Five Play islands share four corners; overlapping docks are resolved by **Snap**.
+- Play islands stack in left/right dock rails; see [0019](0019-play-island-dock-rails.md).
 - Fog, HP tracking, and `.dd2vtt` remain out of this cut.
