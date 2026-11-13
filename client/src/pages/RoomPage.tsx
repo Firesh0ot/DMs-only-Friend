@@ -317,7 +317,7 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                 initiative={snapshot.initiative}
                 tokens={tokens}
                 characters={snapshot.characters}
-                movement={snapshot.movement}
+                movement={role === "player" ? snapshot.movement : null}
               />
               <SessionStrip battle={snapshot.battle} events={snapshot.eventLog} />
             </div>
