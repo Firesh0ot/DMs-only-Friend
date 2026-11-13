@@ -45,6 +45,7 @@ type RoomRow = {
   pin_salt: string | null;
   gm_invite_hash: string | null;
   screen_hp_quarters: number;
+  physical_cell_cm: number | null;
   gm_claimed: number;
 };
 type MapRow = {
@@ -370,6 +371,7 @@ export class RoomStore {
     const room = this.getRoomRow(roomId);
     return {
       screenHpQuarters: room ? room.screen_hp_quarters === 1 : false,
+      physicalCellCm: room?.physical_cell_cm ?? null,
     };
   }
 
@@ -377,10 +379,12 @@ export class RoomStore {
     const current = this.getSettings(roomId);
     const next = {
       screenHpQuarters: input.screenHpQuarters ?? current.screenHpQuarters,
+      physicalCellCm:
+        input.physicalCellCm !== undefined ? input.physicalCellCm : current.physicalCellCm,
     };
     this.db
-      .prepare("UPDATE rooms SET screen_hp_quarters = ? WHERE id = ?")
-      .run(next.screenHpQuarters ? 1 : 0, roomId);
+      .prepare("UPDATE rooms SET screen_hp_quarters = ?, physical_cell_cm = ? WHERE id = ?")
+      .run(next.screenHpQuarters ? 1 : 0, next.physicalCellCm, roomId);
     return next;
   }
 
