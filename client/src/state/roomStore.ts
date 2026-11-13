@@ -8,10 +8,12 @@ import {
   type FogState,
   type InitiativeState,
   type MapState,
+  type MovementBudget,
   type Role,
   type RoomSettings,
   type SessionEvent,
   type Snapshot,
+  type SpawnPoint,
   type TokenState,
   type VisibilityState,
 } from "@dms/shared";
@@ -55,8 +57,12 @@ type RoomStore = {
   setBattle: (battle: BattleState | null) => void;
   pushDice: (dice: DiceRolled) => void;
   setFog: (fog: FogState | null) => void;
+  setSpawnPoints: (mapId: string, points: SpawnPoint[]) => void;
+  setMovement: (movement: MovementBudget | null) => void;
   moveTokenOptimistic: (tokenId: string, x: number, y: number) => void;
   clearError: () => void;
+  lastMovementReject: { tokenId: string; reason: string } | null;
+  clearMovementReject: () => void;
 };
 
 export const useRoomStore = create<RoomStore>((set, get) => ({
@@ -69,8 +75,10 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
   lastDice: null,
   recentDice: [],
   optimisticTokens: {},
+  lastMovementReject: null,
 
   clearError: () => set({ error: null }),
+  clearMovementReject: () => set({ lastMovementReject: null }),
   clearJoinCredentials: () => set({ joinCredentials: null, uploadToken: null }),
 
   applySnapshot: (snapshot) =>
@@ -212,6 +220,23 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     set({ snapshot: { ...snapshot, fog } });
   },
 
+  setSpawnPoints: (mapId, points) => {
+    const snapshot = get().snapshot;
+    if (!snapshot) {
+      return;
+    }
+    const others = snapshot.spawnPoints.filter((point) => point.mapId !== mapId);
+    set({ snapshot: { ...snapshot, spawnPoints: [...others, ...points] } });
+  },
+
+  setMovement: (movement) => {
+    const snapshot = get().snapshot;
+    if (!snapshot) {
+      return;
+    }
+    set({ snapshot: { ...snapshot, movement } });
+  },
+
   moveTokenOptimistic: (tokenId, x, y) => {
     const snapshot = get().snapshot;
     if (!snapshot) {
@@ -324,6 +349,16 @@ export function bindSocketListeners(): void {
   socket.on(ServerEvents.LogAppended, (event) => store().appendEvent(event));
   socket.on(ServerEvents.BattleUpdated, (battle) => store().setBattle(battle));
   socket.on(ServerEvents.FogUpdated, (fog) => store().setFog(fog));
+  socket.on(ServerEvents.SpawnUpdated, ({ mapId, points }) => store().setSpawnPoints(mapId, points));
+  socket.on(ServerEvents.MovementUpdated, (movement) => store().setMovement(movement));
+  socket.on(ServerEvents.MovementRejected, ({ tokenId, reason }) => {
+    const optimisticTokens = { ...store().optimisticTokens };
+    delete optimisticTokens[tokenId];
+    useRoomStore.setState({
+      optimisticTokens,
+      lastMovementReject: { tokenId, reason },
+    });
+  });
   socket.on(ServerEvents.DiceRolled, (dice) => store().pushDice(dice));
   socket.on(ServerEvents.Error, ({ message }) => useRoomStore.setState({ error: message }));
 }

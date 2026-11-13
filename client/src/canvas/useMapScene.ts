@@ -17,7 +17,9 @@ import type {
   FogStroke,
   FogStrokeInput,
   MapState,
+  MovementBudget,
   Role,
+  SpawnPoint,
   TokenState,
 } from "@dms/shared";
 import { followGmPanOnly, type ScreenDisplayMode } from "../lib/screenCalibration";
@@ -51,6 +53,10 @@ export type MapSceneProps = {
   onPhysicalCameraChange?: (camera: { x: number; y: number }) => void;
   onFogPaint: (stroke: FogStrokeInput) => void;
   onPortalToggle?: (portalId: string, closed: boolean) => void;
+  spawnTool?: boolean;
+  spawnPoints?: SpawnPoint[];
+  onSpawnPlace?: (x: number, y: number) => void;
+  movement?: MovementBudget | null;
 };
 
 type TokenView = {
@@ -80,6 +86,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
   const fogSpriteRef = useRef<Sprite | null>(null);
   const fogTextureRef = useRef<RenderTexture | null>(null);
   const fogPreviewRef = useRef<Graphics | null>(null);
+  const overlayLayerRef = useRef<Graphics | null>(null);
   const tokenViewsRef = useRef<Map<string, TokenView>>(new Map());
   const cameraRef = useRef<CameraState>(props.camera ?? DEFAULT_CAMERA);
   const lastCameraEmitRef = useRef(0);
@@ -110,6 +117,8 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     const fogLayer = new Container();
     const fogPreview = new Graphics();
     fogPreview.eventMode = "none";
+    const overlayLayer = new Graphics();
+    overlayLayer.eventMode = "none";
     world.addChild(mapLayer);
     world.addChild(lightLayer);
     world.addChild(gridLayer);
@@ -117,6 +126,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     world.addChild(tokenLayer);
     world.addChild(fogLayer);
     world.addChild(fogPreview);
+    world.addChild(overlayLayer);
 
     void (async () => {
       await app.init({
@@ -146,6 +156,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       tokenLayerRef.current = tokenLayer;
       fogLayerRef.current = fogLayer;
       fogPreviewRef.current = fogPreview;
+      overlayLayerRef.current = overlayLayer;
 
       applyCamera(world, cameraRef.current);
       void syncMap(propsRef.current.map);
@@ -156,6 +167,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
         propsRef.current.tokens,
         propsRef.current.role,
       );
+      syncOverlay();
 
       app.stage.on("pointerdown", (event) => {
         if (propsRef.current.role !== "gm") {
@@ -167,6 +179,12 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
 
         const fogTool = propsRef.current.fogTool;
         const map = propsRef.current.map;
+        if (propsRef.current.spawnTool && map && event.button === 0) {
+          const worldPoint = screenToWorld(event.global.x, event.global.y);
+          const cell = pixelToCell(worldPoint.x, worldPoint.y, map);
+          propsRef.current.onSpawnPlace?.(Math.round(cell.x), Math.round(cell.y));
+          return;
+        }
         if (fogTool !== "off" && map && event.button === 0) {
           const worldPoint = screenToWorld(event.global.x, event.global.y);
           if (fogTool === "brush") {
@@ -442,12 +460,17 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
   useEffect(() => {
     syncTokens(props.tokens, props.activeTokenId);
     syncFog(props.fog, props.map, props.tokens, props.role);
+    syncOverlay();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.tokens, props.activeTokenId]);
 
   useEffect(() => {
     syncFog(props.fog, props.map, props.tokens, props.role);
   }, [props.fog, props.map, props.tokens, props.role]);
+
+  useEffect(() => {
+    syncOverlay();
+  }, [props.spawnPoints, props.spawnTool, props.movement, props.tokens, props.map, props.role]);
 
   useEffect(() => {
     if (!host) {
@@ -537,7 +560,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
         created.root.eventMode = "static";
         const tokenId = created.tokenId;
         created.root.on("pointerdown", (event) => {
-          if (propsRef.current.fogTool !== "off") {
+          if (propsRef.current.fogTool !== "off" || propsRef.current.spawnTool) {
             return;
           }
           const current = propsRef.current.tokens.find((entry) => entry.id === tokenId);
@@ -563,7 +586,11 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       redrawToken(view, token.label, radius, token.id === activeTokenId);
       view.root.hitArea = new Rectangle(-radius, -radius, radius * 2, radius * 2);
       view.root.cursor =
-        propsRef.current.fogTool === "off" && canDragToken(token) ? "grab" : "default";
+        propsRef.current.fogTool === "off" &&
+        !propsRef.current.spawnTool &&
+        canDragToken(token)
+          ? "grab"
+          : "default";
     }
 
     for (const [id, view] of tokenViewsRef.current) {
@@ -702,6 +729,65 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       return Boolean(characterId && token.characterId && token.characterId === characterId);
     }
     return false;
+  }
+
+  function syncOverlay(): void {
+    const graphics = overlayLayerRef.current;
+    const map = propsRef.current.map;
+    if (!graphics) {
+      return;
+    }
+    graphics.clear();
+    if (!map || propsRef.current.role === "screen") {
+      return;
+    }
+
+    if (propsRef.current.role === "gm" && propsRef.current.spawnTool) {
+      const points = (propsRef.current.spawnPoints ?? []).filter(
+        (point) => point.mapId === map.id,
+      );
+      for (const point of points) {
+        const pixel = cellToPixel(point.x, point.y, map);
+        const half = map.gridPx / 2;
+        graphics.rect(pixel.x - half + 2, pixel.y - half + 2, map.gridPx - 4, map.gridPx - 4);
+        graphics.stroke({ width: 2, color: 0x4ade80, alpha: 0.9 });
+        graphics.fill({ color: 0x22c55e, alpha: 0.25 });
+      }
+    }
+
+    const movement = propsRef.current.movement;
+    if (
+      movement?.active &&
+      movement.tokenId &&
+      movement.remainingCells !== null &&
+      movement.remainingCells >= 0
+    ) {
+      const token = propsRef.current.tokens.find((entry) => entry.id === movement.tokenId);
+      if (token) {
+        const show =
+          propsRef.current.role === "gm" ||
+          (propsRef.current.role === "player" &&
+            propsRef.current.characterId &&
+            token.characterId === propsRef.current.characterId);
+        if (show) {
+          const center = cellToPixel(token.x, token.y, map);
+          const radiusPx = (movement.remainingCells + 0.5) * map.gridPx;
+          graphics.rect(
+            center.x - radiusPx,
+            center.y - radiusPx,
+            radiusPx * 2,
+            radiusPx * 2,
+          );
+          graphics.stroke({ width: 2, color: 0x60a5fa, alpha: 0.85 });
+          graphics.fill({ color: 0x3b82f6, alpha: 0.12 });
+          if (movement.turnStart) {
+            const start = cellToPixel(movement.turnStart.x, movement.turnStart.y, map);
+            graphics.circle(start.x, start.y, Math.max(4, map.gridPx * 0.15));
+            graphics.fill({ color: 0xfbbf24, alpha: 0.9 });
+          }
+        }
+      }
+    }
   }
 
   function emitCamera(camera: CameraState, force: boolean): void {

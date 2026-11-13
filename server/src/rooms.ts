@@ -1,4 +1,5 @@
 import {
+  assignSpawnPoints,
   hpToQuarter,
   normalizeRoomCode,
   RoomCodeSchema,
@@ -13,13 +14,16 @@ import {
   type FogStrokeInput,
   type InitiativeState,
   type MapState,
+  type MovementBudget,
   type Role,
   type RoomSettings,
   type RoomState,
   type SessionEvent,
   type SessionEventType,
   type Snapshot,
+  type SpawnPoint,
   type TokenState,
+  type TurnStart,
   type VisibilityState,
 } from "@dms/shared";
 import { customAlphabet } from "nanoid";
@@ -82,6 +86,7 @@ type CharacterRow = {
   image: string | null;
   notes: string | null;
   size_cells: number;
+  speed_cells: number;
   hp_current: number | null;
   hp_max: number | null;
   ac: number | null;
@@ -93,6 +98,19 @@ type InitiativeRow = {
   order_json: string;
   active_index: number;
   round: number;
+  turn_start_x: number | null;
+  turn_start_y: number | null;
+  remaining_cells: number | null;
+  active_token_id: string | null;
+};
+type SpawnPointRow = {
+  id: string;
+  map_id: string;
+  room_id: string;
+  label: string | null;
+  x: number;
+  y: number;
+  assigned_character_id: string | null;
 };
 type BattleRow = {
   id: string;
@@ -580,6 +598,7 @@ export class RoomStore {
     image?: string | null;
     notes?: string | null;
     sizeCells?: number;
+    speedCells?: number;
     mapIds?: string[];
     hpCurrent?: number | null;
     hpMax?: number | null;
@@ -598,11 +617,12 @@ export class RoomStore {
       hpMax: input.hpMax !== undefined ? input.hpMax : (existing?.hpMax ?? null),
     });
     const nextAc = input.ac !== undefined ? input.ac : (existing?.ac ?? null);
+    const nextSpeed = input.speedCells ?? existing?.speedCells ?? 6;
     if (existing) {
       this.db
         .prepare(
           `UPDATE characters SET name = ?, kind = ?, image = ?, notes = ?, size_cells = ?,
-           hp_current = ?, hp_max = ?, ac = ? WHERE id = ?`,
+           speed_cells = ?, hp_current = ?, hp_max = ?, ac = ? WHERE id = ?`,
         )
         .run(
           input.name,
@@ -610,6 +630,7 @@ export class RoomStore {
           input.image !== undefined ? input.image : existing.image,
           input.notes !== undefined ? input.notes : existing.notes,
           input.sizeCells ?? existing.sizeCells,
+          nextSpeed,
           nextHp.hpCurrent,
           nextHp.hpMax,
           nextAc,
@@ -618,8 +639,8 @@ export class RoomStore {
     } else {
       this.db
         .prepare(
-          `INSERT INTO characters (id, room_id, name, kind, image, notes, size_cells, hp_current, hp_max, ac)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO characters (id, room_id, name, kind, image, notes, size_cells, speed_cells, hp_current, hp_max, ac)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -629,6 +650,7 @@ export class RoomStore {
           input.image ?? null,
           input.notes ?? null,
           input.sizeCells ?? 1,
+          nextSpeed,
           nextHp.hpCurrent,
           nextHp.hpMax,
           nextAc,
@@ -691,6 +713,134 @@ export class RoomStore {
       throw new Error("Failed to persist conditions");
     }
     return character;
+  }
+
+  setCharacterSpeed(characterId: string, speedCells: number): CharacterState {
+    const existing = this.getCharacter(characterId);
+    if (!existing) {
+      throw new Error("Character not found");
+    }
+    this.db
+      .prepare("UPDATE characters SET speed_cells = ? WHERE id = ?")
+      .run(speedCells, characterId);
+    const character = this.getCharacter(characterId);
+    if (!character) {
+      throw new Error("Failed to persist speed");
+    }
+    return character;
+  }
+
+  listSpawnPoints(roomId: string, mapId?: string): SpawnPoint[] {
+    const rows = (
+      mapId
+        ? (this.db
+            .prepare(
+              `SELECT * FROM spawn_points WHERE room_id = ? AND map_id = ? ORDER BY label ASC, id ASC`,
+            )
+            .all(roomId, mapId) as SpawnPointRow[])
+        : (this.db
+            .prepare(`SELECT * FROM spawn_points WHERE room_id = ? ORDER BY map_id ASC, label ASC, id ASC`)
+            .all(roomId) as SpawnPointRow[])
+    );
+    return rows.map(spawnPointRowToState);
+  }
+
+  setSpawnPoints(
+    roomId: string,
+    mapId: string,
+    points: Array<{
+      id: string;
+      label?: string | null;
+      x: number;
+      y: number;
+      assignedCharacterId: string | null;
+    }>,
+  ): SpawnPoint[] {
+    const map = this.getMapById(mapId);
+    if (!map || map.roomId !== roomId) {
+      throw new Error("Map not found");
+    }
+    const characterIds = new Set(this.listCharacters(roomId).map((character) => character.id));
+    const tx = this.db.transaction(() => {
+      this.db.prepare("DELETE FROM spawn_points WHERE map_id = ?").run(mapId);
+      const insert = this.db.prepare(
+        `INSERT INTO spawn_points (id, map_id, room_id, label, x, y, assigned_character_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      );
+      for (const point of points) {
+        const assigned =
+          point.assignedCharacterId && characterIds.has(point.assignedCharacterId)
+            ? point.assignedCharacterId
+            : null;
+        insert.run(
+          point.id,
+          mapId,
+          roomId,
+          point.label ?? null,
+          point.x,
+          point.y,
+          assigned,
+        );
+      }
+    });
+    tx();
+    return this.listSpawnPoints(roomId, mapId);
+  }
+
+  applySpawn(roomId: string, mapId: string): {
+    points: SpawnPoint[];
+    placed: Array<{ characterId: string; tokenId: string; x: number; y: number }>;
+  } {
+    const map = this.getMapById(mapId);
+    if (!map || map.roomId !== roomId) {
+      throw new Error("Map not found");
+    }
+    const points = this.listSpawnPoints(roomId, mapId);
+    const pcs = this.listCharacters(roomId).filter((character) => character.kind === "pc");
+    const joinedOrder = this.listSessionsInRoom(roomId)
+      .filter((session) => session.role === "player" && session.characterId)
+      .map((session) => session.characterId as string);
+    const remaining = pcs
+      .map((character) => character.id)
+      .filter((id) => !joinedOrder.includes(id));
+    const characterIds = [...joinedOrder.filter((id) => pcs.some((pc) => pc.id === id)), ...remaining];
+    const assigned = assignSpawnPoints(points, characterIds);
+    const placed: Array<{ characterId: string; tokenId: string; x: number; y: number }> = [];
+
+    for (const [characterId, point] of assigned) {
+      const character = pcs.find((entry) => entry.id === characterId);
+      if (!character) {
+        continue;
+      }
+      const mapIds = character.mapIds.includes(mapId)
+        ? character.mapIds
+        : [...character.mapIds, mapId];
+      this.setCharacterMaps(characterId, roomId, mapIds);
+      this.db
+        .prepare(
+          `INSERT INTO character_maps (character_id, map_id, x, y)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(character_id, map_id) DO UPDATE SET x = excluded.x, y = excluded.y`,
+        )
+        .run(characterId, mapId, point.x, point.y);
+    }
+
+    if (this.getActiveMap(roomId)?.id === mapId) {
+      this.syncTokensForActiveMap(roomId);
+    } else {
+      this.setActiveMap(roomId, mapId);
+    }
+
+    for (const [characterId, point] of assigned) {
+      const token = this.listAllTokensOnActiveMap(roomId).find(
+        (entry) => entry.characterId === characterId,
+      );
+      if (token) {
+        placed.push({ characterId, tokenId: token.id, x: point.x, y: point.y });
+      }
+    }
+
+    return { points, placed };
   }
 
   removeCharacter(characterId: string): {
@@ -1006,25 +1156,132 @@ export class RoomStore {
       return null;
     }
     const order = JSON.parse(row.order_json) as InitiativeState["order"];
-    return { order, activeIndex: row.active_index, round: row.round || 1 };
+    const turnStart =
+      row.turn_start_x === null || row.turn_start_y === null
+        ? null
+        : { x: row.turn_start_x, y: row.turn_start_y };
+    return {
+      order,
+      activeIndex: row.active_index,
+      round: row.round || 1,
+      turnStart,
+      remainingCells: row.remaining_cells,
+    };
   }
 
   setInitiative(roomId: string, initiative: InitiativeState): InitiativeState {
+    const existing = this.getMovementBudget(roomId);
+    const turnStart = initiative.turnStart !== undefined ? initiative.turnStart : existing.turnStart;
+    const remainingCells =
+      initiative.remainingCells !== undefined ? initiative.remainingCells : existing.remainingCells;
+    const activeTokenId =
+      initiative.order.length > 0
+        ? (initiative.order[initiative.activeIndex]?.tokenId ?? null)
+        : null;
     this.db
       .prepare(
-        `INSERT INTO room_initiative (room_id, order_json, active_index, round) VALUES (?, ?, ?, ?)
+        `INSERT INTO room_initiative (
+           room_id, order_json, active_index, round,
+           turn_start_x, turn_start_y, remaining_cells, active_token_id
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(room_id) DO UPDATE SET
            order_json = excluded.order_json,
            active_index = excluded.active_index,
-           round = excluded.round`,
+           round = excluded.round,
+           turn_start_x = excluded.turn_start_x,
+           turn_start_y = excluded.turn_start_y,
+           remaining_cells = excluded.remaining_cells,
+           active_token_id = excluded.active_token_id`,
       )
       .run(
         roomId,
         JSON.stringify(initiative.order),
         initiative.activeIndex,
         initiative.round,
+        turnStart?.x ?? null,
+        turnStart?.y ?? null,
+        remainingCells ?? null,
+        activeTokenId,
       );
-    return initiative;
+    return {
+      ...initiative,
+      turnStart: turnStart ?? null,
+      remainingCells: remainingCells ?? null,
+    };
+  }
+
+  getMovementBudget(roomId: string): MovementBudget {
+    const row = this.db
+      .prepare("SELECT * FROM room_initiative WHERE room_id = ?")
+      .get(roomId) as InitiativeRow | undefined;
+    if (!row) {
+      return { tokenId: null, turnStart: null, remainingCells: null, active: false };
+    }
+    const turnStart =
+      row.turn_start_x === null || row.turn_start_y === null
+        ? null
+        : { x: row.turn_start_x, y: row.turn_start_y };
+    return {
+      tokenId: row.active_token_id,
+      turnStart,
+      remainingCells: row.remaining_cells,
+      active: row.active_token_id !== null && row.remaining_cells !== null,
+    };
+  }
+
+  setMovementBudget(
+    roomId: string,
+    budget: {
+      tokenId: string | null;
+      turnStart: TurnStart | null;
+      remainingCells: number | null;
+      active: boolean;
+    },
+  ): MovementBudget {
+    const initiative = this.getInitiative(roomId);
+    if (!initiative) {
+      return { tokenId: null, turnStart: null, remainingCells: null, active: false };
+    }
+    this.db
+      .prepare(
+        `UPDATE room_initiative
+         SET turn_start_x = ?, turn_start_y = ?, remaining_cells = ?, active_token_id = ?
+         WHERE room_id = ?`,
+      )
+      .run(
+        budget.turnStart?.x ?? null,
+        budget.turnStart?.y ?? null,
+        budget.active ? budget.remainingCells : null,
+        budget.active ? budget.tokenId : null,
+        roomId,
+      );
+    return this.getMovementBudget(roomId);
+  }
+
+  clearMovementBudget(roomId: string): MovementBudget {
+    return this.setMovementBudget(roomId, {
+      tokenId: null,
+      turnStart: null,
+      remainingCells: null,
+      active: false,
+    });
+  }
+
+  beginTurnMovement(roomId: string, tokenId: string): MovementBudget {
+    const token = this.getToken(tokenId);
+    if (!token || token.roomId !== roomId) {
+      return this.clearMovementBudget(roomId);
+    }
+    const speed =
+      token.characterId !== null
+        ? (this.getCharacter(token.characterId)?.speedCells ?? 6)
+        : 6;
+    return this.setMovementBudget(roomId, {
+      tokenId,
+      turnStart: { x: token.x, y: token.y },
+      remainingCells: speed,
+      active: true,
+    });
   }
 
   logDice(input: {
@@ -1093,6 +1350,7 @@ export class RoomStore {
     }
     const endedAt = new Date().toISOString();
     this.db.prepare("UPDATE battles SET ended_at = ? WHERE id = ?").run(endedAt, active.id);
+    this.clearMovementBudget(roomId);
     const battle: BattleState = { ...active, endedAt };
     const durationMs = Date.parse(endedAt) - Date.parse(active.startedAt);
     const event = this.appendEvent({
@@ -1363,6 +1621,12 @@ export class RoomStore {
     return token.characterId === session.characterId;
   }
 
+  playerMovementLocked(roomId: string): boolean {
+    const battle = this.getActiveBattle(roomId);
+    const initiative = this.getInitiative(roomId);
+    return Boolean(battle && initiative && initiative.order.length > 0);
+  }
+
   getSnapshot(
     roomId: string,
     role: Role,
@@ -1386,6 +1650,8 @@ export class RoomStore {
       eventLog: this.listRecentEvents(roomId),
       battle: this.getActiveBattle(roomId),
       fog: this.getActiveFog(roomId),
+      spawnPoints: this.listSpawnPoints(roomId),
+      movement: this.getMovementBudget(roomId),
       role,
       playerName,
       characterId,
@@ -1448,12 +1714,25 @@ function toCharacterState(row: CharacterRow, mapIds: string[]): CharacterState {
     image: row.image,
     notes: row.notes ?? null,
     sizeCells: row.size_cells,
+    speedCells: row.speed_cells ?? 6,
     mapIds,
     hpCurrent: row.hp_current ?? null,
     hpMax: row.hp_max ?? null,
     ac: row.ac ?? null,
     hpQuarter: null,
     conditions: parseConditionsJson(row.conditions_json),
+  };
+}
+
+function spawnPointRowToState(row: SpawnPointRow): SpawnPoint {
+  return {
+    id: row.id,
+    mapId: row.map_id,
+    roomId: row.room_id,
+    label: row.label,
+    x: row.x,
+    y: row.y,
+    assignedCharacterId: row.assigned_character_id,
   };
 }
 
