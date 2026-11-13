@@ -6,26 +6,29 @@ import {
   type TokenState,
 } from "@dms/shared";
 import { formatHp } from "../lib/hp";
-import type { Corner } from "../lib/islandLayout";
 import { getSocket } from "../socket/socket";
 import { ConditionBadges } from "./ConditionBadges";
 import { ConditionToggles } from "./ConditionToggles";
+import type { IslandDockProps } from "./islandDock";
 import { PlayIsland } from "./PlayIsland";
 
-type Props = {
+type Props = IslandDockProps & {
   tokens: TokenState[];
   characters: CharacterState[];
   initiative: InitiativeState | null;
-  corner: Corner;
-  onCycleCorner: () => void;
 };
 
 export function InitiativeIsland({
   tokens,
   characters,
   initiative,
-  corner,
-  onCycleCorner,
+  side,
+  collapsed,
+  canMoveUp,
+  canMoveDown,
+  onToggleCollapsed,
+  onDockSide,
+  onMoveInSide,
 }: Props) {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const byCharacter = useMemo(
@@ -70,7 +73,16 @@ export function InitiativeIsland({
   const activeHp = activeRow?.character ? formatHp(activeRow.character) : null;
 
   return (
-    <PlayIsland title="Initiative" corner={corner} onCycleCorner={onCycleCorner}>
+    <PlayIsland
+      title="Initiative"
+      side={side}
+      collapsed={collapsed}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
+      onToggleCollapsed={onToggleCollapsed}
+      onDockSide={onDockSide}
+      onMoveInSide={onMoveInSide}
+    >
       <p>
         Round <strong>{initiative?.round ?? 1}</strong>
         {active ? (

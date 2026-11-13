@@ -1,22 +1,25 @@
 import { ClientEvents, type MapState, type VisibilityState } from "@dms/shared";
 import { getSocket } from "../socket/socket";
+import type { IslandDockProps } from "./islandDock";
 import { PlayIsland } from "./PlayIsland";
-import type { Corner } from "../lib/islandLayout";
 
-type Props = {
+type Props = IslandDockProps & {
   maps: MapState[];
   activeMap: MapState | null;
   visibility: VisibilityState;
-  corner: Corner;
-  onCycleCorner: () => void;
 };
 
 export function MapControlIsland({
   maps,
   activeMap,
   visibility,
-  corner,
-  onCycleCorner,
+  side,
+  collapsed,
+  canMoveUp,
+  canMoveDown,
+  onToggleCollapsed,
+  onDockSide,
+  onMoveInSide,
 }: Props) {
   function activate(mapId: string) {
     getSocket().emit(ClientEvents.MapActivate, { mapId });
@@ -27,7 +30,16 @@ export function MapControlIsland({
   }
 
   return (
-    <PlayIsland title="Map" corner={corner} onCycleCorner={onCycleCorner}>
+    <PlayIsland
+      title="Map"
+      side={side}
+      collapsed={collapsed}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
+      onToggleCollapsed={onToggleCollapsed}
+      onDockSide={onDockSide}
+      onMoveInSide={onMoveInSide}
+    >
       <p className="muted">{activeMap ? activeMap.name : "No active map"}</p>
       <label className="stack">
         <span className="muted">Active map</span>
@@ -66,3 +78,4 @@ export function MapControlIsland({
     </PlayIsland>
   );
 }
+

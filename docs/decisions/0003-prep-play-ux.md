@@ -11,7 +11,7 @@ Phase 1 delivered a single GM chrome (toolbar + initiative panel beside the map)
 ## Decision
 
 - **Settings** is the GM prep surface: multi-map upload, per-map `grid_px`, room links, PC/NPC roster with map links.
-- **Play** shows the map full-bleed with three floating islands (Map control, Initiative, NPCs). Islands snap to corners; placement is persisted per room in `localStorage`.
+- **Play** shows the map full-bleed with floating islands (Map, Initiative, NPCs, and later Log/Dice/Fog). Islands dock to left/right rails and stack without overlap; placement is persisted per room in `localStorage` (see [0020](0020-play-island-dock-rails.md)).
 - **Screen/player** have no islands; a side rail shows round, order, and whose turn (portrait or placeholder). Camera still follows the GM.
 - Server remains source of truth for maps, active map, characters, visibility (`showPcs` / `showNpcs`), tokens on the active map, and initiative (including `round`).
 

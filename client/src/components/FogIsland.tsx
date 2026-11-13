@@ -1,10 +1,10 @@
 import { ClientEvents, type FogPaintMode, type PortalState } from "@dms/shared";
 import { getSocket } from "../socket/socket";
 import type { FogToolMode } from "../canvas/useMapScene";
-import type { Corner } from "../lib/islandLayout";
+import type { IslandDockProps } from "./islandDock";
 import { PlayIsland } from "./PlayIsland";
 
-type Props = {
+type Props = IslandDockProps & {
   mapId: string | null;
   hasLosGeometry: boolean;
   portals: PortalState[];
@@ -12,11 +12,9 @@ type Props = {
   tool: FogToolMode;
   paintMode: FogPaintMode;
   brushRadius: number;
-  corner: Corner;
   onToolChange: (tool: FogToolMode) => void;
   onPaintModeChange: (mode: FogPaintMode) => void;
   onBrushRadiusChange: (radius: number) => void;
-  onCycleCorner: () => void;
   onPortalToggle: (portalId: string, closed: boolean) => void;
 };
 
@@ -28,11 +26,16 @@ export function FogIsland({
   tool,
   paintMode,
   brushRadius,
-  corner,
+  side,
+  collapsed,
+  canMoveUp,
+  canMoveDown,
   onToolChange,
   onPaintModeChange,
   onBrushRadiusChange,
-  onCycleCorner,
+  onToggleCollapsed,
+  onDockSide,
+  onMoveInSide,
   onPortalToggle,
 }: Props) {
   function reset(baseCovered: boolean) {
@@ -50,7 +53,16 @@ export function FogIsland({
   }
 
   return (
-    <PlayIsland title="Fog" corner={corner} onCycleCorner={onCycleCorner}>
+    <PlayIsland
+      title="Fog"
+      side={side}
+      collapsed={collapsed}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
+      onToggleCollapsed={onToggleCollapsed}
+      onDockSide={onDockSide}
+      onMoveInSide={onMoveInSide}
+    >
       <p className="muted">
         {tool === "off" ? "Tool off — pan and move tokens." : "Paint on the map to reveal or hide."}
       </p>
