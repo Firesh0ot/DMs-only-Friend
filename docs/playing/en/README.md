@@ -40,7 +40,7 @@ No GM islands. Use the side rail for round, turn order, and whose turn it is. By
 
 ## Look & lantern
 
-The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings, Play, and Screen) to switch between candlelit cozy and a darker smoky dungeon look. The choice is remembered in this browser. Theme fonts ship with the app, so the look works on LAN / offline without a Google Fonts connection.
+The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings, Play, and Screen) to switch between candlelit cozy and a darker smoky dungeon look. Candlelit mode soft-flickers warm light across the whole page (chrome and islands included); the smoky dungeon stays calm. The choice is remembered in this browser. Theme fonts ship with the app, so the look works on LAN / offline without a Google Fonts connection.
 
 ## Quick start (table)
 
@@ -63,6 +63,7 @@ Optional Traefik labels (`TRAEFIK_ENABLE` / `FQDN`) attach to an existing Traefi
 - Prep/Play ADR: [../../decisions/0003-prep-play-ux.md](../../decisions/0003-prep-play-ux.md)
 - Session log ADR: [../../decisions/0004-session-battle-log.md](../../decisions/0004-session-battle-log.md)
 - Tavern theme ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
+- Page-wide candlelit flicker ADR: [../../decisions/0019-page-wide-candlelit-flicker.md](../../decisions/0019-page-wide-candlelit-flicker.md)
 - Dice island ADR: [../../decisions/0007-dice-play-island.md](../../decisions/0007-dice-play-island.md)
 - dd2vtt import ADR: [../../decisions/0008-dd2vtt-map-import.md](../../decisions/0008-dd2vtt-map-import.md)
 - HP visibility ADR: [../../decisions/0009-hp-screen-visibility.md](../../decisions/0009-hp-screen-visibility.md)

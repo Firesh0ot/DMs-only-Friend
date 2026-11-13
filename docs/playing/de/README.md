@@ -40,7 +40,7 @@ Keine Inseln. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Standar
 
 ## Look & Laterne
 
-Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**-Schalter (Startseite, Settings, Play und Screen) wechselst du zwischen kerzenwarm und dunkler, rauchiger Dungeon-Taverne. Die Wahl bleibt in diesem Browser gespeichert. Die Theme-Schriften liegen in der App, daher wirkt das Look auch im LAN / offline ohne Google-Fonts-Verbindung.
+Die Oberfläche nutzt ein mittelalterliches Tavernen-Thema. Mit dem **Laternen**-Schalter (Startseite, Settings, Play und Screen) wechselst du zwischen kerzenwarm und dunkler, rauchiger Dungeon-Taverne. Im Kerzenlicht flackert warmes Licht sanft über die ganze Seite (inkl. Chrome und Inseln); die rauchige Dungeon-Ansicht bleibt ruhig. Die Wahl bleibt in diesem Browser gespeichert. Die Theme-Schriften liegen in der App, daher wirkt das Look auch im LAN / offline ohne Google-Fonts-Verbindung.
 
 ## Schnellstart (Tisch)
 
@@ -63,6 +63,7 @@ Optionale Traefik-Labels (`TRAEFIK_ENABLE` / `FQDN`) hängen an bestehendes Trae
 - Prep/Play-ADR: [../../decisions/0003-prep-play-ux.md](../../decisions/0003-prep-play-ux.md)
 - Session-Log-ADR: [../../decisions/0004-session-battle-log.md](../../decisions/0004-session-battle-log.md)
 - Tavernen-Theme-ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
+- Seitenweites Kerzenflackern-ADR: [../../decisions/0019-page-wide-candlelit-flicker.md](../../decisions/0019-page-wide-candlelit-flicker.md)
 - Dice-Insel-ADR: [../../decisions/0007-dice-play-island.md](../../decisions/0007-dice-play-island.md)
 - dd2vtt-Import-ADR: [../../decisions/0008-dd2vtt-map-import.md](../../decisions/0008-dd2vtt-map-import.md)
 - TP-Sichtbarkeit-ADR: [../../decisions/0009-hp-screen-visibility.md](../../decisions/0009-hp-screen-visibility.md)
