@@ -1,11 +1,11 @@
-export type HudSectionId = "dice" | "initiative" | "fog" | "log";
+export type HudSectionId = "dice" | "initiative" | "spawn" | "fog" | "log";
 
 export type PlayHudPrefs = {
   v: 1;
   collapsed: Partial<Record<HudSectionId, boolean>>;
 };
 
-const ALL_SECTIONS: HudSectionId[] = ["dice", "initiative", "fog", "log"];
+const ALL_SECTIONS: HudSectionId[] = ["dice", "initiative", "spawn", "fog", "log"];
 
 const STORAGE_PREFIX = "dms-play-hud:v1:";
 const LEGACY_ISLAND_PREFIX = "dms-islands:";

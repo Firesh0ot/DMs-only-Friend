@@ -140,6 +140,25 @@ function migrate(db: Db): void {
   ensureColumn(db, "rooms", "physical_cell_cm", "REAL");
   ensureColumn(db, "rooms", "gm_claimed", "INT NOT NULL DEFAULT 1");
   ensureColumn(db, "map_fog", "los_enabled", "INT NOT NULL DEFAULT 0");
+  ensureColumn(db, "characters", "speed_cells", "INT NOT NULL DEFAULT 6");
+  ensureColumn(db, "room_initiative", "turn_start_x", "REAL");
+  ensureColumn(db, "room_initiative", "turn_start_y", "REAL");
+  ensureColumn(db, "room_initiative", "remaining_cells", "INT");
+  ensureColumn(db, "room_initiative", "active_token_id", "TEXT");
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS spawn_points (
+      id TEXT PRIMARY KEY,
+      map_id TEXT NOT NULL REFERENCES maps(id) ON DELETE CASCADE,
+      room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      label TEXT,
+      x REAL NOT NULL,
+      y REAL NOT NULL,
+      assigned_character_id TEXT REFERENCES characters(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_spawn_points_map_id ON spawn_points(map_id);
+    CREATE INDEX IF NOT EXISTS idx_spawn_points_room_id ON spawn_points(room_id);
+  `);
 
   backfillActiveMaps(db);
   backfillTokenMaps(db);

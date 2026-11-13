@@ -85,6 +85,7 @@ export const CharacterStateSchema = z.object({
   image: z.string().nullable(),
   notes: z.string().nullable(),
   sizeCells: z.number().positive(),
+  speedCells: z.number().int().positive(),
   mapIds: z.array(z.string()),
   hpCurrent: z.number().int().nullable(),
   hpMax: z.number().int().nullable(),
@@ -191,12 +192,39 @@ export const InitiativeEntrySchema = z.object({
 });
 export type InitiativeEntry = z.infer<typeof InitiativeEntrySchema>;
 
+export const TurnStartSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+});
+export type TurnStart = z.infer<typeof TurnStartSchema>;
+
 export const InitiativeStateSchema = z.object({
   order: z.array(InitiativeEntrySchema),
   activeIndex: z.number().int().nonnegative(),
   round: z.number().int().positive(),
+  turnStart: TurnStartSchema.nullable().optional(),
+  remainingCells: z.number().int().nonnegative().nullable().optional(),
 });
 export type InitiativeState = z.infer<typeof InitiativeStateSchema>;
+
+export const SpawnPointSchema = z.object({
+  id: z.string().min(1),
+  mapId: z.string().min(1),
+  roomId: z.string().min(1),
+  label: z.string().nullable(),
+  x: z.number(),
+  y: z.number(),
+  assignedCharacterId: z.string().nullable(),
+});
+export type SpawnPoint = z.infer<typeof SpawnPointSchema>;
+
+export const MovementBudgetSchema = z.object({
+  tokenId: z.string().nullable(),
+  turnStart: TurnStartSchema.nullable(),
+  remainingCells: z.number().int().nonnegative().nullable(),
+  active: z.boolean(),
+});
+export type MovementBudget = z.infer<typeof MovementBudgetSchema>;
 
 export const RoomStateSchema = z.object({
   id: z.string(),
@@ -215,6 +243,7 @@ export const SessionEventTypeSchema = z.enum([
   "round_advance",
   "visibility_set",
   "dice_roll",
+  "spawn_applied",
 ]);
 export type SessionEventType = z.infer<typeof SessionEventTypeSchema>;
 
@@ -301,6 +330,8 @@ export const SnapshotSchema = z.object({
   eventLog: z.array(SessionEventSchema),
   battle: BattleStateSchema.nullable(),
   fog: FogStateSchema.nullable(),
+  spawnPoints: z.array(SpawnPointSchema).default([]),
+  movement: MovementBudgetSchema.nullable().default(null),
   role: RoleSchema,
   playerName: z.string().nullable(),
   characterId: z.string().nullable(),
@@ -412,12 +443,54 @@ export const CharacterUpsertPayloadSchema = z.object({
   image: z.string().nullable().optional(),
   notes: z.string().max(500).nullable().optional(),
   sizeCells: z.number().positive().optional(),
+  speedCells: z.number().int().positive().max(50).optional(),
   mapIds: z.array(z.string().min(1)).optional(),
   hpCurrent: z.number().int().min(0).nullable().optional(),
   hpMax: z.number().int().min(0).nullable().optional(),
   ac: z.number().int().min(0).max(99).nullable().optional(),
 });
 export type CharacterUpsertPayload = z.infer<typeof CharacterUpsertPayloadSchema>;
+
+export const CharacterSetSpeedPayloadSchema = z.object({
+  characterId: z.string().min(1),
+  speedCells: z.number().int().positive().max(50),
+});
+export type CharacterSetSpeedPayload = z.infer<typeof CharacterSetSpeedPayloadSchema>;
+
+export const SpawnPointInputSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().max(64).nullable().optional(),
+  x: z.number(),
+  y: z.number(),
+  assignedCharacterId: z.string().min(1).nullable(),
+});
+export type SpawnPointInput = z.infer<typeof SpawnPointInputSchema>;
+
+export const SpawnSetPayloadSchema = z.object({
+  mapId: z.string().min(1),
+  points: z.array(SpawnPointInputSchema),
+});
+export type SpawnSetPayload = z.infer<typeof SpawnSetPayloadSchema>;
+
+export const SpawnApplyPayloadSchema = z.object({
+  mapId: z.string().min(1),
+});
+export type SpawnApplyPayload = z.infer<typeof SpawnApplyPayloadSchema>;
+
+export const SpawnUpdatedPayloadSchema = z.object({
+  mapId: z.string().min(1),
+  points: z.array(SpawnPointSchema),
+});
+export type SpawnUpdatedPayload = z.infer<typeof SpawnUpdatedPayloadSchema>;
+
+export const MovementUpdatedPayloadSchema = MovementBudgetSchema;
+export type MovementUpdatedPayload = z.infer<typeof MovementUpdatedPayloadSchema>;
+
+export const MovementRejectedPayloadSchema = z.object({
+  tokenId: z.string().min(1),
+  reason: z.string().min(1),
+});
+export type MovementRejectedPayload = z.infer<typeof MovementRejectedPayloadSchema>;
 
 export const CharacterRemovePayloadSchema = z.object({
   characterId: z.string().min(1),
@@ -501,6 +574,9 @@ export const ClientEvents = {
   CharacterRemove: "character:remove",
   CharacterSetHp: "character:setHp",
   CharacterSetConditions: "character:setConditions",
+  CharacterSetSpeed: "character:setSpeed",
+  SpawnSet: "spawn:set",
+  SpawnApply: "spawn:apply",
   VisibilitySet: "visibility:set",
   SettingsSet: "settings:set",
   ScreenCommand: "screen:command",
@@ -532,6 +608,9 @@ export const ServerEvents = {
   LogAppended: "log:appended",
   BattleUpdated: "battle:updated",
   FogUpdated: "fog:updated",
+  SpawnUpdated: "spawn:updated",
+  MovementUpdated: "movement:updated",
+  MovementRejected: "movement:rejected",
   Error: "error",
 } as const;
 
@@ -566,6 +645,9 @@ export type ClientToServerEvents = {
   [ClientEvents.CharacterRemove]: (payload: CharacterRemovePayload) => void;
   [ClientEvents.CharacterSetHp]: (payload: CharacterSetHpPayload) => void;
   [ClientEvents.CharacterSetConditions]: (payload: CharacterSetConditionsPayload) => void;
+  [ClientEvents.CharacterSetSpeed]: (payload: CharacterSetSpeedPayload) => void;
+  [ClientEvents.SpawnSet]: (payload: SpawnSetPayload) => void;
+  [ClientEvents.SpawnApply]: (payload: SpawnApplyPayload) => void;
   [ClientEvents.VisibilitySet]: (payload: VisibilitySetPayload) => void;
   [ClientEvents.SettingsSet]: (payload: SettingsSetPayload) => void;
   [ClientEvents.ScreenCommand]: (payload: ScreenCommandPayload) => void;
@@ -602,5 +684,8 @@ export type ServerToClientEvents = {
   [ServerEvents.LogAppended]: (event: SessionEvent) => void;
   [ServerEvents.BattleUpdated]: (battle: BattleState | null) => void;
   [ServerEvents.FogUpdated]: (fog: FogState | null) => void;
+  [ServerEvents.SpawnUpdated]: (payload: SpawnUpdatedPayload) => void;
+  [ServerEvents.MovementUpdated]: (payload: MovementUpdatedPayload) => void;
+  [ServerEvents.MovementRejected]: (payload: MovementRejectedPayload) => void;
   [ServerEvents.Error]: (payload: { message: string }) => void;
 };

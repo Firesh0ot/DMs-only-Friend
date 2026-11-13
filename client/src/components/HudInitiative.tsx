@@ -16,9 +16,16 @@ type Props = {
   characters: CharacterState[];
   initiative: InitiativeState | null;
   visibility: VisibilityState;
+  remainingCells?: number | null;
 };
 
-export function HudInitiative({ tokens, characters, initiative, visibility }: Props) {
+export function HudInitiative({
+  tokens,
+  characters,
+  initiative,
+  visibility,
+  remainingCells = null,
+}: Props) {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [orderOpen, setOrderOpen] = useState(false);
   const byCharacter = useMemo(
@@ -95,6 +102,9 @@ export function HudInitiative({ tokens, characters, initiative, visibility }: Pr
               {" "}
               · <strong>{active.label}</strong>
               {activeHp ? <span className="hp-chip">{activeHp}</span> : null}
+              {remainingCells !== null && remainingCells !== undefined ? (
+                <span className="hp-chip">Move {remainingCells}</span>
+              ) : null}
             </>
           ) : null}
         </span>

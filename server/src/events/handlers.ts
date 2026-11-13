@@ -1,8 +1,10 @@
 import {
+  applyMove,
   CameraSetPayloadSchema,
   CharacterRemovePayloadSchema,
   CharacterSetConditionsPayloadSchema,
   CharacterSetHpPayloadSchema,
+  CharacterSetSpeedPayloadSchema,
   CharacterUpsertPayloadSchema,
   ClientEvents,
   DiceRollPayloadSchema,
@@ -19,6 +21,8 @@ import {
   ScreenCommandPayloadSchema,
   ServerEvents,
   SettingsSetPayloadSchema,
+  SpawnApplyPayloadSchema,
+  SpawnSetPayloadSchema,
   TokenCreatePayloadSchema,
   TokenMovePayloadSchema,
   TokenRemovePayloadSchema,
@@ -150,8 +154,54 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           emitError(socket, new Error("Not allowed to move this token"));
           return;
         }
+
+        let movement = rooms.getMovementBudget(session.roomId);
+        if (session.role === "player" && rooms.playerMovementLocked(session.roomId)) {
+          const initiative = rooms.getInitiative(session.roomId);
+          const active = initiative?.order[initiative.activeIndex];
+          if (!active || active.tokenId !== token.id) {
+            socket.emit(ServerEvents.MovementRejected, {
+              tokenId: token.id,
+              reason: "Not your turn",
+            });
+            return;
+          }
+          if (
+            !movement.active ||
+            movement.tokenId !== token.id ||
+            movement.remainingCells === null
+          ) {
+            socket.emit(ServerEvents.MovementRejected, {
+              tokenId: token.id,
+              reason: "No movement budget",
+            });
+            return;
+          }
+          const result = applyMove({
+            from: { x: token.x, y: token.y },
+            to: { x: data.x, y: data.y },
+            remainingCells: movement.remainingCells,
+          });
+          if (!result.ok) {
+            socket.emit(ServerEvents.MovementRejected, {
+              tokenId: token.id,
+              reason: result.reason,
+            });
+            return;
+          }
+          movement = rooms.setMovementBudget(session.roomId, {
+            tokenId: token.id,
+            turnStart: movement.turnStart,
+            remainingCells: result.remainingCells,
+            active: true,
+          });
+        }
+
         const moved = rooms.moveToken(data.tokenId, data.x, data.y);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.TokenMoved, moved);
+        if (session.role === "player" && movement.active && movement.tokenId === moved.id) {
+          io.to(roomChannel(session.roomId)).emit(ServerEvents.MovementUpdated, movement);
+        }
         const moveEvent = rooms.logTokenMove({
           roomId: session.roomId,
           tokenId: moved.id,
@@ -262,8 +312,12 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           order,
           activeIndex: 0,
           round: previous?.round ?? 1,
+          turnStart: null,
+          remainingCells: null,
         });
+        const movement = rooms.clearMovementBudget(session.roomId);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.MovementUpdated, movement);
         emitLog(
           io,
           session.roomId,
@@ -305,6 +359,10 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         });
         io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
         const active = initiative.order[activeIndex];
+        const movement = active
+          ? rooms.beginTurnMovement(session.roomId, active.tokenId)
+          : rooms.clearMovementBudget(session.roomId);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.MovementUpdated, movement);
         emitLog(
           io,
           session.roomId,
@@ -435,6 +493,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           image: data.image,
           notes: data.notes,
           sizeCells: data.sizeCells,
+          speedCells: data.speedCells,
           mapIds: data.mapIds,
           hpCurrent: data.hpCurrent,
           hpMax: data.hpMax,
@@ -520,6 +579,75 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         }
         rooms.setCharacterConditions(data.characterId, data.conditions);
         emitCharactersUpdated(io, rooms, session.roomId);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.CharacterSetSpeed, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = CharacterSetSpeedPayloadSchema.parse(payload);
+        const character = rooms.getCharacter(data.characterId);
+        if (!character || character.roomId !== session.roomId) {
+          emitError(socket, new Error("Character not found"));
+          return;
+        }
+        rooms.setCharacterSpeed(data.characterId, data.speedCells);
+        emitCharactersUpdated(io, rooms, session.roomId);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.SpawnSet, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = SpawnSetPayloadSchema.parse(payload);
+        const points = rooms.setSpawnPoints(session.roomId, data.mapId, data.points);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.SpawnUpdated, {
+          mapId: data.mapId,
+          points,
+        });
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.SpawnApply, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = SpawnApplyPayloadSchema.parse(payload);
+        const result = rooms.applySpawn(session.roomId, data.mapId);
+        const active = rooms.getActiveMap(session.roomId);
+        broadcastMapView(io, rooms, session.roomId, active);
+        emitCharactersUpdated(io, rooms, session.roomId);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.SpawnUpdated, {
+          mapId: data.mapId,
+          points: result.points,
+        });
+        emitLog(
+          io,
+          session.roomId,
+          rooms.appendEvent({
+            roomId: session.roomId,
+            type: "spawn_applied",
+            summary: `Spawn applied (${result.placed.length})`,
+            payload: {
+              mapId: data.mapId,
+              placed: result.placed,
+            },
+          }),
+        );
       } catch (error) {
         emitError(socket, error);
       }
@@ -660,6 +788,10 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       try {
         const { event } = rooms.endBattle(session.roomId);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.BattleUpdated, null);
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.MovementUpdated,
+          rooms.getMovementBudget(session.roomId),
+        );
         emitLog(io, session.roomId, event);
       } catch (error) {
         emitError(socket, error);

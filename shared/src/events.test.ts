@@ -16,8 +16,12 @@ import {
   SessionEventSchema,
   SettingsSetPayloadSchema,
   SnapshotSchema,
+  SpawnApplyPayloadSchema,
+  SpawnSetPayloadSchema,
   TokenMovePayloadSchema,
   VisibilitySetPayloadSchema,
+  CharacterSetSpeedPayloadSchema,
+  MovementRejectedPayloadSchema,
   hpToQuarter,
   normalizeRoomCode,
   roomCodeFromPathSegment,
@@ -158,6 +162,8 @@ describe("event schemas", () => {
       eventLog: [],
       battle: null,
       fog: null,
+      spawnPoints: [],
+      movement: null,
       role: "gm",
       playerName: null,
       characterId: null,
@@ -166,6 +172,24 @@ describe("event schemas", () => {
     expect(snapshot.settings.screenHpQuarters).toBe(false);
     expect(snapshot.settings.physicalCellCm).toBeNull();
     expect(snapshot.characterId).toBeNull();
+    expect(snapshot.spawnPoints).toEqual([]);
+    expect(snapshot.movement).toBeNull();
+  });
+
+  it("accepts spawn and speed payloads", () => {
+    expect(
+      SpawnSetPayloadSchema.parse({
+        mapId: "map-1",
+        points: [{ id: "sp1", x: 2, y: 3, assignedCharacterId: null, label: "Door" }],
+      }).points,
+    ).toHaveLength(1);
+    expect(SpawnApplyPayloadSchema.parse({ mapId: "map-1" }).mapId).toBe("map-1");
+    expect(
+      CharacterSetSpeedPayloadSchema.parse({ characterId: "c1", speedCells: 8 }).speedCells,
+    ).toBe(8);
+    expect(
+      MovementRejectedPayloadSchema.parse({ tokenId: "t1", reason: "Not your turn" }).reason,
+    ).toBe("Not your turn");
   });
 
   it("accepts physicalCellCm on settings:set", () => {

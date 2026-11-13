@@ -68,7 +68,7 @@ export function SettingsPanel({
   const [draft, setDraft] = useState<DraftCharacter>(emptyDraft);
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
   const [editingStats, setEditingStats] = useState<
-    Record<string, { hpCurrent: string; hpMax: string; ac: string }>
+    Record<string, { hpCurrent: string; hpMax: string; ac: string; speedCells: string }>
   >({});
   const [gmInviteUrl, setGmInviteUrl] = useState<string | null>(null);
   const [currentPin, setCurrentPin] = useState("");
@@ -309,6 +309,7 @@ export function SettingsPanel({
           ? patch.notes
           : (editingNotes[character.id] ?? character.notes ?? null),
       sizeCells: character.sizeCells,
+      speedCells: patch.speedCells ?? character.speedCells,
       image: character.image,
       hpCurrent: patch.hpCurrent !== undefined ? patch.hpCurrent : character.hpCurrent,
       hpMax: patch.hpMax !== undefined ? patch.hpMax : character.hpMax,
@@ -322,6 +323,7 @@ export function SettingsPanel({
         hpCurrent: character.hpCurrent === null ? "" : String(character.hpCurrent),
         hpMax: character.hpMax === null ? "" : String(character.hpMax),
         ac: character.ac === null ? "" : String(character.ac),
+        speedCells: String(character.speedCells ?? 6),
       }
     );
   }
@@ -332,7 +334,11 @@ export function SettingsPanel({
       const hpMax = parseOptionalInt(stats.hpMax);
       const hpCurrent = stats.hpCurrent.trim() ? parseOptionalInt(stats.hpCurrent) : hpMax;
       const ac = parseOptionalInt(stats.ac);
-      saveCharacter(character, { hpCurrent, hpMax, ac });
+      const speedRaw = Number(stats.speedCells);
+      if (!Number.isInteger(speedRaw) || speedRaw < 1 || speedRaw > 50) {
+        throw new Error("Speed must be 1–50 cells");
+      }
+      saveCharacter(character, { hpCurrent, hpMax, ac, speedCells: speedRaw });
       setEditingStats((current) => {
         const next = { ...current };
         delete next[character.id];
@@ -444,6 +450,23 @@ export function SettingsPanel({
                   setEditingStats((current) => ({
                     ...current,
                     [character.id]: { ...stats, ac: event.target.value },
+                  }))
+                }
+                onBlur={() => saveStats(character)}
+              />
+            </label>
+            <label className="stack" htmlFor={`${baseId}-speed-${character.id}`}>
+              <span className="muted">Speed</span>
+              <input
+                id={`${baseId}-speed-${character.id}`}
+                inputMode="numeric"
+                value={stats.speedCells}
+                placeholder="6"
+                aria-label={`Speed cells for ${character.name}`}
+                onChange={(event) =>
+                  setEditingStats((current) => ({
+                    ...current,
+                    [character.id]: { ...stats, speedCells: event.target.value },
                   }))
                 }
                 onBlur={() => saveStats(character)}

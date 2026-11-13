@@ -6,8 +6,10 @@ import {
   type FogPaintMode,
   type InitiativeState,
   type MapState,
+  type MovementBudget,
   type PortalState,
   type SessionEvent,
+  type SpawnPoint,
   type TokenState,
   type VisibilityState,
 } from "@dms/shared";
@@ -25,6 +27,7 @@ import { HudDice } from "./HudDice";
 import { HudFog } from "./HudFog";
 import { HudInitiative } from "./HudInitiative";
 import { HudPanel } from "./HudPanel";
+import { HudSpawn } from "./HudSpawn";
 
 type Props = {
   roomCode: string;
@@ -48,6 +51,10 @@ type Props = {
   onFogPaintModeChange: (mode: FogPaintMode) => void;
   onFogBrushRadiusChange: (radius: number) => void;
   onPortalToggle: (portalId: string, closed: boolean) => void;
+  spawnPoints: SpawnPoint[];
+  spawnTool: boolean;
+  onSpawnToolChange: (active: boolean) => void;
+  movement: MovementBudget | null;
 };
 
 export function PlayHud({
@@ -72,6 +79,10 @@ export function PlayHud({
   onFogPaintModeChange,
   onFogBrushRadiusChange,
   onPortalToggle,
+  spawnPoints,
+  spawnTool,
+  onSpawnToolChange,
+  movement,
 }: Props) {
   const [prefs, setPrefs] = useState<PlayHudPrefs | null>(null);
 
@@ -112,6 +123,25 @@ export function PlayHud({
             characters={characters}
             initiative={initiative}
             visibility={visibility}
+            remainingCells={movement?.active ? movement.remainingCells : null}
+          />
+        </HudPanel>
+        <HudPanel
+          title="Spawn"
+          collapsed={isHudCollapsed(prefs, "spawn")}
+          onToggleCollapsed={() => toggle("spawn")}
+        >
+          <HudSpawn
+            mapId={activeMap?.id ?? null}
+            characters={characters}
+            spawnPoints={spawnPoints}
+            toolActive={spawnTool}
+            onToolChange={(active) => {
+              if (active) {
+                onFogToolChange("off");
+              }
+              onSpawnToolChange(active);
+            }}
           />
         </HudPanel>
       </div>

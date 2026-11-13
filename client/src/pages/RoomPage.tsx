@@ -52,8 +52,11 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
 
   const [gmMode, setGmMode] = useState<GmMode>("play");
   const [fogTool, setFogTool] = useState<FogToolMode>("off");
+  const [spawnTool, setSpawnTool] = useState(false);
   const [fogPaintMode, setFogPaintMode] = useState<FogPaintMode>("reveal");
   const [fogBrushRadius, setFogBrushRadius] = useState(36);
+  const lastMovementReject = useRoomStore((state) => state.lastMovementReject);
+  const clearMovementReject = useRoomStore((state) => state.clearMovementReject);
   const [gmPin, setGmPin] = useState(() => sessionStorage.getItem(`dms-gm-pin:${code}`) ?? "");
   const [pinReady, setPinReady] = useState(
     () => role !== "gm" || /^\d{4,8}$/.test(sessionStorage.getItem(`dms-gm-pin:${code}`) ?? ""),
@@ -133,6 +136,39 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
     moveTokenOptimistic(tokenId, x, y);
     getSocket().emit(ClientEvents.TokenMove, { tokenId, x, y });
   }
+
+  function onSpawnPlace(x: number, y: number) {
+    if (!snapshot?.map) {
+      return;
+    }
+    const mapId = snapshot.map.id;
+    const existing = snapshot.spawnPoints.filter((point) => point.mapId === mapId);
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `sp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    getSocket().emit(ClientEvents.SpawnSet, {
+      mapId,
+      points: [
+        ...existing.map((point) => ({
+          id: point.id,
+          label: point.label,
+          x: point.x,
+          y: point.y,
+          assignedCharacterId: point.assignedCharacterId,
+        })),
+        { id, label: `Spawn ${existing.length + 1}`, x, y, assignedCharacterId: null },
+      ],
+    });
+  }
+
+  useEffect(() => {
+    if (!lastMovementReject) {
+      return;
+    }
+    const timer = window.setTimeout(() => clearMovementReject(), 3500);
+    return () => window.clearTimeout(timer);
+  }, [lastMovementReject, clearMovementReject]);
 
   function onCameraChange(camera: CameraState) {
     if (role !== "gm") {
@@ -214,6 +250,7 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
             {connected ? "Connected" : "Connecting…"} · {role}
             {snapshot?.playerName ? ` · ${snapshot.playerName}` : ""}
             {isGm && fogTool !== "off" ? " · Fog tool" : ""}
+            {isGm && spawnTool ? " · Spawn tool" : ""}
           </p>
           <h1 className="brand brand--compact">Room {code}</h1>
         </div>
@@ -254,6 +291,11 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
 
       {joining ? <p className="lede">Joining room…</p> : null}
       {error ? <p className="error">{error}</p> : null}
+      {lastMovementReject ? (
+        <p className="error" role="status">
+          Movement blocked: {lastMovementReject.reason}
+        </p>
+      ) : null}
 
       {snapshot && showSettings ? (
         <SettingsPanel
@@ -275,6 +317,7 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                 initiative={snapshot.initiative}
                 tokens={tokens}
                 characters={snapshot.characters}
+                movement={snapshot.movement}
               />
               <SessionStrip battle={snapshot.battle} events={snapshot.eventLog} />
             </div>
@@ -307,6 +350,10 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                   }
                   onFogPaint={onFogPaint}
                   onPortalToggle={isGm ? onPortalToggle : undefined}
+                  spawnTool={isGm && spawnTool}
+                  spawnPoints={snapshot.spawnPoints}
+                  onSpawnPlace={isGm ? onSpawnPlace : undefined}
+                  movement={snapshot.movement}
                 />
               </div>
             </div>
@@ -332,10 +379,19 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                 fogTool={fogTool}
                 fogPaintMode={fogPaintMode}
                 fogBrushRadius={fogBrushRadius}
-                onFogToolChange={setFogTool}
+                onFogToolChange={(tool) => {
+                  if (tool !== "off") {
+                    setSpawnTool(false);
+                  }
+                  setFogTool(tool);
+                }}
                 onFogPaintModeChange={setFogPaintMode}
                 onFogBrushRadiusChange={setFogBrushRadius}
                 onPortalToggle={onPortalToggle}
+                spawnPoints={snapshot.spawnPoints}
+                spawnTool={spawnTool}
+                onSpawnToolChange={setSpawnTool}
+                movement={snapshot.movement}
               />
             ) : null}
 

@@ -5,7 +5,9 @@ import type {
   FogState,
   FogStrokeInput,
   MapState,
+  MovementBudget,
   Role,
+  SpawnPoint,
   TokenState,
 } from "@dms/shared";
 import type { ScreenDisplayMode } from "../lib/screenCalibration";
@@ -30,6 +32,10 @@ type Props = {
   onPhysicalCameraChange?: (camera: { x: number; y: number }) => void;
   onFogPaint: (stroke: FogStrokeInput) => void;
   onPortalToggle?: (portalId: string, closed: boolean) => void;
+  spawnTool?: boolean;
+  spawnPoints?: SpawnPoint[];
+  onSpawnPlace?: (x: number, y: number) => void;
+  movement?: MovementBudget | null;
 };
 
 export function MapCanvas(props: Props) {

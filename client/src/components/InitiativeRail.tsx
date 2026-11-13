@@ -1,4 +1,4 @@
-import type { CharacterState, InitiativeState, TokenState } from "@dms/shared";
+import type { CharacterState, InitiativeState, MovementBudget, TokenState } from "@dms/shared";
 import { useMemo } from "react";
 import { formatHp, formatHpQuarter } from "../lib/hp";
 import { ConditionBadges } from "./ConditionBadges";
@@ -7,9 +7,10 @@ type Props = {
   initiative: InitiativeState | null;
   tokens: TokenState[];
   characters: CharacterState[];
+  movement?: MovementBudget | null;
 };
 
-export function InitiativeRail({ initiative, tokens, characters }: Props) {
+export function InitiativeRail({ initiative, tokens, characters, movement = null }: Props) {
   const byToken = useMemo(() => new Map(tokens.map((token) => [token.id, token])), [tokens]);
   const byCharacter = useMemo(
     () => new Map(characters.map((character) => [character.id, character])),
@@ -64,6 +65,12 @@ export function InitiativeRail({ initiative, tokens, characters }: Props) {
               <>
                 {" "}
                 <span className="hp-chip">{activeHp}</span>
+              </>
+            ) : null}
+            {movement?.active && movement.remainingCells !== null ? (
+              <>
+                {" "}
+                <span className="hp-chip">Move {movement.remainingCells}</span>
               </>
             ) : null}
           </p>
