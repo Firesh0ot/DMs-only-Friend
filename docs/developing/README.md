@@ -126,7 +126,7 @@ See [ADR 0003](../decisions/0003-prep-play-ux.md).
 - Visibility: `rooms.show_pcs` / `show_npcs`; snapshot tokens are filtered server-side.
 - Settings: `rooms.screen_hp_quarters` (default 0); snapshot `settings`; `settings:set` / `settings:updated`.
 - Initiative: `room_initiative` includes `round`.
-- Island layout: client-only `localStorage` key `dms-islands:<roomCode>` (Map, Initiative, NPCs, Log, Dice, Fog); defaults use unique docks `tl/tr/mr/br/bl/ml`.
+- Play HUD prefs: client-only `localStorage` key `dms-play-hud:v1:<roomCode>` (section collapse). Obsolete `dms-islands:` / `dms-islands:v2:` keys are cleared on load. See [ADR 0024](../decisions/0024-play-game-hud.md).
 - Auth: creator-chosen room `code`, hashed `pin_hash`/`pin_salt`, single-use `gm_invite_hash`; GM join needs PIN (+ invite while pending). Joined GM may change PIN via `gm:changePin` (optional invite invalidation). Upload routes require `X-Dms-Upload-Token` issued on GM `room:join`. See [ADR 0012](../decisions/0012-room-identity-gm-auth.md) and [ADR 0013](../decisions/0013-screen-hp-quarters.md).
 
 ### Session / battle log
@@ -138,9 +138,9 @@ See [ADR 0004](../decisions/0004-session-battle-log.md).
 - Events: map change, throttled token moves, initiative set/next, round advance, visibility, battle start/end, dice rolls.
 - Auto-start battle on first `initiative:next` if none active; GM ends via `battle:end`.
 
-### Dice Play island
+### Dice (Play HUD)
 
-See [ADR 0007](../decisions/0007-dice-play-island.md). GM island emits `dice:roll`; server uses `parseExpr`/`roll`, persists `dice_log`, broadcasts `dice:rolled`, and appends `dice_roll` to the session log. Screen/player show a short toast.
+See [ADR 0007](../decisions/0007-dice-play-island.md). GM HUD Dice emits `dice:roll`; server uses `parseExpr`/`roll`, persists `dice_log`, broadcasts `dice:rolled`, and appends `dice_roll` to the session log. Screen/player show a short toast.
 
 ### Map import (.dd2vtt)
 
@@ -158,7 +158,7 @@ See [ADR 0010](../decisions/0010-manual-fog-of-war.md).
 - Table: `map_fog` (`base_covered`, `strokes_json`, `los_enabled`) keyed by `map_id`.
 - Snapshot field: `fog` for the active map (`losEnabled` included).
 - Events: `fog:paint`, `fog:reset`, `fog:setLos` → `fog:updated` (GM only to mutate).
-- Client: PixiJS v8 fog mask above tokens; Fog Play island for brush/rect tools and LoS toggle.
+- Client: PixiJS v8 fog mask above tokens; Fog HUD panel for brush/rect tools and LoS toggle.
 
 ### Automatic LoS fog
 
@@ -166,7 +166,7 @@ See [ADR 0016](../decisions/0016-los-fog-from-walls.md).
 
 - Vision from PC tokens against `maps.walls_json` plus **closed** portals from `maps.portals_json`.
 - Client: `losVisibility.ts` ray cast; composed with manual fog (visible only if both allow).
-- Door toggle: GM `portal:setClosed` → map broadcast; Fog island door buttons + click door overlay.
+- Door toggle: GM `portal:setClosed` → map broadcast; Fog HUD door buttons + click door overlay.
 - Out of scope here: lights, vision radius, replay/video, WebM animated map layers.
 
 ### Character conditions

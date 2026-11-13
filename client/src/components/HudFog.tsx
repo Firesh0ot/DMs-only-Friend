@@ -1,10 +1,8 @@
 import { ClientEvents, type FogPaintMode, type PortalState } from "@dms/shared";
 import { getSocket } from "../socket/socket";
 import type { FogToolMode } from "../canvas/useMapScene";
-import type { IslandDockProps } from "./islandDock";
-import { PlayIsland } from "./PlayIsland";
 
-type Props = IslandDockProps & {
+type Props = {
   mapId: string | null;
   hasLosGeometry: boolean;
   portals: PortalState[];
@@ -18,7 +16,7 @@ type Props = IslandDockProps & {
   onPortalToggle: (portalId: string, closed: boolean) => void;
 };
 
-export function FogIsland({
+export function HudFog({
   mapId,
   hasLosGeometry,
   portals,
@@ -26,16 +24,9 @@ export function FogIsland({
   tool,
   paintMode,
   brushRadius,
-  side,
-  collapsed,
-  canMoveUp,
-  canMoveDown,
   onToolChange,
   onPaintModeChange,
   onBrushRadiusChange,
-  onToggleCollapsed,
-  onDockSide,
-  onMoveInSide,
   onPortalToggle,
 }: Props) {
   function reset(baseCovered: boolean) {
@@ -53,30 +44,21 @@ export function FogIsland({
   }
 
   return (
-    <PlayIsland
-      title="Fog"
-      side={side}
-      collapsed={collapsed}
-      canMoveUp={canMoveUp}
-      canMoveDown={canMoveDown}
-      onToggleCollapsed={onToggleCollapsed}
-      onDockSide={onDockSide}
-      onMoveInSide={onMoveInSide}
-    >
-      <p className="muted">
-        {tool === "off" ? "Tool off — pan and move tokens." : "Paint on the map to reveal or hide."}
+    <div className="hud-fog stack">
+      <p className="muted hud-muted">
+        {tool === "off" ? "Tool off" : "Paint to reveal or hide"}
       </p>
-      <div className="fog-island__tools" role="group" aria-label="Fog tool">
+      <div className="hud-fog__tools" role="group" aria-label="Fog tool">
         <button
           type="button"
-          className={tool === "off" ? "is-active" : "secondary"}
+          className={tool === "off" ? "is-active hud-chip" : "secondary hud-chip"}
           onClick={() => onToolChange("off")}
         >
           Off
         </button>
         <button
           type="button"
-          className={tool === "brush" ? "is-active" : "secondary"}
+          className={tool === "brush" ? "is-active hud-chip" : "secondary hud-chip"}
           onClick={() => onToolChange("brush")}
           disabled={!mapId}
         >
@@ -84,31 +66,31 @@ export function FogIsland({
         </button>
         <button
           type="button"
-          className={tool === "rect" ? "is-active" : "secondary"}
+          className={tool === "rect" ? "is-active hud-chip" : "secondary hud-chip"}
           onClick={() => onToolChange("rect")}
           disabled={!mapId}
         >
           Rect
         </button>
       </div>
-      <div className="fog-island__tools" role="group" aria-label="Fog paint mode">
+      <div className="hud-fog__tools" role="group" aria-label="Fog paint mode">
         <button
           type="button"
-          className={paintMode === "reveal" ? "is-active" : "secondary"}
+          className={paintMode === "reveal" ? "is-active hud-chip" : "secondary hud-chip"}
           onClick={() => onPaintModeChange("reveal")}
         >
           Reveal
         </button>
         <button
           type="button"
-          className={paintMode === "hide" ? "is-active" : "secondary"}
+          className={paintMode === "hide" ? "is-active hud-chip" : "secondary hud-chip"}
           onClick={() => onPaintModeChange("hide")}
         >
           Hide
         </button>
       </div>
-      <label className="stack">
-        <span className="muted">Brush size ({brushRadius}px)</span>
+      <label className="hud-fog__brush">
+        <span className="muted">Brush {brushRadius}px</span>
         <input
           type="range"
           min={12}
@@ -119,38 +101,46 @@ export function FogIsland({
           disabled={tool !== "brush"}
         />
       </label>
-      <div className="fog-island__tools">
-        <button type="button" className="secondary" disabled={!mapId} onClick={() => reset(true)}>
-          Cover all
-        </button>
-        <button type="button" className="secondary" disabled={!mapId} onClick={() => reset(false)}>
-          Clear all
-        </button>
-      </div>
-      <div className="fog-island__tools" role="group" aria-label="Line of sight fog">
+      <div className="hud-fog__tools">
         <button
           type="button"
-          className={losEnabled ? "is-active" : "secondary"}
+          className="secondary hud-chip"
+          disabled={!mapId}
+          onClick={() => reset(true)}
+        >
+          Cover
+        </button>
+        <button
+          type="button"
+          className="secondary hud-chip"
+          disabled={!mapId}
+          onClick={() => reset(false)}
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          className={losEnabled ? "is-active hud-chip" : "secondary hud-chip"}
           disabled={!mapId || !hasLosGeometry}
           onClick={() => setLos(!losEnabled)}
           title={
             hasLosGeometry
-              ? "Toggle automatic line-of-sight fog from walls and doors"
-              : "Import a .dd2vtt map with walls or doors to enable LoS"
+              ? "Toggle automatic line-of-sight fog"
+              : "Import a .dd2vtt map with walls or doors"
           }
         >
           LoS {losEnabled ? "on" : "off"}
         </button>
       </div>
       {portals.length > 0 ? (
-        <div className="fog-island__doors" role="group" aria-label="Doors">
-          <span className="muted">Doors (click map or here)</span>
-          <div className="fog-island__tools">
+        <div className="hud-fog__doors" role="group" aria-label="Doors">
+          <span className="muted hud-muted">Doors</span>
+          <div className="hud-fog__tools">
             {portals.map((portal, index) => (
               <button
                 key={portal.id}
                 type="button"
-                className={portal.closed ? "secondary" : "is-active"}
+                className={portal.closed ? "secondary hud-chip" : "is-active hud-chip"}
                 disabled={!mapId}
                 onClick={() => onPortalToggle(portal.id, !portal.closed)}
                 title={portal.closed ? "Open door" : "Close door"}
@@ -161,11 +151,6 @@ export function FogIsland({
           </div>
         </div>
       ) : null}
-      <p className="muted fog-island__hint">
-        {hasLosGeometry
-          ? "LoS hides areas behind walls and closed doors from PC tokens; manual fog still applies. Open doors let vision through. Players see solid fog; you see it translucent."
-          : "Players see solid fog; you see it translucent for editing. LoS needs .dd2vtt walls or doors."}
-      </p>
-    </PlayIsland>
+    </div>
   );
 }

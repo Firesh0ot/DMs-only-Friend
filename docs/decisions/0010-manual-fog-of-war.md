@@ -5,7 +5,7 @@
 
 ## Context
 
-Phase 2 calls for a manual Fog-of-War layer (brush and rectangles) so the GM can hide and reveal the map for the table screen and remote players. Automatic line-of-sight from walls (`.dd2vtt`) stays later. Prep/Play islands are already the GM chrome pattern.
+Phase 2 calls for a manual Fog-of-War layer (brush and rectangles) so the GM can hide and reveal the map for the table screen and remote players. Automatic line-of-sight from walls (`.dd2vtt`) stays later. Prep/Play split is the GM chrome pattern ([0003](0003-prep-play-ux.md), [0024](0024-play-game-hud.md)).
 
 ## Decision
 
@@ -14,7 +14,7 @@ Phase 2 calls for a manual Fog-of-War layer (brush and rectangles) so the GM can
 - GM-only socket events: `fog:paint` (append brush or rect stroke) and `fog:reset` (cover-all or clear-all). Server assigns stroke ids, normalizes rects, and broadcasts `fog:updated`.
 - Snapshot on join includes `fog` for the active map (or `null` with no map). Map activate/upload/remove also refreshes fog for clients.
 - Client renders fog with PixiJS v8 (`RenderTexture` fed by Canvas2D mask compositing: `destination-out` reveal / `source-over` hide). Screen/player see opaque fog; GM sees translucent fog for editing. Pixi `erase` blend is avoided because it does not apply when rendering bare `Graphics` into a `RenderTexture` in v8.
-- Play gets a **Fog** island (tool off/brush/rect, reveal/hide, brush size, cover/clear) with corner snap like other islands. No automatic LoS.
+- Play puts **Fog** tools on the right HUD (tool off/brush/rect, reveal/hide, brush size, cover/clear). Automatic LoS is a later sibling (ADR 0016).
 
 ## Consequences
 

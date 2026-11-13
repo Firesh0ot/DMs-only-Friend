@@ -6,7 +6,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 
 | Role | What you see |
 |---|---|
-| **GM** | **Settings** for prep; **Play** with floating islands (Map, Initiative, NPCs, Log, Dice, Fog) |
+| **GM** | **Settings** for prep; **Play** with a compact game HUD (dice + initiative left, fog right, bottom strip) |
 | **Player screen** | Full-screen map + TCG-style initiative rail; compact battle duration / last events; dice toast on rolls; camera follows the GM |
 | **Remote player** | Like the player screen, plus control of the token for your **claimed PC** (`characterId`, or unique PC name at join) |
 
@@ -21,26 +21,24 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 
 ## GM play
 
-Floating islands around the map:
+Compact **game HUD** around the map (not floating islands):
 
-- **Map** — change active map; show/hide PCs or NPCs as groups.
-- **Initiative** — enter scores, set order, next turn (round advances when the order wraps). Compact HP on cards; ±1 on the active combatant when linked to a character. Toggle conditions (prone, frightened, …) on the active combatant. Removing a token or character drops them from the order automatically.
-- **NPCs** — spawn or place roster NPCs; select one to adjust HP (−5/−1/+1/+5), toggle conditions, and see AC/notes.
-- **Log** — recent session events and battle timer; **Start** / **End** battle. The first **Next** turn also starts a battle if none is active.
-- **Dice** — enter expressions such as `2d6+3` (or use quick chips), roll on the server, see totals and recent rolls. Results are broadcast and appear in the session log.
-- **Fog** — brush or rectangle to **Reveal** / **Hide** areas; **Cover all** / **Clear all**. New maps start fully covered. On `.dd2vtt` maps with walls or doors, toggle **LoS** so screen/players only see what PC tokens can see through walls; **closed doors block vision**, open doors do not. Toggle doors from the Fog island or by clicking a door on the map (fog tool **Off**). Manual fog still applies on top. Fog is translucent for you and solid for screen/players.
+- **Left — Dice** — expressions such as `2d6+3` (or quick chips), server rolls, last/recent totals. Results broadcast into the session log.
+- **Left — Initiative** — round, active combatant, **Next**, set order (expand), ±1 HP and conditions on the active combatant. **Show PCs / Show NPCs** live here (display strategy for the board). Removing a token or character drops them from the order automatically.
+- **Right — Fog** — brush or rectangle to **Reveal** / **Hide**; **Cover** / **Clear**; **LoS** on `.dd2vtt` maps with walls or doors. Toggle doors from Fog or by clicking a door on the map (fog tool **Off**). Fog is translucent for you and solid for screen/players.
+- **Bottom strip** — battle **Start** / **End** and timer; **Next turn**; **Log** (collapsed by default); **More** for a compact active-map switch. Map upload/grid and NPC roster prep stay in **Settings**.
 
-Islands sit in **left** and **right** dock columns so they stack with a gap instead of overlapping. Use **Left** / **Right** to move an island, **↑** / **↓** to reorder in its column, and the title chevron to collapse or expand. First visit uses a non-overlapping default (Map/Dice/Log left; Initiative/Fog/NPCs right). Layout is remembered per room code in the browser; older corner “Snap” layouts reset to that default.
+Collapse section titles to free map space. Collapse prefs are remembered per room code in the browser; older island/dock layouts are cleared.
 
-Changing the active map brings in characters linked to that map (and drops the others). Tokens snap to grid and sync live. Camera pan/zoom on the GM side is followed by screen and players. Fog is stored per map.
+Changing the active map brings in characters linked to that map (and drops the others). Tokens snap to grid and sync live. Camera pan/zoom on the GM side is followed by screen and players. Fog is stored per map. The first **Next** turn also starts a battle if none is active.
 
 ## Screen / player
 
-No GM islands. Use the side rail for round, turn order, and whose turn it is. By default PC hit points may appear as exact chips and **monster HP stays GM-only**. If the GM enables quarter HP bars, the rail shows coarse 25/50/75/100% bands for PCs and NPCs without exact numbers. Compact condition badges (e.g. PRN, FRI) show when the GM applies them. A small strip shows battle elapsed time and the latest events when present. Dice rolls flash briefly as a toast over the map. Follow the GM’s pan/zoom. Unrevealed map areas stay under solid fog (including tokens in those areas).
+No GM HUD. Use the side rail for round, turn order, and whose turn it is. By default PC hit points may appear as exact chips and **monster HP stays GM-only**. If the GM enables quarter HP bars, the rail shows coarse 25/50/75/100% bands for PCs and NPCs without exact numbers. Compact condition badges (e.g. PRN, FRI) show when the GM applies them. A small strip shows battle elapsed time and the latest events when present. Dice rolls flash briefly as a toast over the map. Follow the GM’s pan/zoom. Unrevealed map areas stay under solid fog (including tokens in those areas).
 
 ## Look & lantern
 
-The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings, Play, and Screen) to switch between candlelit cozy and a darker smoky dungeon look. Candlelit mode soft-flickers warm light across the whole page (chrome and islands included); the smoky dungeon stays calm. The choice is remembered in this browser. Theme fonts ship with the app, so the look works on LAN / offline without a Google Fonts connection.
+The UI uses a medieval tavern theme. Use the **lantern** control (Home, Settings, Play, and Screen) to switch between candlelit cozy and a darker smoky dungeon look. Candlelit mode soft-flickers warm light across the whole page (chrome and HUD included); the smoky dungeon stays calm. The choice is remembered in this browser. Theme fonts ship with the app, so the look works on LAN / offline without a Google Fonts connection.
 
 ## Quick start (table)
 
@@ -61,11 +59,11 @@ Optional Traefik labels (`TRAEFIK_ENABLE` / `FQDN`) attach to an existing Traefi
 - German: [../de/README.md](../de/README.md)
 - Phase 1 spec: [../../phase-1.md](../../phase-1.md)
 - Prep/Play ADR: [../../decisions/0003-prep-play-ux.md](../../decisions/0003-prep-play-ux.md)
-- Play island dock rails ADR: [../../decisions/0020-play-island-dock-rails.md](../../decisions/0020-play-island-dock-rails.md)
+- Play game HUD ADR: [../../decisions/0024-play-game-hud.md](../../decisions/0024-play-game-hud.md)
 - Session log ADR: [../../decisions/0004-session-battle-log.md](../../decisions/0004-session-battle-log.md)
 - Tavern theme ADR: [../../decisions/0005-tavern-theme-lantern.md](../../decisions/0005-tavern-theme-lantern.md)
 - Page-wide candlelit flicker ADR: [../../decisions/0019-page-wide-candlelit-flicker.md](../../decisions/0019-page-wide-candlelit-flicker.md)
-- Dice island ADR: [../../decisions/0007-dice-play-island.md](../../decisions/0007-dice-play-island.md)
+- Dice HUD ADR: [../../decisions/0007-dice-play-island.md](../../decisions/0007-dice-play-island.md)
 - dd2vtt import ADR: [../../decisions/0008-dd2vtt-map-import.md](../../decisions/0008-dd2vtt-map-import.md)
 - HP visibility ADR: [../../decisions/0009-hp-screen-visibility.md](../../decisions/0009-hp-screen-visibility.md)
 - Manual fog ADR: [../../decisions/0010-manual-fog-of-war.md](../../decisions/0010-manual-fog-of-war.md)

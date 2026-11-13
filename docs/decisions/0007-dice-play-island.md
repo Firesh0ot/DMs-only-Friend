@@ -1,22 +1,21 @@
-# ADR 0007 — Dice Play island
+# ADR 0007 — Dice in Play HUD
 
 ## Status
 
-Accepted (2026-11-11)
+Accepted (2026-11-11); Play chrome is the game HUD as of [0024](0024-play-game-hud.md).
 
 ## Context
 
-Server-side dice (`parseExpr` / `roll`), `dice:roll` / `dice:rolled`, and `dice_log` already exist from Phase 1, but Play mode had no GM UI and rolls were not mirrored into the session event log. Preferences kept dice lower priority than initiative; islands and the session log landed first.
+Server-side dice (`parseExpr` / `roll`), `dice:roll` / `dice:rolled`, and `dice_log` already exist from Phase 1, but Play mode had no GM UI and rolls were not mirrored into the session event log. Preferences kept dice lower priority than initiative; the session log landed first, then a Dice island, then the compact HUD.
 
 ## Decision
 
-- GM Play gets a **Dice** island (expression input, quick chips, last/recent results) using the same left/right dock-rail + per-room `localStorage` layout as other islands (see [0020](0020-play-island-dock-rails.md)).
-- Rolls stay server-authoritative: clients emit `dice:roll`; the server parses/rolls, writes `dice_log`, broadcasts `dice:rolled`, and appends a `dice_roll` session event for the Log island / screen strip.
-- Screen and remote players get a light **toast** for the latest roll (no Dice island).
+- GM Play shows **Dice** on the left HUD (expression input, quick chips, last/recent results) with the same collapse prefs as other HUD sections (see [0024](0024-play-game-hud.md)).
+- Rolls stay server-authoritative: clients emit `dice:roll`; the server parses/rolls, writes `dice_log`, broadcasts `dice:rolled`, and appends a `dice_roll` session event for the Log strip / screen strip.
+- Screen and remote players get a light **toast** for the latest roll (no Dice HUD).
 - No extra persistence beyond existing `dice_log` and the session event row.
 
 ## Consequences
 
 - `SessionEventType` gains `dice_roll`.
-- Play islands stack in left/right dock rails; see [0020](0020-play-island-dock-rails.md).
-- Fog, HP tracking, and `.dd2vtt` remain out of this cut.
+- Dice lives in the Play HUD, not a dock-rail island.
