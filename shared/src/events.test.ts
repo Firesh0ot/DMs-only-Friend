@@ -14,6 +14,7 @@ import {
   RoomCreatePayloadSchema,
   RoomJoinPayloadSchema,
   SessionEventSchema,
+  SettingsSetPayloadSchema,
   SnapshotSchema,
   TokenMovePayloadSchema,
   VisibilitySetPayloadSchema,
@@ -151,7 +152,7 @@ describe("event schemas", () => {
       tokens: [],
       characters: [],
       visibility: { showPcs: true, showNpcs: true },
-      settings: { screenHpQuarters: false },
+      settings: { screenHpQuarters: false, physicalCellCm: null },
       camera: null,
       initiative: { order: [], activeIndex: 0, round: 1 },
       eventLog: [],
@@ -163,7 +164,16 @@ describe("event schemas", () => {
     });
     expect(snapshot.visibility.showPcs).toBe(true);
     expect(snapshot.settings.screenHpQuarters).toBe(false);
+    expect(snapshot.settings.physicalCellCm).toBeNull();
     expect(snapshot.characterId).toBeNull();
+  });
+
+  it("accepts physicalCellCm on settings:set", () => {
+    const parsed = SettingsSetPayloadSchema.parse({ physicalCellCm: 3 });
+    expect(parsed.physicalCellCm).toBe(3);
+    expect(SettingsSetPayloadSchema.parse({ physicalCellCm: null }).physicalCellCm).toBeNull();
+    expect(() => SettingsSetPayloadSchema.parse({ physicalCellCm: 0.1 })).toThrow();
+    expect(() => SettingsSetPayloadSchema.parse({ physicalCellCm: 50 })).toThrow();
   });
 
   it("accepts player join with characterId claim", () => {

@@ -13,8 +13,18 @@ import { DiceToast } from "../components/DiceToast";
 import { InitiativeRail } from "../components/InitiativeRail";
 import { LanternToggle } from "../components/LanternToggle";
 import { PlayHud } from "../components/PlayHud";
+import { ScreenDisplayControls } from "../components/ScreenDisplayControls";
 import { SessionStrip } from "../components/SessionStrip";
 import { SettingsPanel } from "../components/SettingsPanel";
+import {
+  initialScreenCalibration,
+  initialScreenDisplayMode,
+  loadPhysicalCamera,
+  physicalZoom,
+  savePhysicalCamera,
+  type ScreenCalibration,
+  type ScreenDisplayMode,
+} from "../lib/screenCalibration";
 import { getSocket } from "../socket/socket";
 import { useRoomStore } from "../state/roomStore";
 
@@ -48,6 +58,13 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
   const [pinReady, setPinReady] = useState(
     () => role !== "gm" || /^\d{4,8}$/.test(sessionStorage.getItem(`dms-gm-pin:${code}`) ?? ""),
   );
+  const [screenMode, setScreenMode] = useState<ScreenDisplayMode>(() =>
+    role === "screen" ? initialScreenDisplayMode() : "fit",
+  );
+  const [screenCalibration, setScreenCalibration] = useState<ScreenCalibration | null>(() =>
+    role === "screen" ? initialScreenCalibration() : null,
+  );
+  const [physicalCamera] = useState(() => (role === "screen" ? loadPhysicalCamera() : null));
 
   const tokens = useMemo(() => {
     if (!snapshot) {
@@ -83,6 +100,28 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
     }
     return initiative.order[initiative.activeIndex]?.tokenId ?? null;
   }, [snapshot?.initiative]);
+
+  const lockedZoom = useMemo(() => {
+    if (role !== "screen" || screenMode !== "physical") {
+      return null;
+    }
+    const cellCm = snapshot?.settings.physicalCellCm;
+    const gridPx = snapshot?.map?.gridPx;
+    if (!screenCalibration || cellCm === null || cellCm === undefined || !gridPx) {
+      return null;
+    }
+    try {
+      return physicalZoom(screenCalibration.pxPerCm, cellCm, gridPx);
+    } catch {
+      return null;
+    }
+  }, [
+    role,
+    screenMode,
+    screenCalibration,
+    snapshot?.settings.physicalCellCm,
+    snapshot?.map?.gridPx,
+  ]);
 
   function onTokenMove(tokenId: string, x: number, y: number) {
     moveTokenOptimistic(tokenId, x, y);
@@ -174,6 +213,15 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
         </div>
         <div className="row">
           <LanternToggle />
+          {role === "screen" && snapshot ? (
+            <ScreenDisplayControls
+              settings={snapshot.settings}
+              mode={screenMode}
+              calibration={screenCalibration}
+              onModeChange={setScreenMode}
+              onCalibrationChange={setScreenCalibration}
+            />
+          ) : null}
           {isGm ? (
             <>
               <button
@@ -243,8 +291,14 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                   fogTool={isGm ? fogTool : "off"}
                   fogPaintMode={fogPaintMode}
                   fogBrushRadius={fogBrushRadius}
+                  screenDisplayMode={role === "screen" ? screenMode : "fit"}
+                  lockedZoom={lockedZoom}
+                  initialPhysicalCamera={role === "screen" ? physicalCamera : null}
                   onTokenMove={onTokenMove}
                   onCameraChange={onCameraChange}
+                  onPhysicalCameraChange={
+                    role === "screen" ? (camera) => savePhysicalCamera(camera) : undefined
+                  }
                   onFogPaint={onFogPaint}
                   onPortalToggle={isGm ? onPortalToggle : undefined}
                 />

@@ -1,6 +1,8 @@
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
   ClientEvents,
+  PHYSICAL_CELL_CM_MAX,
+  PHYSICAL_CELL_CM_MIN,
   roomCodePathSegment,
   type CharacterKind,
   type CharacterState,
@@ -73,6 +75,15 @@ export function SettingsPanel({
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [invalidateInvites, setInvalidateInvites] = useState(true);
+  const [physicalCellCmDraft, setPhysicalCellCmDraft] = useState(
+    settings.physicalCellCm === null ? "" : String(settings.physicalCellCm),
+  );
+
+  useEffect(() => {
+    setPhysicalCellCmDraft(
+      settings.physicalCellCm === null ? "" : String(settings.physicalCellCm),
+    );
+  }, [settings.physicalCellCm]);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const links = useMemo(() => {
@@ -218,6 +229,26 @@ export function SettingsPanel({
 
   function setScreenHpQuarters(enabled: boolean) {
     getSocket().emit(ClientEvents.SettingsSet, { screenHpQuarters: enabled });
+  }
+
+  function savePhysicalCellCm(): void {
+    const trimmed = physicalCellCmDraft.trim();
+    if (!trimmed) {
+      getSocket().emit(ClientEvents.SettingsSet, { physicalCellCm: null });
+      setMessage("Physical cell size cleared (screens use fit mode only)");
+      return;
+    }
+    const value = Number(trimmed);
+    if (
+      !Number.isFinite(value) ||
+      value < PHYSICAL_CELL_CM_MIN ||
+      value > PHYSICAL_CELL_CM_MAX
+    ) {
+      setMessage(`Physical cell size must be ${PHYSICAL_CELL_CM_MIN}–${PHYSICAL_CELL_CM_MAX} cm`);
+      return;
+    }
+    getSocket().emit(ClientEvents.SettingsSet, { physicalCellCm: value });
+    setMessage(`Physical cell size set to ${value} cm`);
   }
 
   function updateGrid(mapId: string, gridPx: string) {
@@ -745,6 +776,44 @@ export function SettingsPanel({
           />
           <span>Show quarter HP bars on screen</span>
         </label>
+
+        <fieldset className="settings-fieldset stack">
+          <legend>Physical cell size (table screen)</legend>
+          <p className="muted">
+            Target size of one grid cell on the table monitor in centimetres. Leave empty to keep
+            physical mode off. Device calibration stays on each screen (localStorage).
+          </p>
+          <label className="stack" htmlFor={`${baseId}-physical-cm`}>
+            <span className="muted">cm per cell ({PHYSICAL_CELL_CM_MIN}–{PHYSICAL_CELL_CM_MAX})</span>
+            <input
+              id={`${baseId}-physical-cm`}
+              inputMode="decimal"
+              placeholder="e.g. 3"
+              value={physicalCellCmDraft}
+              onChange={(event) => setPhysicalCellCmDraft(event.target.value)}
+            />
+          </label>
+          <div className="row">
+            <button type="button" onClick={savePhysicalCellCm}>
+              Save cell size
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() =>
+                getSocket().emit(ClientEvents.ScreenCommand, { type: "open-calibration" })
+              }
+            >
+              Open calibration on screens
+            </button>
+          </div>
+          <p className="muted">
+            Current:{" "}
+            {settings.physicalCellCm === null
+              ? "off"
+              : `${settings.physicalCellCm.toFixed(1)} cm`}
+          </p>
+        </fieldset>
       </section>
 
       <section className="settings-section stack" aria-labelledby="settings-links">

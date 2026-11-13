@@ -41,10 +41,20 @@ describe("RoomStore", () => {
     expect(snapshot.maps).toEqual([]);
     expect(snapshot.characters).toEqual([]);
     expect(snapshot.visibility).toEqual({ showPcs: true, showNpcs: true });
-    expect(snapshot.settings).toEqual({ screenHpQuarters: false });
+    expect(snapshot.settings).toEqual({ screenHpQuarters: false, physicalCellCm: null });
     expect(snapshot.tokens).toEqual([]);
     expect(snapshot.eventLog).toEqual([]);
     expect(snapshot.battle).toBeNull();
+  });
+
+  it("persists physicalCellCm via settings", () => {
+    const store = createStore();
+    const { room } = store.createRoom({ name: "Table", code: "PHYS1", pin: "4242" });
+    expect(store.getSettings(room.id).physicalCellCm).toBeNull();
+    const updated = store.setSettings(room.id, { physicalCellCm: 3 });
+    expect(updated.physicalCellCm).toBe(3);
+    expect(store.getSettings(room.id).physicalCellCm).toBe(3);
+    expect(store.setSettings(room.id, { physicalCellCm: null }).physicalCellCm).toBeNull();
   });
 
   it("accepts Unicode room codes and keeps uniqueness after normalization", () => {

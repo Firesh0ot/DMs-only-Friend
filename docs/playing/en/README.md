@@ -7,7 +7,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 | Role | What you see |
 |---|---|
 | **GM** | **Settings** for prep; **Play** with a compact game HUD (dice + initiative left, fog right, bottom strip) |
-| **Player screen** | Full-screen map + TCG-style initiative rail; compact battle duration / last events; dice toast on rolls; camera follows the GM |
+| **Player screen** | Full-screen map + TCG-style initiative rail; compact battle duration / last events; dice toast on rolls; camera follows the GM (or locked physical cell size when calibrated) |
 | **Remote player** | Like the player screen, plus control of the token for your **claimed PC** (`characterId`, or unique PC name at join) |
 
 ## GM prep (Settings)
@@ -16,7 +16,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 2. Upload one or more maps: PNG/JPG/WebP (set `grid_px`) or Universal VTT `.dd2vtt` (grid, walls, doors, and lights come from the file when present). Uploads require a joined GM session. On the GM view, imported walls show as an amber overlay; doors are thicker lines (shut vs open). Soft light glows from the file appear for everyone (no shadow casting yet).
 3. In Settings → **Room links**, use **Copy** next to Room join / Screen / Player (and a minted GM invite). There is no forever GM URL — mint a new single-use invite from Settings (or home with PIN) if you need another GM device. While a GM session is open, you can **change the GM PIN** there (optionally invalidate a pending invite). If you lose the PIN with no active GM session, the table cannot be recovered — there is no recovery code.
 4. Add PCs and NPCs (display name, optional HP/AC, short notes, portrait); tick which maps each character appears on.
-5. Optional **Screen** setting: show quarter HP bars (25/50/75/100%) on the player screen — default off (exact PC HP; monsters hidden).
+5. Optional **Screen** setting: show quarter HP bars (25/50/75/100%) on the player screen — default off (exact PC HP; monsters hidden). Set **cm per cell** for table miniatures (physical size mode); leave empty to keep it off. Use **Open calibration on screens** to launch the ruler/auto wizard on connected table screens.
 6. Switch to **Play** when the session starts. Portraits and HP chips appear on initiative cards when set.
 
 ## GM play
@@ -34,7 +34,7 @@ Changing the active map brings in characters linked to that map (and drops the o
 
 ## Screen / player
 
-No GM HUD. Use the side rail for round, turn order, and whose turn it is. By default PC hit points may appear as exact chips and **monster HP stays GM-only**. If the GM enables quarter HP bars, the rail shows coarse 25/50/75/100% bands for PCs and NPCs without exact numbers. Compact condition badges (e.g. PRN, FRI) show when the GM applies them. A small strip shows battle elapsed time and the latest events when present. Dice rolls flash briefly as a toast over the map. Follow the GM’s pan/zoom. Unrevealed map areas stay under solid fog (including tokens in those areas).
+No GM HUD. Use the side rail for round, turn order, and whose turn it is. By default PC hit points may appear as exact chips and **monster HP stays GM-only**. If the GM enables quarter HP bars, the rail shows coarse 25/50/75/100% bands for PCs and NPCs without exact numbers. Compact condition badges (e.g. PRN, FRI) show when the GM applies them. A small strip shows battle elapsed time and the latest events when present. Dice rolls flash briefly as a toast over the map. By default the screen follows the GM’s pan/zoom (**fit**). When the GM sets a physical cell size, the table screen can switch to **physical** mode (confirm in the top bar): zoom locks so one cell matches that cm size after device calibration (auto estimate or ruler). Pan stays independent; GM zoom-follow pauses. Calibration is stored in this browser only. Unrevealed map areas stay under solid fog (including tokens in those areas).
 
 ## Look & lantern
 
@@ -71,6 +71,8 @@ Optional Traefik labels (`TRAEFIK_ENABLE` / `FQDN`) attach to an existing Traefi
 - Conditions ADR: [../../decisions/0011-token-conditions.md](../../decisions/0011-token-conditions.md)
 - Room / GM auth ADR: [../../decisions/0012-room-identity-gm-auth.md](../../decisions/0012-room-identity-gm-auth.md)
 - Screen HP quarters ADR: [../../decisions/0013-screen-hp-quarters.md](../../decisions/0013-screen-hp-quarters.md)
+- Physical screen camera ADR: [../../decisions/0022-physical-screen-camera-supersede.md](../../decisions/0022-physical-screen-camera-supersede.md)
+- Phase 4 offline screen: [../../phase-4-offline-screen.md](../../phase-4-offline-screen.md)
 - Player token bind ADR: [../../decisions/0014-player-token-character-bind.md](../../decisions/0014-player-token-character-bind.md)
 - Docker / GHCR ADR: [../../decisions/0015-docker-ghcr-packaging.md](../../decisions/0015-docker-ghcr-packaging.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

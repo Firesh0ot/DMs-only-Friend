@@ -20,6 +20,7 @@ import type {
   Role,
   TokenState,
 } from "@dms/shared";
+import { followGmPanOnly, type ScreenDisplayMode } from "../lib/screenCalibration";
 import { downsamplePoints } from "./fogPoints";
 import { drawFogStroke, renderFogMask } from "./fogRender";
 import {
@@ -42,8 +43,12 @@ export type MapSceneProps = {
   fogTool: FogToolMode;
   fogPaintMode: FogPaintMode;
   fogBrushRadius: number;
+  screenDisplayMode?: ScreenDisplayMode;
+  lockedZoom?: number | null;
+  initialPhysicalCamera?: { x: number; y: number } | null;
   onTokenMove: (tokenId: string, x: number, y: number) => void;
   onCameraChange: (camera: CameraState) => void;
+  onPhysicalCameraChange?: (camera: { x: number; y: number }) => void;
   onFogPaint: (stroke: FogStrokeInput) => void;
   onPortalToggle?: (portalId: string, closed: boolean) => void;
 };
@@ -78,6 +83,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
   const tokenViewsRef = useRef<Map<string, TokenView>>(new Map());
   const cameraRef = useRef<CameraState>(props.camera ?? DEFAULT_CAMERA);
   const lastCameraEmitRef = useRef(0);
+  const skipPhysicalFollowRef = useRef(false);
   const dragRef = useRef<{
     mode: "pan" | "token" | "fog-brush" | "fog-rect";
     tokenId?: string;
@@ -210,14 +216,23 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
         drag.lastY = event.global.y;
 
         if (drag.mode === "pan") {
+          const physicalScreen =
+            propsRef.current.role === "screen" &&
+            propsRef.current.screenDisplayMode === "physical";
           const next = {
             ...cameraRef.current,
             x: cameraRef.current.x + dx,
             y: cameraRef.current.y + dy,
+            zoom:
+              physicalScreen && propsRef.current.lockedZoom
+                ? propsRef.current.lockedZoom
+                : cameraRef.current.zoom,
           };
           cameraRef.current = next;
           applyCamera(currentWorld, next);
-          emitCamera(next, false);
+          if (!physicalScreen) {
+            emitCamera(next, false);
+          }
           return;
         }
 
@@ -264,6 +279,15 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
           }
         } else if (drag.mode === "pan") {
           emitCamera(cameraRef.current, true);
+          if (
+            propsRef.current.role === "screen" &&
+            propsRef.current.screenDisplayMode === "physical"
+          ) {
+            propsRef.current.onPhysicalCameraChange?.({
+              x: cameraRef.current.x,
+              y: cameraRef.current.y,
+            });
+          }
         } else if (drag.mode === "fog-brush" && drag.points && drag.points.length > 0) {
           const points = downsamplePoints(drag.points, Math.max(4, propsRef.current.fogBrushRadius * 0.35));
           propsRef.current.onFogPaint({
@@ -355,9 +379,60 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     if (!props.camera || !worldRef.current) {
       return;
     }
+    const lockedZoom = props.lockedZoom;
+    const physical =
+      props.role === "screen" &&
+      props.screenDisplayMode === "physical" &&
+      lockedZoom !== null &&
+      lockedZoom !== undefined &&
+      lockedZoom > 0;
+    if (physical && lockedZoom !== null && lockedZoom !== undefined) {
+      if (skipPhysicalFollowRef.current) {
+        skipPhysicalFollowRef.current = false;
+        return;
+      }
+      const application = appRef.current;
+      const viewW = application?.screen.width ?? 1;
+      const viewH = application?.screen.height ?? 1;
+      const next = followGmPanOnly(props.camera, lockedZoom, viewW, viewH);
+      cameraRef.current = next;
+      applyCamera(worldRef.current, next);
+      propsRef.current.onPhysicalCameraChange?.({ x: next.x, y: next.y });
+      return;
+    }
     cameraRef.current = props.camera;
     applyCamera(worldRef.current, props.camera);
-  }, [props.camera, props.role]);
+  }, [props.camera, props.role, props.screenDisplayMode, props.lockedZoom]);
+
+  useEffect(() => {
+    if (props.role !== "screen" || props.screenDisplayMode !== "physical") {
+      return;
+    }
+    const locked = props.lockedZoom;
+    if (locked === null || locked === undefined || !(locked > 0) || !worldRef.current) {
+      return;
+    }
+    const next = { ...cameraRef.current, zoom: locked };
+    cameraRef.current = next;
+    applyCamera(worldRef.current, next);
+  }, [props.lockedZoom, props.role, props.screenDisplayMode]);
+
+  useEffect(() => {
+    if (props.role !== "screen" || props.screenDisplayMode !== "physical") {
+      skipPhysicalFollowRef.current = false;
+      return;
+    }
+    const locked = props.lockedZoom ?? cameraRef.current.zoom;
+    const initial = props.initialPhysicalCamera;
+    if (initial && worldRef.current) {
+      const next = { x: initial.x, y: initial.y, zoom: locked };
+      cameraRef.current = next;
+      applyCamera(worldRef.current, next);
+      skipPhysicalFollowRef.current = true;
+    }
+    // Restore saved pan when entering physical mode; skip the next GM follow once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.role, props.screenDisplayMode]);
 
   useEffect(() => {
     void syncMap(props.map);

@@ -16,6 +16,7 @@ import {
   MapRemovePayloadSchema,
   MapUpdateGridPayloadSchema,
   RoomJoinPayloadSchema,
+  ScreenCommandPayloadSchema,
   ServerEvents,
   SettingsSetPayloadSchema,
   TokenCreatePayloadSchema,
@@ -537,6 +538,24 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Settings update failed";
         socket.emit(ServerEvents.Error, { message });
+      }
+    });
+
+    socket.on(ClientEvents.ScreenCommand, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = ScreenCommandPayloadSchema.parse(payload);
+        for (const peer of rooms.listSessionsInRoom(session.roomId)) {
+          if (peer.role !== "screen") {
+            continue;
+          }
+          io.to(peer.socketId).emit(ServerEvents.ScreenCommand, data);
+        }
+      } catch (error) {
+        emitError(socket, error);
       }
     });
 

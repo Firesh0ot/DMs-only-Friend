@@ -102,8 +102,12 @@ export type VisibilityState = z.infer<typeof VisibilityStateSchema>;
 
 export const RoomSettingsSchema = z.object({
   screenHpQuarters: z.boolean(),
+  physicalCellCm: z.number().nullable(),
 });
 export type RoomSettings = z.infer<typeof RoomSettingsSchema>;
+
+export const PHYSICAL_CELL_CM_MIN = 0.5;
+export const PHYSICAL_CELL_CM_MAX = 30;
 
 const ROOM_CODE_PATTERN = /^[\p{L}0-9_-]+$/u;
 
@@ -322,8 +326,19 @@ export type RoomCreatePayload = z.infer<typeof RoomCreatePayloadSchema>;
 
 export const SettingsSetPayloadSchema = z.object({
   screenHpQuarters: z.boolean().optional(),
+  physicalCellCm: z
+    .number()
+    .min(PHYSICAL_CELL_CM_MIN)
+    .max(PHYSICAL_CELL_CM_MAX)
+    .nullable()
+    .optional(),
 });
 export type SettingsSetPayload = z.infer<typeof SettingsSetPayloadSchema>;
+
+export const ScreenCommandPayloadSchema = z.object({
+  type: z.literal("open-calibration"),
+});
+export type ScreenCommandPayload = z.infer<typeof ScreenCommandPayloadSchema>;
 
 export const GmChangePinPayloadSchema = z.object({
   currentPin: GmPinSchema,
@@ -488,6 +503,7 @@ export const ClientEvents = {
   CharacterSetConditions: "character:setConditions",
   VisibilitySet: "visibility:set",
   SettingsSet: "settings:set",
+  ScreenCommand: "screen:command",
   GmMintInvite: "gm:mintInvite",
   GmChangePin: "gm:changePin",
   BattleStart: "battle:start",
@@ -506,6 +522,7 @@ export const ServerEvents = {
   CharactersUpdated: "characters:updated",
   VisibilityUpdated: "visibility:updated",
   SettingsUpdated: "settings:updated",
+  ScreenCommand: "screen:command",
   TokenMoved: "token:moved",
   TokenCreated: "token:created",
   TokenRemoved: "token:removed",
@@ -551,6 +568,7 @@ export type ClientToServerEvents = {
   [ClientEvents.CharacterSetConditions]: (payload: CharacterSetConditionsPayload) => void;
   [ClientEvents.VisibilitySet]: (payload: VisibilitySetPayload) => void;
   [ClientEvents.SettingsSet]: (payload: SettingsSetPayload) => void;
+  [ClientEvents.ScreenCommand]: (payload: ScreenCommandPayload) => void;
   [ClientEvents.GmMintInvite]: (
     callback?: (result: GmMintInviteResult) => void,
   ) => void;
@@ -574,6 +592,7 @@ export type ServerToClientEvents = {
   [ServerEvents.CharactersUpdated]: (characters: CharacterState[]) => void;
   [ServerEvents.VisibilityUpdated]: (visibility: VisibilityState) => void;
   [ServerEvents.SettingsUpdated]: (settings: RoomSettings) => void;
+  [ServerEvents.ScreenCommand]: (payload: ScreenCommandPayload) => void;
   [ServerEvents.TokenMoved]: (token: TokenState) => void;
   [ServerEvents.TokenCreated]: (token: TokenState) => void;
   [ServerEvents.TokenRemoved]: (payload: { tokenId: string }) => void;

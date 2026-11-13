@@ -7,7 +7,7 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 | Rolle | Sicht |
 |---|---|
 | **GM** | **Settings** für Vorbereitung; **Play** mit kompaktem Game-HUD (Würfel + Initiative links, Fog rechts, untere Leiste) |
-| **Player-Screen** | Vollbild-Karte + TCG-Initiative-Leiste; kompakte Kampfdauer / letzte Events; Würfel-Toast bei Rolls; Kamera folgt dem GM |
+| **Player-Screen** | Vollbild-Karte + TCG-Initiative-Leiste; kompakte Kampfdauer / letzte Events; Würfel-Toast bei Rolls; Kamera folgt dem GM (oder fixierte physische Zellengrösse nach Kalibrierung) |
 | **Remote-Spieler** | Wie Player-Screen, plus Steuerung des Tokens für den **beanspruchten PC** (`characterId` oder eindeutiger PC-Name beim Join) |
 
 ## GM-Vorbereitung (Settings)
@@ -16,7 +16,7 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 2. Eine oder mehrere Karten hochladen: PNG/JPG/WebP (`grid_px` setzen) oder Universal VTT `.dd2vtt` (Raster, Wände, Türen und Lichter kommen aus der Datei, wenn vorhanden). Uploads brauchen eine aktive GM-Session. In der GM-Ansicht erscheinen importierte Wände als bernsteinfarbene Overlay-Linien; Türen als dickere Linien (zu vs. offen). Weiche Lichtglows aus der Datei sieht jeder (noch ohne Schattenwurf).
 3. In Settings → **Room links** mit **Copy** neben Room join / Screen / Player (und einem geminteten GM-Invite) teilen. Es gibt keine dauerhafte GM-URL — bei Bedarf neuen einmaligen Invite in Settings (oder Startseite mit PIN) erzeugen. Solange eine GM-Session offen ist, kannst du dort die **GM-PIN ändern** (optional ausstehenden Invite invalidieren). Geht die PIN verloren und es gibt keine aktive GM-Session, ist der Tisch nicht wiederherstellbar — es gibt keinen Recovery-Code.
 4. PCs und NPCs anlegen (Anzeigename, optionale TP/RK, kurze Notizen, Portrait); Häkchen setzen, auf welchen Karten sie erscheinen.
-5. Optional unter **Screen**: Viertel-TP-Balken (25/50/75/100 %) auf dem Player-Screen — standardmäßig aus (genaue PC-TP; Monster verborgen).
+5. Optional unter **Screen**: Viertel-TP-Balken (25/50/75/100 %) auf dem Player-Screen — standardmäßig aus (genaue PC-TP; Monster verborgen). **cm pro Zelle** für Miniaturen am Tisch setzen (physischer Modus); leer lassen = aus. Mit **Open calibration on screens** den Kalibrierungs-Assistenten auf verbundenen Screens öffnen.
 6. Für die Session auf **Play** wechseln. Portraits und TP-Chips erscheinen in der Initiative, wenn gesetzt.
 
 ## GM-Spiel
@@ -34,7 +34,7 @@ Kartenwechsel lädt die verknüpften Charaktere und entfernt die übrigen. Token
 
 ## Screen / Player
 
-Kein GM-HUD. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Standardmäßig können PC-TP als genaue Chips erscheinen und **Monster-TP bleiben nur für die GM sichtbar**. Wenn die GM Viertel-TP aktiviert, zeigt die Leiste grobe 25/50/75/100 %-Balken für PCs und NPCs ohne genaue Zahlen. Kompakte Bedingungs-Badges (z. B. PRN, FRI), wenn die GM sie setzt. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Würfelwürfe erscheinen kurz als Toast über der Karte. Pan/Zoom folgt dem GM. Unaufgedeckte Bereiche bleiben unter solidem Fog (inkl. Tokens dort).
+Kein GM-HUD. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Standardmäßig können PC-TP als genaue Chips erscheinen und **Monster-TP bleiben nur für die GM sichtbar**. Wenn die GM Viertel-TP aktiviert, zeigt die Leiste grobe 25/50/75/100 %-Balken für PCs und NPCs ohne genaue Zahlen. Kompakte Bedingungs-Badges (z. B. PRN, FRI), wenn die GM sie setzt. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Würfelwürfe erscheinen kurz als Toast über der Karte. Standardmässig folgt der Screen dem GM-Pan/Zoom (**fit**). Hat die GM eine physische Zellengrösse gesetzt, kann der Tisch-Screen auf **physical** wechseln (Bestätigung in der Topbar): Zoom sperrt eine Zelle auf diese cm-Grösse nach Gerätekalibrierung (Auto oder Lineal). Pan bleibt unabhängig; GM-Zoom-Follow pausiert. Die Kalibrierung liegt nur in diesem Browser. Unaufgedeckte Bereiche bleiben unter solidem Fog (inkl. Tokens dort).
 
 ## Look & Laterne
 
@@ -71,6 +71,8 @@ Optionale Traefik-Labels (`TRAEFIK_ENABLE` / `FQDN`) hängen an bestehendes Trae
 - Bedingungen-ADR: [../../decisions/0011-token-conditions.md](../../decisions/0011-token-conditions.md)
 - Raum-/GM-Auth-ADR: [../../decisions/0012-room-identity-gm-auth.md](../../decisions/0012-room-identity-gm-auth.md)
 - Screen-TP-Viertel-ADR: [../../decisions/0013-screen-hp-quarters.md](../../decisions/0013-screen-hp-quarters.md)
+- Physische Screen-Kamera-ADR: [../../decisions/0022-physical-screen-camera-supersede.md](../../decisions/0022-physical-screen-camera-supersede.md)
+- Phase 4 Offline-Screen: [../../phase-4-offline-screen.md](../../phase-4-offline-screen.md)
 - Spieler-Token-Bind-ADR: [../../decisions/0014-player-token-character-bind.md](../../decisions/0014-player-token-character-bind.md)
 - Docker-/GHCR-ADR: [../../decisions/0015-docker-ghcr-packaging.md](../../decisions/0015-docker-ghcr-packaging.md)
 - Developing: [../../developing/README.md](../../developing/README.md)

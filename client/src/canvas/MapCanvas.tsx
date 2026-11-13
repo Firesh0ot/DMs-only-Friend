@@ -8,6 +8,7 @@ import type {
   Role,
   TokenState,
 } from "@dms/shared";
+import type { ScreenDisplayMode } from "../lib/screenCalibration";
 import { useMapScene, type FogToolMode } from "./useMapScene";
 
 type Props = {
@@ -21,8 +22,12 @@ type Props = {
   fogTool: FogToolMode;
   fogPaintMode: FogPaintMode;
   fogBrushRadius: number;
+  screenDisplayMode?: ScreenDisplayMode;
+  lockedZoom?: number | null;
+  initialPhysicalCamera?: { x: number; y: number } | null;
   onTokenMove: (tokenId: string, x: number, y: number) => void;
   onCameraChange: (camera: CameraState) => void;
+  onPhysicalCameraChange?: (camera: { x: number; y: number }) => void;
   onFogPaint: (stroke: FogStrokeInput) => void;
   onPortalToggle?: (portalId: string, closed: boolean) => void;
 };

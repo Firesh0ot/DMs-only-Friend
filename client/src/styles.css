@@ -2202,3 +2202,97 @@ html[data-lantern="off"] .condition-toggle.is-active {
   color: #f0e6d2;
 }
 
+.screen-display-controls {
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.screen-display-controls__status {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.screen-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(12, 8, 4, 0.55);
+}
+
+.screen-modal__card {
+  width: min(36rem, 100%);
+  max-height: min(90vh, 44rem);
+  overflow: auto;
+}
+
+.calibration-ruler {
+  min-height: 3.5rem;
+  padding: 1rem 0.5rem;
+  border-radius: 8px;
+  border: 1px dashed rgba(60, 40, 20, 0.35);
+  background: rgba(255, 248, 230, 0.25);
+}
+
+.calibration-ruler__line {
+  position: relative;
+  height: 0.35rem;
+  max-width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8a4a2a, #c47a3a);
+}
+
+.calibration-ruler__label {
+  position: absolute;
+  top: -1.35rem;
+  left: 0;
+  font-size: 0.75rem;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.calibration-ruler__handle {
+  position: absolute;
+  top: 50%;
+  right: -0.65rem;
+  width: 1.3rem;
+  height: 1.3rem;
+  margin: 0;
+  padding: 0;
+  border-radius: 999px;
+  border: 2px solid #5a3018;
+  background: #f4d9a8;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+  box-shadow: none;
+  min-height: 0;
+}
+
+.calibration-preview-cell {
+  width: 4rem;
+  height: 4rem;
+  border: 2px solid #8a4a2a;
+  background:
+    linear-gradient(90deg, rgba(138, 74, 42, 0.25) 1px, transparent 1px),
+    linear-gradient(rgba(138, 74, 42, 0.25) 1px, transparent 1px);
+  background-size: 25% 25%;
+  box-shadow: inset 0 0 0 1px rgba(255, 248, 230, 0.35);
+}
+
+html[data-lantern="off"] .calibration-ruler {
+  border-color: rgba(120, 130, 140, 0.35);
+  background: rgba(30, 36, 44, 0.55);
+}
+
+html[data-lantern="off"] .calibration-ruler__handle {
+  border-color: rgba(200, 180, 120, 0.55);
+  background: #3a4250;
+}
+
+html[data-lantern="off"] .calibration-preview-cell {
+  border-color: rgba(180, 150, 90, 0.55);
+}
+

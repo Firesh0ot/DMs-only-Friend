@@ -217,4 +217,56 @@ describe("socket permission negatives", () => {
     gm.close();
     player.close();
   });
+
+  it("lets GM set physicalCellCm and open calibration on screens only", async () => {
+    const { url, rooms } = await startServer();
+    const { room, code, gmInviteToken } = rooms.createRoom({ pin: "1234" });
+    rooms.upsertCharacter({
+      roomId: room.id,
+      name: "Remy",
+      kind: "pc",
+      mapIds: [],
+    });
+
+    const gm = connect(url);
+    await waitConnected(gm);
+    await join(gm, { code, role: "gm", pin: "1234", invite: gmInviteToken });
+
+    const screen = connect(url);
+    await waitConnected(screen);
+    await join(screen, { code, role: "screen" });
+
+    const player = connect(url);
+    await waitConnected(player);
+    await join(player, { code, role: "player", name: "Remy" });
+
+    const settingsPromise = new Promise<{ physicalCellCm: number | null }>((resolve) => {
+      screen.once(ServerEvents.SettingsUpdated, (settings) => resolve(settings));
+    });
+    gm.emit(ClientEvents.SettingsSet, { physicalCellCm: 3 });
+    await expect(settingsPromise).resolves.toMatchObject({ physicalCellCm: 3 });
+    expect(rooms.getSettings(room.id).physicalCellCm).toBe(3);
+
+    const screenCommand = new Promise<{ type: string }>((resolve) => {
+      screen.once(ServerEvents.ScreenCommand, (payload) => resolve(payload));
+    });
+    const playerSawCommand = new Promise<boolean>((resolve) => {
+      const timer = setTimeout(() => resolve(false), 200);
+      player.once(ServerEvents.ScreenCommand, () => {
+        clearTimeout(timer);
+        resolve(true);
+      });
+    });
+    gm.emit(ClientEvents.ScreenCommand, { type: "open-calibration" });
+    await expect(screenCommand).resolves.toEqual({ type: "open-calibration" });
+    await expect(playerSawCommand).resolves.toBe(false);
+
+    const denied = nextError(screen);
+    screen.emit(ClientEvents.ScreenCommand, { type: "open-calibration" });
+    await expect(denied).resolves.toBe("GM only");
+
+    gm.close();
+    screen.close();
+    player.close();
+  });
 });
