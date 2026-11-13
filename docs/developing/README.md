@@ -179,7 +179,7 @@ See [ADR 0011](../decisions/0011-token-conditions.md).
 
 ### Visual theme
 
-See [ADR 0005](../decisions/0005-tavern-theme-lantern.md). CSS tokens + textures in `client/public/theme/`; lantern mode in `localStorage` (`dms-lantern`) via `document.documentElement.dataset.lantern`. Display/body fonts (Cinzel, IBM Plex Sans) are self-hosted via `@fontsource/*` imports in the client (`font-display: swap`); OFL texts live under `client/licenses/`. No Google Fonts CDN — LAN/offline builds stay intact.
+See [ADR 0005](../decisions/0005-tavern-theme-lantern.md) and [ADR 0019](../decisions/0019-page-wide-candlelit-flicker.md). CSS tokens + textures in `client/public/theme/`; lantern mode in `localStorage` (`dms-lantern`) via `document.documentElement.dataset.lantern`. Candlelit idle flicker is CSS on fixed `body.tavern-body` overlays (full viewport), not map-local. Display/body fonts (Cinzel, IBM Plex Sans) are self-hosted via `@fontsource/*` imports in the client (`font-display: swap`); OFL texts live under `client/licenses/`. No Google Fonts CDN — LAN/offline builds stay intact.
 
 ## Architecture pointers
 
