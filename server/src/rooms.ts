@@ -88,6 +88,7 @@ type CharacterRow = {
   notes: string | null;
   size_cells: number;
   speed_cells: number;
+  initiative_bonus: number;
   hp_current: number | null;
   hp_max: number | null;
   ac: number | null;
@@ -104,6 +105,8 @@ type InitiativeRow = {
   remaining_cells: number | null;
   budget_cells: number | null;
   active_token_id: string | null;
+  action_used: number;
+  bonus_used: number;
 };
 type SpawnPointRow = {
   id: string;
@@ -603,6 +606,7 @@ export class RoomStore {
     notes?: string | null;
     sizeCells?: number;
     speedCells?: number;
+    initiativeBonus?: number;
     mapIds?: string[];
     hpCurrent?: number | null;
     hpMax?: number | null;
@@ -622,11 +626,15 @@ export class RoomStore {
     });
     const nextAc = input.ac !== undefined ? input.ac : (existing?.ac ?? null);
     const nextSpeed = input.speedCells ?? existing?.speedCells ?? 6;
+    const nextBonus =
+      input.initiativeBonus !== undefined
+        ? input.initiativeBonus
+        : (existing?.initiativeBonus ?? 0);
     if (existing) {
       this.db
         .prepare(
           `UPDATE characters SET name = ?, kind = ?, image = ?, notes = ?, size_cells = ?,
-           speed_cells = ?, hp_current = ?, hp_max = ?, ac = ? WHERE id = ?`,
+           speed_cells = ?, initiative_bonus = ?, hp_current = ?, hp_max = ?, ac = ? WHERE id = ?`,
         )
         .run(
           input.name,
@@ -635,6 +643,7 @@ export class RoomStore {
           input.notes !== undefined ? input.notes : existing.notes,
           input.sizeCells ?? existing.sizeCells,
           nextSpeed,
+          nextBonus,
           nextHp.hpCurrent,
           nextHp.hpMax,
           nextAc,
@@ -643,8 +652,8 @@ export class RoomStore {
     } else {
       this.db
         .prepare(
-          `INSERT INTO characters (id, room_id, name, kind, image, notes, size_cells, speed_cells, hp_current, hp_max, ac)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO characters (id, room_id, name, kind, image, notes, size_cells, speed_cells, initiative_bonus, hp_current, hp_max, ac)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -655,6 +664,7 @@ export class RoomStore {
           input.notes ?? null,
           input.sizeCells ?? 1,
           nextSpeed,
+          nextBonus,
           nextHp.hpCurrent,
           nextHp.hpMax,
           nextAc,
@@ -1164,20 +1174,36 @@ export class RoomStore {
       row.turn_start_x === null || row.turn_start_y === null
         ? null
         : { x: row.turn_start_x, y: row.turn_start_y };
+    const remainingCells = row.remaining_cells;
     return {
       order,
       activeIndex: row.active_index,
       round: row.round || 1,
       turnStart,
-      remainingCells: row.remaining_cells,
+      remainingCells,
+      activeActionUsed: Boolean(row.action_used),
+      activeBonusUsed: Boolean(row.bonus_used),
+      activeMovementRemaining: remainingCells,
     };
   }
 
   setInitiative(roomId: string, initiative: InitiativeState): InitiativeState {
-    const existing = this.getMovementBudget(roomId);
-    const turnStart = initiative.turnStart !== undefined ? initiative.turnStart : existing.turnStart;
+    const existing = this.getInitiative(roomId);
+    const existingMovement = this.getMovementBudget(roomId);
+    const turnStart =
+      initiative.turnStart !== undefined ? initiative.turnStart : existingMovement.turnStart;
     const remainingCells =
-      initiative.remainingCells !== undefined ? initiative.remainingCells : existing.remainingCells;
+      initiative.remainingCells !== undefined
+        ? initiative.remainingCells
+        : existingMovement.remainingCells;
+    const activeActionUsed =
+      initiative.activeActionUsed !== undefined
+        ? initiative.activeActionUsed
+        : (existing?.activeActionUsed ?? false);
+    const activeBonusUsed =
+      initiative.activeBonusUsed !== undefined
+        ? initiative.activeBonusUsed
+        : (existing?.activeBonusUsed ?? false);
     const activeTokenId =
       initiative.order.length > 0
         ? (initiative.order[initiative.activeIndex]?.tokenId ?? null)
@@ -1186,8 +1212,9 @@ export class RoomStore {
       .prepare(
         `INSERT INTO room_initiative (
            room_id, order_json, active_index, round,
-           turn_start_x, turn_start_y, remaining_cells, active_token_id
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           turn_start_x, turn_start_y, remaining_cells, active_token_id,
+           action_used, bonus_used
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(room_id) DO UPDATE SET
            order_json = excluded.order_json,
            active_index = excluded.active_index,
@@ -1195,7 +1222,9 @@ export class RoomStore {
            turn_start_x = excluded.turn_start_x,
            turn_start_y = excluded.turn_start_y,
            remaining_cells = excluded.remaining_cells,
-           active_token_id = excluded.active_token_id`,
+           active_token_id = excluded.active_token_id,
+           action_used = excluded.action_used,
+           bonus_used = excluded.bonus_used`,
       )
       .run(
         roomId,
@@ -1206,12 +1235,32 @@ export class RoomStore {
         turnStart?.y ?? null,
         remainingCells ?? null,
         activeTokenId,
+        activeActionUsed ? 1 : 0,
+        activeBonusUsed ? 1 : 0,
       );
     return {
       ...initiative,
       turnStart: turnStart ?? null,
       remainingCells: remainingCells ?? null,
+      activeActionUsed,
+      activeBonusUsed,
+      activeMovementRemaining: remainingCells ?? null,
     };
+  }
+
+  setTurnFlags(
+    roomId: string,
+    flags: { actionUsed?: boolean; bonusUsed?: boolean },
+  ): InitiativeState | null {
+    const current = this.getInitiative(roomId);
+    if (!current) {
+      return null;
+    }
+    return this.setInitiative(roomId, {
+      ...current,
+      activeActionUsed: flags.actionUsed ?? current.activeActionUsed ?? false,
+      activeBonusUsed: flags.bonusUsed ?? current.activeBonusUsed ?? false,
+    });
   }
 
   getMovementBudget(roomId: string): MovementBudget {
@@ -1739,6 +1788,7 @@ function toCharacterState(row: CharacterRow, mapIds: string[]): CharacterState {
     notes: row.notes ?? null,
     sizeCells: row.size_cells,
     speedCells: row.speed_cells ?? 6,
+    initiativeBonus: row.initiative_bonus ?? 0,
     mapIds,
     hpCurrent: row.hp_current ?? null,
     hpMax: row.hp_max ?? null,

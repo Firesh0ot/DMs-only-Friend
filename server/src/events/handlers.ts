@@ -28,16 +28,19 @@ import {
   TokenCreatePayloadSchema,
   TokenMovePayloadSchema,
   TokenRemovePayloadSchema,
+  TurnFlagPayloadSchema,
   VisibilitySetPayloadSchema,
   normalizeRoomCode,
   roomCodePathSegment,
   roll,
+  rollInitiative,
+  sortInitiativeEntries,
   type ClientToServerEvents,
   type ServerToClientEvents,
   type SessionEvent,
 } from "@dms/shared";
 import type { Server, Socket } from "socket.io";
-import { roomChannel, type RoomStore } from "../rooms.js";
+import { roomChannel, type RoomStore, type Session } from "../rooms.js";
 
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -308,25 +311,33 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         const characters = rooms.listCharacters(session.roomId);
         const byToken = new Map(tokens.map((token) => [token.id, token]));
         const byCharacter = new Map(characters.map((character) => [character.id, character]));
-        const order = data.order
-          .map((entry) => {
-            const token = byToken.get(entry.tokenId);
-            if (!token) {
-              return null;
-            }
-            const character = token.characterId
-              ? byCharacter.get(token.characterId)
-              : undefined;
-            return {
-              tokenId: token.id,
-              label: token.label,
-              initiative: entry.initiative,
-              kind: character?.kind ?? (token.isPlayer ? ("pc" as const) : ("npc" as const)),
-              image: character?.image ?? token.image,
-            };
-          })
-          .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
-          .sort((a, b) => b.initiative - a.initiative || a.label.localeCompare(b.label));
+        const order = sortInitiativeEntries(
+          data.order
+            .map((entry) => {
+              const token = byToken.get(entry.tokenId);
+              if (!token) {
+                return null;
+              }
+              const character = token.characterId
+                ? byCharacter.get(token.characterId)
+                : undefined;
+              return {
+                tokenId: token.id,
+                label: token.label,
+                initiative: entry.initiative,
+                kind: character?.kind ?? (token.isPlayer ? ("pc" as const) : ("npc" as const)),
+                image: character?.image ?? token.image,
+                bonus: character?.initiativeBonus ?? 0,
+              };
+            })
+            .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
+        ).map((entry) => ({
+          tokenId: entry.tokenId,
+          label: entry.label,
+          initiative: entry.initiative,
+          kind: entry.kind,
+          image: entry.image,
+        }));
 
         const previous = rooms.getInitiative(session.roomId);
         const initiative = rooms.setInitiative(session.roomId, {
@@ -335,6 +346,9 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           round: previous?.round ?? 1,
           turnStart: null,
           remainingCells: null,
+          activeActionUsed: false,
+          activeBonusUsed: false,
+          activeMovementRemaining: null,
         });
         const movement = rooms.clearMovementBudget(session.roomId);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
@@ -354,15 +368,206 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       }
     });
 
-    socket.on(ClientEvents.InitiativeNext, () => {
+    socket.on(ClientEvents.InitiativeRoll, () => {
       const session = requireGm(socket, rooms);
       if (!session) {
+        return;
+      }
+      try {
+        const tokens = rooms.listAllTokensOnActiveMap(session.roomId);
+        if (tokens.length === 0) {
+          emitError(socket, new Error("No tokens on the active map"));
+          return;
+        }
+        const characters = rooms.listCharacters(session.roomId);
+        const byCharacter = new Map(characters.map((character) => [character.id, character]));
+        const rolled = rollInitiative(
+          tokens.map((token) => {
+            const character = token.characterId
+              ? byCharacter.get(token.characterId)
+              : undefined;
+            return {
+              tokenId: token.id,
+              label: token.label,
+              kind: character?.kind ?? (token.isPlayer ? ("pc" as const) : ("npc" as const)),
+              image: character?.image ?? token.image,
+              initiativeBonus: character?.initiativeBonus ?? 0,
+            };
+          }),
+        );
+        const order = rolled.map((entry) => ({
+          tokenId: entry.tokenId,
+          label: entry.label,
+          initiative: entry.initiative,
+          kind: entry.kind,
+          image: entry.image,
+        }));
+        const previous = rooms.getInitiative(session.roomId);
+        const initiative = rooms.setInitiative(session.roomId, {
+          order,
+          activeIndex: 0,
+          round: previous?.round ?? 1,
+          turnStart: null,
+          remainingCells: null,
+          activeActionUsed: false,
+          activeBonusUsed: false,
+          activeMovementRemaining: null,
+        });
+        const movement = rooms.clearMovementBudget(session.roomId);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.MovementUpdated, movement);
+        for (const entry of rolled) {
+          const expr =
+            entry.bonus >= 0 ? `1d20+${entry.bonus}` : `1d20${entry.bonus}`;
+          emitLog(
+            io,
+            session.roomId,
+            rooms.appendEvent({
+              roomId: session.roomId,
+              type: "dice_roll",
+              summary: `${entry.label}: ${expr} → ${entry.initiative}`,
+              payload: {
+                tokenId: entry.tokenId,
+                label: entry.label,
+                expr,
+                die: entry.die,
+                bonus: entry.bonus,
+                total: entry.initiative,
+                source: "initiative_roll",
+              },
+            }),
+          );
+        }
+        emitLog(
+          io,
+          session.roomId,
+          rooms.appendEvent({
+            roomId: session.roomId,
+            type: "initiative_roll",
+            summary: `Initiative rolled (${order.length})`,
+            payload: { count: order.length },
+          }),
+        );
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.InitiativeRollSelf, () => {
+      const session = rooms.getSession(socket.id);
+      if (!session) {
+        emitError(socket, new Error("Not joined"));
+        return;
+      }
+      if (session.role !== "player" || !session.characterId) {
+        emitError(socket, new Error("Players only"));
+        return;
+      }
+      try {
+        const character = rooms.getCharacter(session.characterId);
+        if (!character || character.roomId !== session.roomId) {
+          emitError(socket, new Error("Character not found"));
+          return;
+        }
+        const tokens = rooms.listAllTokensOnActiveMap(session.roomId);
+        const token = tokens.find((entry) => entry.characterId === session.characterId);
+        if (!token) {
+          emitError(socket, new Error("Kein Token auf der aktiven Karte"));
+          return;
+        }
+        const rolled = rollInitiative([
+          {
+            tokenId: token.id,
+            label: token.label,
+            kind: character.kind,
+            image: character.image ?? token.image,
+            initiativeBonus: character.initiativeBonus,
+          },
+        ])[0];
+        if (!rolled) {
+          emitError(socket, new Error("Roll failed"));
+          return;
+        }
+        const previous = rooms.getInitiative(session.roomId);
+        const existingOrder = previous?.order ?? [];
+        const withoutSelf = existingOrder.filter((entry) => entry.tokenId !== token.id);
+        const nextEntry = {
+          tokenId: rolled.tokenId,
+          label: rolled.label,
+          initiative: rolled.initiative,
+          kind: rolled.kind,
+          image: rolled.image ?? null,
+        };
+        const withBonus = [
+          ...withoutSelf.map((entry) => {
+            const entryToken = tokens.find((candidate) => candidate.id === entry.tokenId);
+            const entryCharacter = entryToken?.characterId
+              ? rooms.getCharacter(entryToken.characterId)
+              : null;
+            return { ...entry, bonus: entryCharacter?.initiativeBonus ?? 0 };
+          }),
+          { ...nextEntry, bonus: rolled.bonus },
+        ];
+        const order = sortInitiativeEntries(withBonus).map((entry) => ({
+          tokenId: entry.tokenId,
+          label: entry.label,
+          initiative: entry.initiative,
+          kind: entry.kind,
+          image: entry.image,
+        }));
+        const activeTokenId = previous?.order[previous.activeIndex]?.tokenId;
+        let activeIndex = 0;
+        if (activeTokenId) {
+          const kept = order.findIndex((entry) => entry.tokenId === activeTokenId);
+          activeIndex = kept >= 0 ? kept : 0;
+        }
+        const initiative = rooms.setInitiative(session.roomId, {
+          order,
+          activeIndex,
+          round: previous?.round ?? 1,
+          activeActionUsed: previous?.activeActionUsed ?? false,
+          activeBonusUsed: previous?.activeBonusUsed ?? false,
+        });
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+        const expr =
+          rolled.bonus >= 0 ? `1d20+${rolled.bonus}` : `1d20${rolled.bonus}`;
+        emitLog(
+          io,
+          session.roomId,
+          rooms.appendEvent({
+            roomId: session.roomId,
+            type: "dice_roll",
+            summary: `${rolled.label}: ${expr} → ${rolled.initiative}`,
+            payload: {
+              tokenId: rolled.tokenId,
+              label: rolled.label,
+              expr,
+              die: rolled.die,
+              bonus: rolled.bonus,
+              total: rolled.initiative,
+              source: "initiative_roll_self",
+            },
+          }),
+        );
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.InitiativeNext, () => {
+      const session = rooms.getSession(socket.id);
+      if (!session) {
+        emitError(socket, new Error("Not joined"));
         return;
       }
       try {
         const current = rooms.getInitiative(session.roomId);
         if (!current || current.order.length === 0) {
           emitError(socket, new Error("No initiative order"));
+          return;
+        }
+        if (!canAdvanceTurn(session, rooms, current)) {
+          emitError(socket, new Error("Not your turn"));
           return;
         }
         const ensured = rooms.ensureBattleForNextTurn(session.roomId);
@@ -373,16 +578,26 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         const wrapping = current.activeIndex + 1 >= current.order.length;
         const activeIndex = wrapping ? 0 : current.activeIndex + 1;
         const round = wrapping ? current.round + 1 : current.round;
-        const initiative = rooms.setInitiative(session.roomId, {
+        rooms.setInitiative(session.roomId, {
           order: current.order,
           activeIndex,
           round,
+          activeActionUsed: false,
+          activeBonusUsed: false,
+          remainingCells: null,
+          turnStart: null,
+          activeMovementRemaining: null,
         });
-        io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
-        const active = initiative.order[activeIndex];
+        const active = current.order[activeIndex];
         const movement = active
           ? rooms.beginTurnMovement(session.roomId, active.tokenId)
           : rooms.clearMovementBudget(session.roomId);
+        const initiative = rooms.getInitiative(session.roomId);
+        if (!initiative) {
+          emitError(socket, new Error("No initiative order"));
+          return;
+        }
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.MovementUpdated, movement);
         emitLog(
           io,
@@ -414,6 +629,14 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       } catch (error) {
         emitError(socket, error);
       }
+    });
+
+    socket.on(ClientEvents.TurnAction, (payload) => {
+      handleTurnFlag(socket, io, rooms, payload, "action");
+    });
+
+    socket.on(ClientEvents.TurnBonus, (payload) => {
+      handleTurnFlag(socket, io, rooms, payload, "bonus");
     });
 
     socket.on(ClientEvents.MapActivate, (payload) => {
@@ -515,6 +738,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           notes: data.notes,
           sizeCells: data.sizeCells,
           speedCells: data.speedCells,
+          initiativeBonus: data.initiativeBonus,
           mapIds: data.mapIds,
           hpCurrent: data.hpCurrent,
           hpMax: data.hpMax,
@@ -926,6 +1150,72 @@ function requireGm(socket: AppSocket, rooms: RoomStore) {
     return null;
   }
   return session;
+}
+
+function canAdvanceTurn(
+  session: Session,
+  rooms: RoomStore,
+  initiative: NonNullable<ReturnType<RoomStore["getInitiative"]>>,
+): boolean {
+  if (session.role === "gm") {
+    return true;
+  }
+  if (session.role !== "player" || !session.characterId) {
+    return false;
+  }
+  const active = initiative.order[initiative.activeIndex];
+  if (!active) {
+    return false;
+  }
+  const token = rooms.getToken(active.tokenId);
+  return token?.characterId === session.characterId;
+}
+
+function handleTurnFlag(
+  socket: AppSocket,
+  io: AppServer,
+  rooms: RoomStore,
+  payload: unknown,
+  flag: "action" | "bonus",
+): void {
+  const session = rooms.getSession(socket.id);
+  if (!session) {
+    emitError(socket, new Error("Not joined"));
+    return;
+  }
+  try {
+    const data = TurnFlagPayloadSchema.parse(payload);
+    const current = rooms.getInitiative(session.roomId);
+    if (!current || current.order.length === 0) {
+      emitError(socket, new Error("No initiative order"));
+      return;
+    }
+    if (!canAdvanceTurn(session, rooms, current)) {
+      emitError(socket, new Error("Not your turn"));
+      return;
+    }
+    const initiative = rooms.setTurnFlags(
+      session.roomId,
+      flag === "action" ? { actionUsed: data.used } : { bonusUsed: data.used },
+    );
+    if (!initiative) {
+      emitError(socket, new Error("No initiative order"));
+      return;
+    }
+    io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+    emitLog(
+      io,
+      session.roomId,
+      rooms.appendEvent({
+        roomId: session.roomId,
+        type: flag === "action" ? "turn_action" : "turn_bonus",
+        summary: `${flag === "action" ? "Action" : "Bonus"} ${data.used ? "used" : "ready"}`,
+        payload: { used: data.used, flag },
+      }),
+    );
+  } catch (error) {
+    emitError(socket, error);
+  }
 }
 
 function emitLog(io: AppServer, roomId: string, event: SessionEvent | null): void {

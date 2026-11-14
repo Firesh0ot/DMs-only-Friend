@@ -63,6 +63,6 @@ What becomes easier, harder, or out of scope.
 | [0022](0022-physical-screen-camera-supersede.md) | Physical screen mode supersedes ADR 0002 Follow-GM camera (partial) | accepted |
 | [0023](0023-srd-monster-data-source.md) | SRD 5.1 (CC-BY-4.0) as only monster source; on-demand fetch + cache | accepted |
 | [0024](0024-play-game-hud.md) | Play game-style HUD (replace islands) | accepted |
-| [0025](0025-turn-carousel-hud.md) | Turn carousel HUD, system-agnostic turn model, dual initiative paths | proposed |
+| [0025](0025-turn-carousel-hud.md) | Turn carousel HUD, system-agnostic turn model, dual initiative paths | accepted |
 | [0026](0026-procedural-bsp-dd2vtt.md) | Procedural BSP dungeon to dd2vtt | accepted |
 | [0027](0027-webm-map-packages.md) | WebM animated map backgrounds and map packages | accepted |

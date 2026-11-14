@@ -71,7 +71,10 @@ export function SettingsPanel({
   const [draft, setDraft] = useState<DraftCharacter>(emptyDraft);
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
   const [editingStats, setEditingStats] = useState<
-    Record<string, { hpCurrent: string; hpMax: string; ac: string; speedCells: string }>
+    Record<
+      string,
+      { hpCurrent: string; hpMax: string; ac: string; speedCells: string; initiativeBonus: string }
+    >
   >({});
   const [gmInviteUrl, setGmInviteUrl] = useState<string | null>(null);
   const [currentPin, setCurrentPin] = useState("");
@@ -369,6 +372,7 @@ export function SettingsPanel({
           : (editingNotes[character.id] ?? character.notes ?? null),
       sizeCells: character.sizeCells,
       speedCells: patch.speedCells ?? character.speedCells,
+      initiativeBonus: patch.initiativeBonus ?? character.initiativeBonus,
       image: character.image,
       hpCurrent: patch.hpCurrent !== undefined ? patch.hpCurrent : character.hpCurrent,
       hpMax: patch.hpMax !== undefined ? patch.hpMax : character.hpMax,
@@ -383,6 +387,7 @@ export function SettingsPanel({
         hpMax: character.hpMax === null ? "" : String(character.hpMax),
         ac: character.ac === null ? "" : String(character.ac),
         speedCells: String(character.speedCells ?? 6),
+        initiativeBonus: String(character.initiativeBonus ?? 0),
       }
     );
   }
@@ -397,7 +402,11 @@ export function SettingsPanel({
       if (!Number.isInteger(speedRaw) || speedRaw < 1 || speedRaw > 50) {
         throw new Error("Speed must be 1–50 cells");
       }
-      saveCharacter(character, { hpCurrent, hpMax, ac, speedCells: speedRaw });
+      const initiativeBonus = Number(stats.initiativeBonus);
+      if (!Number.isInteger(initiativeBonus) || initiativeBonus < -10 || initiativeBonus > 30) {
+        throw new Error("Initiative bonus must be −10…30");
+      }
+      saveCharacter(character, { hpCurrent, hpMax, ac, speedCells: speedRaw, initiativeBonus });
       setEditingStats((current) => {
         const next = { ...current };
         delete next[character.id];
@@ -526,6 +535,23 @@ export function SettingsPanel({
                   setEditingStats((current) => ({
                     ...current,
                     [character.id]: { ...stats, speedCells: event.target.value },
+                  }))
+                }
+                onBlur={() => saveStats(character)}
+              />
+            </label>
+            <label className="stack" htmlFor={`${baseId}-init-bonus-${character.id}`}>
+              <span className="muted">Init</span>
+              <input
+                id={`${baseId}-init-bonus-${character.id}`}
+                inputMode="numeric"
+                value={stats.initiativeBonus}
+                placeholder="0"
+                aria-label={`Initiative bonus for ${character.name}`}
+                onChange={(event) =>
+                  setEditingStats((current) => ({
+                    ...current,
+                    [character.id]: { ...stats, initiativeBonus: event.target.value },
                   }))
                 }
                 onBlur={() => saveStats(character)}

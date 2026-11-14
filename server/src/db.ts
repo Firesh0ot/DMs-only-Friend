@@ -142,11 +142,14 @@ function migrate(db: Db): void {
   ensureColumn(db, "rooms", "gm_claimed", "INT NOT NULL DEFAULT 1");
   ensureColumn(db, "map_fog", "los_enabled", "INT NOT NULL DEFAULT 0");
   ensureColumn(db, "characters", "speed_cells", "INT NOT NULL DEFAULT 6");
+  ensureColumn(db, "characters", "initiative_bonus", "INT NOT NULL DEFAULT 0");
   ensureColumn(db, "room_initiative", "turn_start_x", "REAL");
   ensureColumn(db, "room_initiative", "turn_start_y", "REAL");
   ensureColumn(db, "room_initiative", "remaining_cells", "INT");
   ensureColumn(db, "room_initiative", "budget_cells", "INT");
   ensureColumn(db, "room_initiative", "active_token_id", "TEXT");
+  ensureColumn(db, "room_initiative", "action_used", "INT NOT NULL DEFAULT 0");
+  ensureColumn(db, "room_initiative", "bonus_used", "INT NOT NULL DEFAULT 0");
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS spawn_points (

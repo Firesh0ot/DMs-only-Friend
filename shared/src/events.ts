@@ -108,6 +108,7 @@ export const CharacterStateSchema = z.object({
   notes: z.string().nullable(),
   sizeCells: z.number().positive(),
   speedCells: z.number().int().positive(),
+  initiativeBonus: z.number().int().default(0),
   mapIds: z.array(z.string()),
   hpCurrent: z.number().int().nullable(),
   hpMax: z.number().int().nullable(),
@@ -226,6 +227,9 @@ export const InitiativeStateSchema = z.object({
   round: z.number().int().positive(),
   turnStart: TurnStartSchema.nullable().optional(),
   remainingCells: z.number().int().nonnegative().nullable().optional(),
+  activeActionUsed: z.boolean().optional(),
+  activeBonusUsed: z.boolean().optional(),
+  activeMovementRemaining: z.number().int().nonnegative().nullable().optional(),
 });
 export type InitiativeState = z.infer<typeof InitiativeStateSchema>;
 
@@ -262,11 +266,14 @@ export const SessionEventTypeSchema = z.enum([
   "map_change",
   "token_move",
   "initiative_set",
+  "initiative_roll",
   "initiative_next",
   "round_advance",
   "visibility_set",
   "dice_roll",
   "spawn_applied",
+  "turn_action",
+  "turn_bonus",
 ]);
 export type SessionEventType = z.infer<typeof SessionEventTypeSchema>;
 
@@ -443,6 +450,11 @@ export const InitiativeSetPayloadSchema = z.object({
 });
 export type InitiativeSetPayload = z.infer<typeof InitiativeSetPayloadSchema>;
 
+export const TurnFlagPayloadSchema = z.object({
+  used: z.boolean(),
+});
+export type TurnFlagPayload = z.infer<typeof TurnFlagPayloadSchema>;
+
 export const MapActivatePayloadSchema = z.object({
   mapId: z.string().min(1),
 });
@@ -467,6 +479,7 @@ export const CharacterUpsertPayloadSchema = z.object({
   notes: z.string().max(500).nullable().optional(),
   sizeCells: z.number().positive().optional(),
   speedCells: z.number().int().positive().max(50).optional(),
+  initiativeBonus: z.number().int().min(-10).max(30).optional(),
   mapIds: z.array(z.string().min(1)).optional(),
   hpCurrent: z.number().int().min(0).nullable().optional(),
   hpMax: z.number().int().min(0).nullable().optional(),
@@ -589,7 +602,11 @@ export const ClientEvents = {
   DiceRoll: "dice:roll",
   CameraSet: "camera:set",
   InitiativeSet: "initiative:set",
+  InitiativeRoll: "initiative:roll",
+  InitiativeRollSelf: "initiative:rollSelf",
   InitiativeNext: "initiative:next",
+  TurnAction: "turn:action",
+  TurnBonus: "turn:bonus",
   MapActivate: "map:activate",
   MapUpdateGrid: "map:updateGrid",
   MapRemove: "map:remove",
@@ -660,7 +677,11 @@ export type ClientToServerEvents = {
   [ClientEvents.DiceRoll]: (payload: DiceRollPayload) => void;
   [ClientEvents.CameraSet]: (payload: CameraSetPayload) => void;
   [ClientEvents.InitiativeSet]: (payload: InitiativeSetPayload) => void;
+  [ClientEvents.InitiativeRoll]: () => void;
+  [ClientEvents.InitiativeRollSelf]: () => void;
   [ClientEvents.InitiativeNext]: () => void;
+  [ClientEvents.TurnAction]: (payload: TurnFlagPayload) => void;
+  [ClientEvents.TurnBonus]: (payload: TurnFlagPayload) => void;
   [ClientEvents.MapActivate]: (payload: MapActivatePayload) => void;
   [ClientEvents.MapUpdateGrid]: (payload: MapUpdateGridPayload) => void;
   [ClientEvents.MapRemove]: (payload: MapRemovePayload) => void;

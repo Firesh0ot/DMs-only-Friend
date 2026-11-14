@@ -124,6 +124,7 @@ export function PlayHud({
             initiative={initiative}
             visibility={visibility}
             remainingCells={movement?.active ? movement.remainingCells : null}
+            movement={movement}
           />
         </HudPanel>
         <HudPanel
