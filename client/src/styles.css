@@ -1252,7 +1252,7 @@ button.hud-fog-rail__btn.is-active {
   z-index: 5;
   inset: 0.45rem;
   display: grid;
-  grid-template-columns: minmax(11.5rem, 14.5rem) 1fr 3.4rem;
+  grid-template-columns: minmax(12.5rem, 16rem) 1fr 3.4rem;
   grid-template-rows: 1fr auto;
   grid-template-areas:
     "left . right"
@@ -2296,3 +2296,261 @@ html[data-lantern="off"] .calibration-preview-cell {
   border-color: rgba(180, 150, 90, 0.55);
 }
 
+
+.turn-carousel {
+  --turn-scale: 1;
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.turn-carousel--compact {
+  --turn-scale: 0.92;
+  font-size: 0.78rem;
+}
+
+.turn-carousel-rail .turn-carousel {
+  --turn-scale: 1.05;
+}
+
+.turn-carousel__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  justify-content: space-between;
+}
+
+.turn-carousel__round {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-family: var(--font-display);
+}
+
+.turn-carousel__round strong {
+  font-size: 1.15rem;
+  color: var(--wood-deep);
+}
+
+.turn-carousel__display {
+  display: inline-flex;
+  gap: 0.45rem;
+}
+
+.turn-carousel__idle {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.turn-carousel__idle-actions {
+  gap: 0.3rem;
+}
+
+.turn-carousel__stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: 0.55fr 1fr 0.55fr;
+  align-items: end;
+  gap: 0.15rem;
+  min-height: calc(7.2rem * var(--turn-scale));
+  overflow: hidden;
+  padding: 0.35rem 0.1rem 0.45rem;
+  perspective: 600px;
+}
+
+.turn-carousel--compact .turn-carousel__stage {
+  min-height: calc(9.5rem * var(--turn-scale));
+}
+
+.turn-card {
+  position: relative;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(60, 40, 20, 0.28);
+  background: rgba(255, 248, 230, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition:
+    transform 300ms ease,
+    opacity 300ms ease,
+    filter 300ms ease;
+  transform-origin: bottom center;
+}
+
+.turn-card--prev {
+  transform: rotate(-8deg) translateX(18%) scale(0.88);
+  opacity: 0.72;
+  filter: saturate(0.85);
+  z-index: 1;
+}
+
+.turn-card--next {
+  transform: rotate(8deg) translateX(-18%) scale(0.88);
+  opacity: 0.72;
+  filter: saturate(0.85);
+  z-index: 1;
+}
+
+.turn-card--active {
+  transform: rotate(0deg) scale(1);
+  opacity: 1;
+  z-index: 2;
+  outline: 2px solid var(--signal);
+  background: rgba(232, 160, 69, 0.22);
+  padding: 0.35rem;
+}
+
+.turn-carousel.is-sliding-forward .turn-card--prev,
+.turn-carousel.is-sliding-back .turn-card--next {
+  opacity: 0.35;
+}
+
+.turn-carousel.is-sliding-forward .turn-card--active {
+  animation: turn-slide-in-left 300ms ease;
+}
+
+.turn-carousel.is-sliding-back .turn-card--active {
+  animation: turn-slide-in-right 300ms ease;
+}
+
+@keyframes turn-slide-in-left {
+  from {
+    transform: rotate(8deg) translateX(35%) scale(0.9);
+    opacity: 0.5;
+  }
+  to {
+    transform: rotate(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes turn-slide-in-right {
+  from {
+    transform: rotate(-8deg) translateX(-35%) scale(0.9);
+    opacity: 0.5;
+  }
+  to {
+    transform: rotate(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.turn-card__portrait {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+.turn-card__portrait img,
+.turn-card__placeholder {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  display: block;
+  background: linear-gradient(160deg, #6b4226, #2a1a10);
+}
+
+.turn-card--prev .turn-card__portrait img,
+.turn-card--prev .turn-card__placeholder,
+.turn-card--next .turn-card__portrait img,
+.turn-card--next .turn-card__placeholder {
+  aspect-ratio: 2 / 3;
+  max-height: 4.5rem;
+}
+
+.turn-card__placeholder {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: #f3e2c0;
+}
+
+.turn-card__init {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  min-width: 1.35rem;
+  padding: 0.05rem 0.25rem;
+  border-radius: 999px;
+  background: rgba(42, 26, 16, 0.82);
+  color: #f3e2c0;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.turn-card__body {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.15rem 0.2rem 0.25rem;
+}
+
+.turn-card--prev .turn-card__body,
+.turn-card--next .turn-card__body {
+  padding: 0.1rem 0.15rem 0.2rem;
+}
+
+.turn-card__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-family: var(--font-display);
+}
+
+.turn-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.turn-card__ac {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.turn-card__controls {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+}
+
+.turn-card__controls .hud-chip,
+.turn-card__controls button {
+  min-height: 1.55rem;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.35rem;
+}
+
+.turn-card__controls .hud-chip.is-used,
+.hp-chip.is-used {
+  text-decoration: line-through;
+  opacity: 0.65;
+}
+
+.turn-card__controls--readonly {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.turn-card__hp-nudge {
+  gap: 0.25rem;
+}
+
+.turn-carousel__manual {
+  margin-top: 0.15rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(60, 40, 20, 0.18);
+}
+
+@media (max-width: 800px) {
+  .turn-carousel__stage {
+    grid-template-columns: 0.45fr 1fr 0.45fr;
+  }
+}

@@ -1,6 +1,6 @@
 # 0025 — Turn carousel HUD and system-agnostic turn model
 
-- **Status:** proposed
+- **Status:** accepted
 - **Relates to:** [0024](0024-play-game-hud.md) (Play game-style HUD)
 - **Date:** 2026-11-13
 

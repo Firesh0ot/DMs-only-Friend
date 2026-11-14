@@ -10,12 +10,12 @@ import {
 import { MapCanvas } from "../canvas/MapCanvas";
 import type { FogToolMode } from "../canvas/useMapScene";
 import { DiceToast } from "../components/DiceToast";
-import { InitiativeRail } from "../components/InitiativeRail";
 import { LanternToggle } from "../components/LanternToggle";
 import { PlayHud } from "../components/PlayHud";
 import { ScreenDisplayControls } from "../components/ScreenDisplayControls";
 import { SessionStrip } from "../components/SessionStrip";
 import { SettingsPanel } from "../components/SettingsPanel";
+import { TurnCarousel } from "../components/turn/TurnCarousel";
 import {
   initialScreenCalibration,
   initialScreenDisplayMode,
@@ -316,12 +316,16 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
         <div className={`play-stage ${role !== "gm" ? "play-stage--with-rail" : ""}`}>
           {role !== "gm" ? (
             <div className="play-stage__side stack">
-              <InitiativeRail
-                initiative={snapshot.initiative}
-                tokens={tokens}
-                characters={snapshot.characters}
-                movement={role === "player" ? snapshot.movement : null}
-              />
+              <aside className="initiative-rail turn-carousel-rail" aria-label="Initiative">
+                <TurnCarousel
+                  role={role}
+                  selfCharacterId={snapshot.characterId}
+                  initiative={snapshot.initiative}
+                  tokens={tokens}
+                  characters={snapshot.characters}
+                  movement={role === "player" ? snapshot.movement : null}
+                />
+              </aside>
               <SessionStrip battle={snapshot.battle} events={snapshot.eventLog} />
             </div>
           ) : null}
