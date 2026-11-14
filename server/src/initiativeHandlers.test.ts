@@ -371,4 +371,67 @@ describe("initiative socket handlers", () => {
     player.close();
     other.close();
   });
+
+  it("removes a character from initiative when HP drops to 0", async () => {
+    const { url, rooms } = await startServer();
+    const { room, code, gmInviteToken } = rooms.createRoom();
+    const map = rooms.addMap(room.id, {
+      name: "Cave",
+      filename: "cave.png",
+      width: 700,
+      height: 700,
+      gridPx: 70,
+    });
+    const aria = rooms.upsertCharacter({
+      roomId: room.id,
+      name: "Aria",
+      kind: "pc",
+      mapIds: [map.id],
+      hpMax: 20,
+      hpCurrent: 20,
+    });
+    const goblin = rooms.upsertCharacter({
+      roomId: room.id,
+      name: "Goblin",
+      kind: "npc",
+      mapIds: [map.id],
+      hpMax: 12,
+      hpCurrent: 12,
+    });
+    rooms.setActiveMap(room.id, map.id);
+    const ariaToken = rooms
+      .listAllTokensOnActiveMap(room.id)
+      .find((token) => token.characterId === aria.id)!;
+    const goblinToken = rooms
+      .listAllTokensOnActiveMap(room.id)
+      .find((token) => token.characterId === goblin.id)!;
+    rooms.setInitiative(room.id, {
+      order: [
+        { tokenId: ariaToken.id, label: "Aria", initiative: 18 },
+        { tokenId: goblinToken.id, label: "Goblin", initiative: 12 },
+      ],
+      activeIndex: 0,
+      round: 1,
+    });
+
+    const gm = connect(url);
+    await waitConnected(gm);
+    await join(gm, { code, role: "gm", pin: "1234", invite: gmInviteToken });
+
+    const updated = nextInitiative(gm);
+    gm.emit(ClientEvents.CharacterSetHp, { characterId: goblin.id, hpCurrent: 0 });
+    const initiative = await updated;
+    expect(initiative.order.map((entry) => entry.label)).toEqual(["Aria"]);
+    expect(rooms.listAllTokensOnActiveMap(room.id).some((token) => token.id === goblinToken.id)).toBe(
+      true,
+    );
+
+    await new Promise<void>((resolve) => {
+      gm.once(ServerEvents.CharactersUpdated, () => resolve());
+      gm.emit(ClientEvents.CharacterSetHp, { characterId: goblin.id, hpCurrent: 6 });
+    });
+    expect(rooms.getInitiative(room.id)?.order.map((entry) => entry.label)).toEqual(["Aria"]);
+
+    gm.close();
+  });
 });

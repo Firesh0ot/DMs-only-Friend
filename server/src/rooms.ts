@@ -1181,6 +1181,37 @@ export class RoomStore {
     if (order.length === current.order.length) {
       return null;
     }
+    return this.applyInitiativeOrder(roomId, current, order);
+  }
+
+  pruneZeroHpInitiative(roomId: string): InitiativeState | null {
+    const current = this.getInitiative(roomId);
+    if (!current || current.order.length === 0) {
+      return null;
+    }
+    const characters = new Map(this.listCharacters(roomId).map((entry) => [entry.id, entry]));
+    const order = current.order.filter((entry) => {
+      const token = this.getToken(entry.tokenId);
+      if (!token?.characterId) {
+        return true;
+      }
+      const character = characters.get(token.characterId);
+      if (!character || character.hpCurrent === null) {
+        return true;
+      }
+      return character.hpCurrent > 0;
+    });
+    if (order.length === current.order.length) {
+      return null;
+    }
+    return this.applyInitiativeOrder(roomId, current, order);
+  }
+
+  private applyInitiativeOrder(
+    roomId: string,
+    current: InitiativeState,
+    order: InitiativeState["order"],
+  ): InitiativeState {
     const activeEntry = current.order[current.activeIndex];
     let activeIndex = 0;
     if (order.length > 0 && activeEntry) {
@@ -2021,6 +2052,8 @@ export function redactCharacterStatsForRole(
     return { ...character, hpQuarter: null };
   }
 
+  const dead = character.hpCurrent !== null && character.hpCurrent <= 0;
+
   if (screenHpQuarters) {
     const quarter = hpToQuarter(character.hpCurrent, character.hpMax);
     return {
@@ -2033,7 +2066,7 @@ export function redactCharacterStatsForRole(
   }
 
   if (character.kind === "pc") {
-    return { ...character, hpQuarter: null };
+    return { ...character, hpQuarter: dead ? 0 : null };
   }
 
   return {
@@ -2041,7 +2074,7 @@ export function redactCharacterStatsForRole(
     hpCurrent: null,
     hpMax: null,
     ac: null,
-    hpQuarter: null,
+    hpQuarter: dead ? 0 : null,
   };
 }
 

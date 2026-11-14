@@ -12,11 +12,13 @@ import {
 import { useEffect, useRef } from "react";
 import {
   healWallsAroundPortals,
+  isCharacterDead,
   mapGridBounds,
   movementBlockerSegments,
   reachableCells,
   shouldShowTokenForAudience,
   type CameraState,
+  type CharacterState,
   type FogPaintMode,
   type FogState,
   type FogStroke,
@@ -43,6 +45,7 @@ export type FogToolMode = "off" | "brush" | "rect";
 export type MapSceneProps = {
   map: MapState | null;
   tokens: TokenState[];
+  characters?: CharacterState[];
   camera: CameraState | null;
   role: Role;
   characterId: string | null;
@@ -70,8 +73,14 @@ type TokenView = {
   body: Graphics;
   label: Text;
   ring: Graphics;
+  cross: Graphics;
   tokenId: string;
 };
+
+const LIVE_TOKEN_FILL = 0x1f6b5c;
+const DEAD_TOKEN_FILL = 0x3a3f3e;
+const DEAD_TOKEN_STROKE = 0x8a8f8c;
+const DEAD_CROSS_COLOR = 0x1a1c1b;
 
 const DEFAULT_CAMERA: CameraState = { x: 0, y: 0, zoom: 1 };
 const FOG_TINT = 0x140e0a;
@@ -475,14 +484,14 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     syncFog(props.fog, props.map, props.tokens, props.role);
     syncOverlay();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.tokens, props.activeTokenId]);
+  }, [props.tokens, props.activeTokenId, props.characters]);
 
   useEffect(() => {
     orderFogAndTokens(props.role);
     syncTokens(props.tokens, props.activeTokenId);
     syncFog(props.fog, props.map, props.tokens, props.role);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.fog, props.map, props.tokens, props.role, props.activeTokenId]);
+  }, [props.fog, props.map, props.tokens, props.role, props.activeTokenId, props.characters]);
 
   useEffect(() => {
     syncOverlay();
@@ -646,7 +655,11 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
         view.root.position.set(pixel.x, pixel.y);
       }
       const radius = (map.gridPx * token.sizeCells) / 2 - 2;
-      redrawToken(view, token.label, radius, token.id === activeTokenId);
+      const character = token.characterId
+        ? propsRef.current.characters?.find((entry) => entry.id === token.characterId)
+        : undefined;
+      const dead = character ? isCharacterDead(character) : false;
+      redrawToken(view, token.label, radius, token.id === activeTokenId, dead);
       view.root.hitArea = new Rectangle(-radius, -radius, radius * 2, radius * 2);
       view.root.cursor =
         propsRef.current.fogTool === "off" &&
@@ -1025,6 +1038,7 @@ function createTokenView(tokenId: string, label: string): TokenView {
   const root = new Container();
   const ring = new Graphics();
   const body = new Graphics();
+  const cross = new Graphics();
   const text = new Text({
     text: label.slice(0, 3).toUpperCase(),
     style: {
@@ -1037,20 +1051,41 @@ function createTokenView(tokenId: string, label: string): TokenView {
   text.anchor.set(0.5);
   root.addChild(ring);
   root.addChild(body);
+  root.addChild(cross);
   root.addChild(text);
-  return { root, body, label: text, ring, tokenId };
+  return { root, body, label: text, ring, cross, tokenId };
 }
 
-function redrawToken(view: TokenView, label: string, radius: number, active: boolean): void {
+function redrawToken(
+  view: TokenView,
+  label: string,
+  radius: number,
+  active: boolean,
+  dead: boolean,
+): void {
   view.body.clear();
   view.ring.clear();
-  if (active) {
+  view.cross.clear();
+  if (active && !dead) {
     view.ring.circle(0, 0, radius + 5);
     view.ring.stroke({ width: 3, color: 0xc45c26, alpha: 1 });
   }
   view.body.circle(0, 0, radius);
-  view.body.fill({ color: 0x1f6b5c });
-  view.body.stroke({ width: 2, color: 0xffffff, alpha: 0.9 });
+  if (dead) {
+    view.body.fill({ color: DEAD_TOKEN_FILL, alpha: 0.85 });
+    view.body.stroke({ width: 2, color: DEAD_TOKEN_STROKE, alpha: 0.85 });
+    const arm = radius * 0.55;
+    view.cross.moveTo(-arm, -arm);
+    view.cross.lineTo(arm, arm);
+    view.cross.moveTo(arm, -arm);
+    view.cross.lineTo(-arm, arm);
+    view.cross.stroke({ width: Math.max(2, radius * 0.12), color: DEAD_CROSS_COLOR, alpha: 0.95 });
+    view.label.alpha = 0.55;
+  } else {
+    view.body.fill({ color: LIVE_TOKEN_FILL });
+    view.body.stroke({ width: 2, color: 0xffffff, alpha: 0.9 });
+    view.label.alpha = 1;
+  }
   view.label.text = label.slice(0, 3).toUpperCase();
   view.label.scale.set(Math.max(0.7, radius / 24));
 }

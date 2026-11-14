@@ -118,4 +118,22 @@ describe("character HP and stats", () => {
     expect(screenNpc?.hpQuarter).toBe(1);
     expect(screenNpc?.ac).toBeNull();
   });
+
+  it("exposes dead via hpQuarter on screen when exact HP is redacted", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+    const npc = store.upsertCharacter({
+      roomId: room.id,
+      name: "Orc",
+      kind: "npc",
+      hpMax: 15,
+      hpCurrent: 0,
+      ac: 13,
+    });
+    const screenSnap = store.getSnapshot(room.id, "screen", null);
+    const screenNpc = screenSnap.characters.find((entry) => entry.id === npc.id);
+    expect(screenNpc?.hpCurrent).toBeNull();
+    expect(screenNpc?.hpMax).toBeNull();
+    expect(screenNpc?.hpQuarter).toBe(0);
+  });
 });

@@ -127,4 +127,124 @@ describe("initiative persistence", () => {
     expect(removed.initiative?.order.map((entry) => entry.label)).toEqual(["Aria"]);
     expect(removed.initiative?.activeIndex).toBe(0);
   });
+
+  it("removes zero-HP characters from initiative and does not auto-reinsert", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dms-init-zero-hp-"));
+    tempDirs.push(dir);
+    const store = new RoomStore(openDb(path.join(dir, "test.sqlite")));
+    const { room } = store.createRoom();
+    const map = store.addMap(room.id, {
+      name: "Cave",
+      filename: "cave.png",
+      width: 100,
+      height: 100,
+      gridPx: 70,
+    });
+    store.setActiveMap(room.id, map.id);
+    const aria = store.upsertCharacter({
+      roomId: room.id,
+      name: "Aria",
+      kind: "pc",
+      mapIds: [map.id],
+      hpMax: 20,
+      hpCurrent: 20,
+    });
+    const goblin = store.upsertCharacter({
+      roomId: room.id,
+      name: "Goblin",
+      kind: "npc",
+      mapIds: [map.id],
+      hpMax: 12,
+      hpCurrent: 12,
+    });
+    const wolf = store.upsertCharacter({
+      roomId: room.id,
+      name: "Wolf",
+      kind: "npc",
+      mapIds: [map.id],
+      hpMax: 10,
+      hpCurrent: 10,
+    });
+    const tokens = store.listAllTokensOnActiveMap(room.id);
+    const ariaToken = tokens.find((token) => token.characterId === aria.id)!;
+    const goblinToken = tokens.find((token) => token.characterId === goblin.id)!;
+    const wolfToken = tokens.find((token) => token.characterId === wolf.id)!;
+
+    store.setInitiative(room.id, {
+      order: [
+        { tokenId: ariaToken.id, label: "Aria", initiative: 20 },
+        { tokenId: goblinToken.id, label: "Goblin", initiative: 15 },
+        { tokenId: wolfToken.id, label: "Wolf", initiative: 10 },
+      ],
+      activeIndex: 1,
+      round: 2,
+    });
+
+    store.setCharacterHp(goblin.id, { hpCurrent: 0 });
+    const pruned = store.pruneZeroHpInitiative(room.id);
+    expect(pruned?.order.map((entry) => entry.label)).toEqual(["Aria", "Wolf"]);
+    expect(pruned?.activeIndex).toBe(1);
+    expect(pruned?.round).toBe(2);
+    expect(store.listAllTokensOnActiveMap(room.id).map((token) => token.label).sort()).toEqual([
+      "Aria",
+      "Goblin",
+      "Wolf",
+    ]);
+    expect(store.pruneZeroHpInitiative(room.id)).toBeNull();
+
+    store.setCharacterHp(goblin.id, { hpCurrent: 8 });
+    expect(store.pruneZeroHpInitiative(room.id)).toBeNull();
+    expect(store.getInitiative(room.id)?.order.map((entry) => entry.label)).toEqual([
+      "Aria",
+      "Wolf",
+    ]);
+  });
+
+  it("drops the active combatant when they hit 0 HP", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dms-init-active-zero-"));
+    tempDirs.push(dir);
+    const store = new RoomStore(openDb(path.join(dir, "test.sqlite")));
+    const { room } = store.createRoom();
+    const map = store.addMap(room.id, {
+      name: "Cave",
+      filename: "cave.png",
+      width: 100,
+      height: 100,
+      gridPx: 70,
+    });
+    store.setActiveMap(room.id, map.id);
+    const aria = store.upsertCharacter({
+      roomId: room.id,
+      name: "Aria",
+      kind: "pc",
+      mapIds: [map.id],
+      hpMax: 20,
+      hpCurrent: 20,
+    });
+    const goblin = store.upsertCharacter({
+      roomId: room.id,
+      name: "Goblin",
+      kind: "npc",
+      mapIds: [map.id],
+      hpMax: 12,
+      hpCurrent: 12,
+    });
+    const tokens = store.listAllTokensOnActiveMap(room.id);
+    const ariaToken = tokens.find((token) => token.characterId === aria.id)!;
+    const goblinToken = tokens.find((token) => token.characterId === goblin.id)!;
+
+    store.setInitiative(room.id, {
+      order: [
+        { tokenId: ariaToken.id, label: "Aria", initiative: 18 },
+        { tokenId: goblinToken.id, label: "Goblin", initiative: 12 },
+      ],
+      activeIndex: 0,
+      round: 1,
+    });
+
+    store.setCharacterHp(aria.id, { delta: -50 });
+    const pruned = store.pruneZeroHpInitiative(room.id);
+    expect(pruned?.order.map((entry) => entry.label)).toEqual(["Goblin"]);
+    expect(pruned?.activeIndex).toBe(0);
+  });
 });

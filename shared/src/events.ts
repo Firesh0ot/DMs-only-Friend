@@ -207,6 +207,16 @@ export function hpToQuarter(hpCurrent: number | null, hpMax: number | null): num
   return 4;
 }
 
+export function isCharacterDead(character: {
+  hpCurrent: number | null;
+  hpQuarter?: number | null;
+}): boolean {
+  if (character.hpCurrent !== null && character.hpCurrent <= 0) {
+    return true;
+  }
+  return character.hpQuarter === 0;
+}
+
 export const CameraStateSchema = z.object({
   x: z.number(),
   y: z.number(),

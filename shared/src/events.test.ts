@@ -26,6 +26,7 @@ import {
   MonsterSearchPayloadSchema,
   MovementRejectedPayloadSchema,
   hpToQuarter,
+  isCharacterDead,
   normalizeRoomCode,
   roomCodeFromPathSegment,
   roomCodePathSegment,
@@ -87,6 +88,14 @@ describe("event schemas", () => {
     expect(hpToQuarter(50, 100)).toBe(2);
     expect(hpToQuarter(75, 100)).toBe(3);
     expect(hpToQuarter(100, 100)).toBe(4);
+  });
+
+  it("detects dead characters from hpCurrent or hpQuarter", () => {
+    expect(isCharacterDead({ hpCurrent: 0, hpQuarter: null })).toBe(true);
+    expect(isCharacterDead({ hpCurrent: 5, hpQuarter: null })).toBe(false);
+    expect(isCharacterDead({ hpCurrent: null, hpQuarter: 0 })).toBe(true);
+    expect(isCharacterDead({ hpCurrent: null, hpQuarter: 2 })).toBe(false);
+    expect(isCharacterDead({ hpCurrent: null, hpQuarter: null })).toBe(false);
   });
 
   it("rejects invalid roles", () => {

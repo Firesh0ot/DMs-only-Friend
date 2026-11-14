@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type {
   CameraState,
+  CharacterState,
   FogPaintMode,
   FogState,
   FogStrokeInput,
@@ -16,6 +17,7 @@ import { useMapScene, type FogToolMode } from "./useMapScene";
 type Props = {
   map: MapState | null;
   tokens: TokenState[];
+  characters?: CharacterState[];
   camera: CameraState | null;
   role: Role;
   characterId: string | null;

@@ -24,7 +24,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 Compact **game HUD** around the map (not floating islands):
 
 - **Left — Dice** — expressions such as `2d6+3` (or quick chips), server rolls, last/recent totals. Results broadcast into the session log.
-- **Left — Initiative** — round, active combatant, **Next**, set order (expand), ±1 HP and conditions on the active combatant. **Show PCs / Show NPCs** live here (display strategy for the board). Removing a token or character drops them from the order automatically.
+- **Left — Initiative** — round, active combatant, **Next**, set order (expand), ±1 HP and conditions on the active combatant. **Show PCs / Show NPCs** live here (display strategy for the board). Removing a token or character drops them from the order automatically. At **0 HP**, combatants leave initiative but stay on the map with a darker crossed-out token; raising HP above 0 does not put them back — set order again if they rejoin.
 - **Right — Fog** — compact vertical icon rail (brush / rect, size −/+, reveal/hide, cover/clear eyes, LoS rays; door icons when present). Click a door on the map with the tool **off** (hand) as well. Fog is translucent for you and solid for screen/players.
 - **Bottom strip** — battle **Start** / **End** and timer; **Next turn**; **Log** (collapsed by default); **More** for a compact active-map switch. Map upload/grid and NPC roster prep stay in **Settings**.
 
