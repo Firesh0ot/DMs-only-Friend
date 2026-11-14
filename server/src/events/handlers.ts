@@ -17,6 +17,7 @@ import {
   MapActivatePayloadSchema,
   MapRemovePayloadSchema,
   MapUpdateGridPayloadSchema,
+  mapGridBounds,
   moveBlockedByWalls,
   movementBlockerSegments,
   RoomJoinPayloadSchema,
@@ -163,8 +164,9 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         const map = token.mapId
           ? rooms.getMapById(token.mapId)
           : rooms.getActiveMap(session.roomId);
-        if (map) {
-          const blockers = movementBlockerSegments(map.walls, map.portals);
+        const blockers = map ? movementBlockerSegments(map.walls, map.portals) : [];
+        const bounds = map ? mapGridBounds(map) : null;
+        if (map && blockers.length > 0) {
           if (
             moveBlockedByWalls({ x: token.x, y: token.y }, { x: data.x, y: data.y }, blockers)
           ) {
@@ -204,6 +206,8 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
             remainingCells: movement.remainingCells,
             turnStart: movement.turnStart,
             budgetCells: movement.budgetCells ?? movement.remainingCells,
+            blockers,
+            bounds,
           });
           if (!result.ok) {
             socket.emit(ServerEvents.MovementRejected, {

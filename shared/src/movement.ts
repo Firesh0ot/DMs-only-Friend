@@ -1,3 +1,10 @@
+import type { GridSegment } from "./wallCollision.js";
+import {
+  nearestReachableCell,
+  pathCostChebyshev,
+  type GridBounds,
+} from "./pathfinding.js";
+
 export type GridPoint = { x: number; y: number };
 
 export function chebyshev(a: GridPoint, b: GridPoint): number {
@@ -10,6 +17,8 @@ export type ApplyMoveInput = {
   remainingCells: number;
   turnStart?: GridPoint | null;
   budgetCells?: number | null;
+  blockers?: GridSegment[];
+  bounds?: GridBounds | null;
 };
 
 export type ApplyMoveResult =
@@ -17,23 +26,56 @@ export type ApplyMoveResult =
   | { ok: false; reason: string; distance: number; remainingCells: number };
 
 export function applyMove(input: ApplyMoveInput): ApplyMoveResult {
-  const distance = chebyshev(input.from, input.to);
-  if (distance <= 0) {
-    return { ok: true, distance: 0, remainingCells: input.remainingCells };
-  }
-  if (
-    input.turnStart &&
-    input.budgetCells !== null &&
-    input.budgetCells !== undefined &&
-    chebyshev(input.turnStart, input.to) > input.budgetCells
-  ) {
+  const blockers = input.blockers ?? [];
+  const distance =
+    blockers.length > 0
+      ? pathCostChebyshev(
+          input.from,
+          input.to,
+          blockers,
+          input.bounds,
+          input.remainingCells,
+        )
+      : chebyshev(input.from, input.to);
+
+  if (distance === null) {
     return {
       ok: false,
-      reason: `Outside movement range (${input.budgetCells} from turn start)`,
-      distance,
+      reason: "No walkable path within remaining movement",
+      distance: chebyshev(input.from, input.to),
       remainingCells: input.remainingCells,
     };
   }
+
+  if (distance <= 0) {
+    return { ok: true, distance: 0, remainingCells: input.remainingCells };
+  }
+
+  if (
+    input.turnStart &&
+    input.budgetCells !== null &&
+    input.budgetCells !== undefined
+  ) {
+    const fromStart =
+      blockers.length > 0
+        ? pathCostChebyshev(
+            input.turnStart,
+            input.to,
+            blockers,
+            input.bounds,
+            input.budgetCells,
+          )
+        : chebyshev(input.turnStart, input.to);
+    if (fromStart === null || fromStart > input.budgetCells) {
+      return {
+        ok: false,
+        reason: `Outside movement range (${input.budgetCells} from turn start)`,
+        distance,
+        remainingCells: input.remainingCells,
+      };
+    }
+  }
+
   if (distance > input.remainingCells) {
     return {
       ok: false,
@@ -42,6 +84,7 @@ export function applyMove(input: ApplyMoveInput): ApplyMoveResult {
       remainingCells: input.remainingCells,
     };
   }
+
   return {
     ok: true,
     distance,
@@ -66,9 +109,23 @@ export function clampMoveToBudget(input: {
   remainingCells: number;
   turnStart: GridPoint;
   budgetCells: number;
+  blockers?: GridSegment[];
+  bounds?: GridBounds | null;
 }): GridPoint {
-  const withinStep = clampToChebyshevRange(input.to, input.from, input.remainingCells);
-  return clampToChebyshevRange(withinStep, input.turnStart, input.budgetCells);
+  const blockers = input.blockers ?? [];
+  if (blockers.length === 0) {
+    const withinStep = clampToChebyshevRange(input.to, input.from, input.remainingCells);
+    return clampToChebyshevRange(withinStep, input.turnStart, input.budgetCells);
+  }
+  return nearestReachableCell(
+    input.from,
+    input.to,
+    input.remainingCells,
+    input.turnStart,
+    input.budgetCells,
+    blockers,
+    input.bounds,
+  );
 }
 
 export function assignSpawnPoints<TPoint extends { assignedCharacterId: string | null }>(
@@ -104,4 +161,20 @@ export function assignSpawnPoints<TPoint extends { assignedCharacterId: string |
   }
 
   return assigned;
+}
+
+export function mapGridBounds(map: {
+  width: number;
+  height: number;
+  gridPx: number;
+  offsetX?: number;
+  offsetY?: number;
+}): GridBounds {
+  const offsetX = map.offsetX ?? 0;
+  const offsetY = map.offsetY ?? 0;
+  const minX = Math.floor(offsetX / map.gridPx);
+  const minY = Math.floor(offsetY / map.gridPx);
+  const maxX = Math.max(minX, Math.ceil((map.width - offsetX) / map.gridPx) - 1);
+  const maxY = Math.max(minY, Math.ceil((map.height - offsetY) / map.gridPx) - 1);
+  return { minX, maxX, minY, maxY };
 }

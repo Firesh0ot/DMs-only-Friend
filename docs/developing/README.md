@@ -147,9 +147,9 @@ See [ADR 0007](../decisions/0007-dice-play-island.md). GM HUD Dice emits `dice:r
 See [ADR 0008](../decisions/0008-dd2vtt-map-import.md).
 
 - Parser: `server/src/dd2vtt.ts` (pure); upload path in `server/src/http.ts`.
-- Persistence: `maps.walls_json` (grid-cell polylines from `line_of_sight`), `maps.portals_json` (doors from `portals`), and `maps.lights_json` (soft lights from `lights`); embedded image written under `server/uploads/`.
+- Persistence: `maps.walls_json` (grid-cell polylines from `line_of_sight` + `objects_line_of_sight`, healed around portals), `maps.portals_json` (doors from `portals`), and `maps.lights_json` (soft lights from `lights`); embedded image written under `server/uploads/`.
 - Client: GM-only wall + door overlay in `useMapScene`; soft additive light glows for all roles when `lights` are present; Settings Maps accepts `.dd2vtt` beside PNG/JPG/WebP, optional `.webm`, and `.dmsmap.json` / `.map.json` packages.
-- Automatic LoS fog: see below / [ADR 0016](../decisions/0016-los-fog-from-walls.md). Doors: [ADR 0017](../decisions/0017-dd2vtt-doors-portals.md). Lights: [ADR 0018](../decisions/0018-dd2vtt-lights-overlay.md). WebM packages: [ADR 0027](../decisions/0027-webm-map-packages.md). Not yet: dynamic shadow casting.
+- Wall heal / intentional limits (no PNG tracing): [ADR 0028](../decisions/0028-uvtt-walls-and-path-movement.md). Automatic LoS fog: [ADR 0016](../decisions/0016-los-fog-from-walls.md). Doors: [ADR 0017](../decisions/0017-dd2vtt-doors-portals.md). Lights: [ADR 0018](../decisions/0018-dd2vtt-lights-overlay.md). WebM packages: [ADR 0027](../decisions/0027-webm-map-packages.md). Not yet: dynamic shadow casting.
 
 ### Map packages + WebM
 

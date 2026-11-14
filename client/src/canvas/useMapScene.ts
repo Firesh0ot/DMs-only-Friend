@@ -12,6 +12,9 @@ import {
 import { useEffect, useRef } from "react";
 import {
   healWallsAroundPortals,
+  mapGridBounds,
+  movementBlockerSegments,
+  reachableCells,
   type CameraState,
   type FogPaintMode,
   type FogState,
@@ -821,16 +824,31 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
             propsRef.current.characterId &&
             token.characterId === propsRef.current.characterId);
         if (show) {
-          const center = cellToPixel(movement.turnStart.x, movement.turnStart.y, map);
-          const radiusPx = (movement.budgetCells + 0.5) * map.gridPx;
-          graphics.rect(
-            center.x - radiusPx,
-            center.y - radiusPx,
-            radiusPx * 2,
-            radiusPx * 2,
+          const blockers = movementBlockerSegments(map.walls, map.portals);
+          const bounds = mapGridBounds(map);
+          const cells = reachableCells(
+            movement.turnStart,
+            movement.budgetCells,
+            blockers,
+            bounds,
           );
-          graphics.stroke({ width: 2, color: 0x60a5fa, alpha: 0.85 });
-          graphics.fill({ color: 0x3b82f6, alpha: 0.12 });
+          for (const cell of cells) {
+            const topLeft = {
+              x: map.offsetX + cell.x * map.gridPx,
+              y: map.offsetY + cell.y * map.gridPx,
+            };
+            graphics.rect(topLeft.x, topLeft.y, map.gridPx, map.gridPx);
+            graphics.fill({ color: 0x3b82f6, alpha: 0.16 });
+          }
+          for (const cell of cells) {
+            const topLeft = {
+              x: map.offsetX + cell.x * map.gridPx,
+              y: map.offsetY + cell.y * map.gridPx,
+            };
+            graphics.rect(topLeft.x, topLeft.y, map.gridPx, map.gridPx);
+            graphics.stroke({ width: 1, color: 0x60a5fa, alpha: 0.55 });
+          }
+          const center = cellToPixel(movement.turnStart.x, movement.turnStart.y, map);
           graphics.circle(center.x, center.y, Math.max(4, map.gridPx * 0.15));
           graphics.fill({ color: 0xfbbf24, alpha: 0.9 });
         }
