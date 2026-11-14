@@ -379,10 +379,13 @@
 :root[data-theme="arcane"] .play-shell .hud-init__status,
 :root[data-theme="arcane"] .play-shell .turn-carousel__idle,
 :root[data-theme="arcane"] .play-shell .muted,
-:root[data-theme="arcane"] .play-shell .turn-card__ac,
 :root[data-theme="arcane"] .play-shell .hud-check,
 :root[data-theme="arcane"] .play-shell .turn-carousel__round .muted {
   color: var(--text-secondary);
+}
+
+:root[data-theme="arcane"] .play-shell .turn-card__ac {
+  color: color-mix(in srgb, var(--text-secondary) 35%, var(--text-primary));
 }
 
 :root[data-theme="arcane"] .play-shell button.secondary,
@@ -404,18 +407,34 @@
 
 :root[data-theme="arcane"] .play-shell .turn-card--prev,
 :root[data-theme="arcane"] .play-shell .turn-card--next {
-  opacity: 0.94;
-  filter: saturate(0.95) brightness(1.18);
-  border-color: color-mix(in srgb, var(--text-secondary) 48%, transparent);
-  background: color-mix(in srgb, var(--surface-2) 55%, var(--text-secondary));
+  opacity: 1;
+  filter: none;
+  border-color: color-mix(in srgb, var(--text-secondary) 58%, transparent);
+  background: color-mix(in srgb, var(--text-secondary) 32%, var(--surface-2));
   color: var(--text-primary);
   box-shadow: var(--shadow-sm);
 }
 
+:root[data-theme="arcane"] .play-shell .turn-card--prev .turn-card__name,
+:root[data-theme="arcane"] .play-shell .turn-card--next .turn-card__name,
+:root[data-theme="arcane"] .play-shell .turn-card--prev .turn-card__init,
+:root[data-theme="arcane"] .play-shell .turn-card--next .turn-card__init {
+  color: var(--text-primary);
+}
+
 :root[data-theme="arcane"] .play-shell .turn-card--prev .turn-card__placeholder,
 :root[data-theme="arcane"] .play-shell .turn-card--next .turn-card__placeholder {
-  background: linear-gradient(160deg, var(--wood-mid), var(--surface-1));
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--text-secondary) 40%, var(--wood-mid)),
+    var(--surface-1)
+  );
   color: var(--text-primary);
+}
+
+:root[data-theme="arcane"] .play-shell .turn-carousel.is-sliding-forward .turn-card--prev,
+:root[data-theme="arcane"] .play-shell .turn-carousel.is-sliding-back .turn-card--next {
+  opacity: 0.72;
 }
 
 :root[data-theme="arcane"] .play-shell .condition-toggle {
