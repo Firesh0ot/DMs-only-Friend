@@ -324,4 +324,176 @@ describe("spawn and movement budget", () => {
     gm.close();
     player.close();
   });
+
+  it("allows token:move through closed doors before battle starts", async () => {
+    const { url, rooms } = await startServer();
+    const created = rooms.createRoom({ code: "DOOR0", pin: "1234" });
+    const map = rooms.addMap(created.room.id, {
+      name: "Doorway",
+      filename: "door.png",
+      width: 700,
+      height: 700,
+      gridPx: 70,
+      walls: [
+        [
+          { x: 2, y: 0 },
+          { x: 2, y: 1 },
+        ],
+        [
+          { x: 2, y: 2 },
+          { x: 2, y: 4 },
+        ],
+      ],
+      portals: [
+        {
+          id: "portal-0",
+          bounds: [
+            { x: 2, y: 1 },
+            { x: 2, y: 2 },
+          ],
+          closed: true,
+          freestanding: false,
+        },
+      ],
+    });
+    rooms.setActiveMap(created.room.id, map.id);
+    const aria = rooms.upsertCharacter({
+      roomId: created.room.id,
+      name: "Aria",
+      kind: "pc",
+      speedCells: 6,
+      mapIds: [map.id],
+    });
+    const goblin = rooms.upsertCharacter({
+      roomId: created.room.id,
+      name: "Goblin",
+      kind: "npc",
+      speedCells: 6,
+      mapIds: [map.id],
+    });
+    const pcToken = rooms
+      .listAllTokensOnActiveMap(created.room.id)
+      .find((entry) => entry.characterId === aria.id)!;
+    const npcToken = rooms
+      .listAllTokensOnActiveMap(created.room.id)
+      .find((entry) => entry.characterId === goblin.id)!;
+    rooms.moveToken(pcToken.id, 1, 1);
+    rooms.moveToken(npcToken.id, 0, 1);
+
+    const gm = connect(url);
+    const player = connect(url);
+    await waitConnected(gm);
+    await waitConnected(player);
+    await join(gm, { code: created.code, role: "gm", pin: "1234", invite: created.gmInviteToken });
+    await join(player, { code: created.code, role: "player", characterId: aria.id });
+
+    expect(rooms.playerMovementLocked(created.room.id)).toBe(false);
+
+    const pcMoved = new Promise<TokenState>((resolve) => {
+      player.once(ServerEvents.TokenMoved, resolve);
+    });
+    player.emit(ClientEvents.TokenMove, { tokenId: pcToken.id, x: 3, y: 1 });
+    await expect(pcMoved).resolves.toMatchObject({ id: pcToken.id, x: 3, y: 1 });
+
+    const npcMoved = new Promise<TokenState>((resolve) => {
+      gm.once(ServerEvents.TokenMoved, resolve);
+    });
+    gm.emit(ClientEvents.TokenMove, { tokenId: npcToken.id, x: 3, y: 1 });
+    await expect(npcMoved).resolves.toMatchObject({ id: npcToken.id, x: 3, y: 1 });
+
+    gm.close();
+    player.close();
+  });
+
+  it("blocks token:move through closed doors once battle is active", async () => {
+    const { url, rooms } = await startServer();
+    const created = rooms.createRoom({ code: "DOOR1", pin: "1234" });
+    const map = rooms.addMap(created.room.id, {
+      name: "Doorway",
+      filename: "door.png",
+      width: 700,
+      height: 700,
+      gridPx: 70,
+      walls: [
+        [
+          { x: 2, y: 0 },
+          { x: 2, y: 1 },
+        ],
+        [
+          { x: 2, y: 2 },
+          { x: 2, y: 4 },
+        ],
+      ],
+      portals: [
+        {
+          id: "portal-0",
+          bounds: [
+            { x: 2, y: 1 },
+            { x: 2, y: 2 },
+          ],
+          closed: true,
+          freestanding: false,
+        },
+      ],
+    });
+    rooms.setActiveMap(created.room.id, map.id);
+    const aria = rooms.upsertCharacter({
+      roomId: created.room.id,
+      name: "Aria",
+      kind: "pc",
+      speedCells: 6,
+      mapIds: [map.id],
+    });
+    const token = rooms
+      .listAllTokensOnActiveMap(created.room.id)
+      .find((entry) => entry.characterId === aria.id)!;
+    rooms.moveToken(token.id, 1, 1);
+
+    const gm = connect(url);
+    const player = connect(url);
+    await waitConnected(gm);
+    await waitConnected(player);
+    await join(gm, { code: created.code, role: "gm", pin: "1234", invite: created.gmInviteToken });
+    await join(player, { code: created.code, role: "player", characterId: aria.id });
+
+    gm.emit(ClientEvents.InitiativeSet, {
+      order: [{ tokenId: token.id, initiative: 12 }],
+    });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    const budgetReady = new Promise<MovementBudget>((resolve) => {
+      player.once(ServerEvents.MovementUpdated, resolve);
+    });
+    gm.emit(ClientEvents.InitiativeNext);
+    await budgetReady;
+    expect(rooms.playerMovementLocked(created.room.id)).toBe(true);
+
+    const rejected = new Promise<{ tokenId: string; reason: string }>((resolve) => {
+      player.once(ServerEvents.MovementRejected, resolve);
+    });
+    player.emit(ClientEvents.TokenMove, { tokenId: token.id, x: 3, y: 1 });
+    await expect(rejected).resolves.toMatchObject({
+      tokenId: token.id,
+      reason: "Blocked by wall",
+    });
+    expect(rooms.getToken(token.id)).toMatchObject({ x: 1, y: 1 });
+
+    const gmRejected = new Promise<{ tokenId: string; reason: string }>((resolve) => {
+      gm.once(ServerEvents.MovementRejected, resolve);
+    });
+    gm.emit(ClientEvents.TokenMove, { tokenId: token.id, x: 3, y: 1 });
+    await expect(gmRejected).resolves.toMatchObject({
+      tokenId: token.id,
+      reason: "Blocked by wall",
+    });
+
+    rooms.setPortalClosed(created.room.id, map.id, "portal-0", false);
+    const throughOpen = new Promise<TokenState>((resolve) => {
+      player.once(ServerEvents.TokenMoved, resolve);
+    });
+    player.emit(ClientEvents.TokenMove, { tokenId: token.id, x: 3, y: 1 });
+    await expect(throughOpen).resolves.toMatchObject({ id: token.id, x: 3, y: 1 });
+
+    gm.close();
+    player.close();
+  });
 });
