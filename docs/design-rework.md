@@ -13,7 +13,7 @@ Phase für ein systematisches Design-Rework der gesamten Website. Ansatz: **Desi
 
 Screenshots haben **beide** Rollen:
 
-1. **Ist-Analyse (vor dem Redesign):** Cursor macht vor Beginn Screenshots aller Screens (Landing/HomePage, Raum-Erstellen, GM-Play mit HUD/Carousel/Fog-Rail, Settings inkl. Characters/Kalibrierung, Player-Screen) und legt ein **Inkonsistenz-Inventar** an: welche Abweichungen gibt es zwischen Screens (Abstände, Schatten, Button-Stile, Fehlerzustände, Ladezustände, Leerezustände)? Dieses Inventar ist Input für die Token-Definition und wird in `docs/design-inventory.md` festgehalten.
+1. **Ist-Analyse (vor dem Redesign):** Cursor macht vor Beginn Screenshots aller Screens (Landing/HomePage, Raum-Erstellen, GM-Play mit HUD/Carousel/Fog-Rail, Settings inkl. Characters/Kalibrierung, Player-Screen inklusive der neu geshipten Oberflächen: Screen-Vollbildmodus mit Facing-Center-Initiative-Fan (#67), Holz-Letterbox hinter der Karte (#68), Explored-Fog-Layer mit NPC-Verdeckung (#64) sowie WebM-animierte Karten (#66)) und legt ein **Inkonsistenz-Inventar** an: welche Abweichungen gibt es zwischen Screens (Abstände, Schatten, Button-Stile, Fehlerzustände, Ladezustände, Leerezustände)? Dieses Inventar ist Input für die Token-Definition und wird in `docs/design-inventory.md` festgehalten.
 2. **Vorher/Nachher-Vergleich (Abnahme):** Pro Screen wird ein Screenshot-Paar (vor/nach) als Abnahmekriterium geführt; die Abnahme prüft, dass das Inventar der Inkonsistenzen geschlossen wurde.
 
 Screenshots werden **nicht** als pixelgenaue Vorlage für das neue Design benutzt – maßgeblich sind Tokens und Varianten-Spec, nicht der alte Ist-Zustand.

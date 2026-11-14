@@ -1,4 +1,4 @@
-# 0026 — Design rework: tokens-first, screen-by-screen, three variants
+# 0032 — Design rework: tokens-first, screen-by-screen, three variants
 
 - **Status:** proposed
 - **Date:** 2026-11-14
@@ -13,7 +13,8 @@ The app has a working tavern theme (`styles.css`, ~3000 lines, CSS variables sca
 2. **Screen-by-screen rollout** in priority: Landing → DM-Play → Settings → table monitor. The app stays playable throughout; no big-bang.
 3. **Two themes, user-toggleable dark/light mode (Oli's decision):** A "refined tavern" is the light theme, B+C "arcane" is the dark theme; C is not built separately — its precision principles fold into both. The per-screen B+C split is superseded by the user toggle (per-device localStorage, default `arcane`, no room-level setting).
 4. **Screenshots have both roles:** (a) pre-work inventory of inconsistencies (`docs/design-inventory.md`), (b) before/after pairs as acceptance evidence. They are not the design template.
-5. **Favicon** is derived as a reduced silhouette of the chosen variant (SVG + ICO, crisp at 16px).
+5. **Favicon** is derived as a reduced silhouette of the arcane theme (SVG + ICO, crisp at 16px).
+6. **Lantern vs. theme toggle (no competing systems):** the lantern toggle stays a glow modulation on top of either theme and never switches surfaces or text colors (that is the theme toggle's job). In the `arcane` default, lantern-on raises `--accent-glow` subtly; in `tavern`, it warms the parchment glow as today. One theme toggle + one glow toggle, orthogonal by design; agents must not merge or rebuild them as one control.
 
 ## Consequences
 
