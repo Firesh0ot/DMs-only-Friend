@@ -1,5 +1,14 @@
-import type { FogPaintMode, FogState, FogStroke } from "@dms/shared";
+import {
+  isCellExplored,
+  parseExploredCells,
+  type FogPaintMode,
+  type FogState,
+  type FogStroke,
+  type MapState,
+} from "@dms/shared";
 import type { LosPoint } from "./losVisibility";
+
+export const AUDIENCE_EXPLORED_FOG_ALPHA = 0.58;
 
 export type FogMaskContext = {
   globalCompositeOperation: GlobalCompositeOperation | string;
@@ -133,4 +142,58 @@ export function composeFogMaskWithLos(
   applyLosFogOverlay(losCtx, width, height, visionPolygons);
   ctx.globalCompositeOperation = "source-over";
   ctx.drawImage(losCanvas, 0, 0);
+}
+
+export function applyAudienceExploredFog(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  map: Pick<MapState, "gridPx" | "offsetX" | "offsetY" | "width" | "height">,
+  fog: Pick<FogState, "exploredCells">,
+): void {
+  const explored = parseExploredCells(fog.exploredCells, map);
+  const coverCanvas = document.createElement("canvas");
+  coverCanvas.width = width;
+  coverCanvas.height = height;
+  const coverCtx = coverCanvas.getContext("2d");
+  if (!coverCtx) {
+    return;
+  }
+  coverCtx.drawImage(ctx.canvas, 0, 0);
+
+  const exploredCanvas = document.createElement("canvas");
+  exploredCanvas.width = width;
+  exploredCanvas.height = height;
+  const exploredCtx = exploredCanvas.getContext("2d");
+  if (!exploredCtx) {
+    return;
+  }
+  exploredCtx.fillStyle = "#ffffff";
+  for (let cellY = explored.bounds.minY; cellY <= explored.bounds.maxY; cellY += 1) {
+    for (let cellX = explored.bounds.minX; cellX <= explored.bounds.maxX; cellX += 1) {
+      if (!isCellExplored(explored, cellX, cellY)) {
+        continue;
+      }
+      exploredCtx.fillRect(
+        map.offsetX + cellX * map.gridPx,
+        map.offsetY + cellY * map.gridPx,
+        map.gridPx,
+        map.gridPx,
+      );
+    }
+  }
+
+  coverCtx.globalCompositeOperation = "destination-in";
+  coverCtx.drawImage(exploredCanvas, 0, 0);
+
+  ctx.globalCompositeOperation = "source-over";
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.drawImage(exploredCanvas, 0, 0);
+  ctx.globalCompositeOperation = "source-over";
+  ctx.globalAlpha = AUDIENCE_EXPLORED_FOG_ALPHA;
+  ctx.drawImage(coverCanvas, 0, 0);
+  ctx.globalAlpha = 1;
 }

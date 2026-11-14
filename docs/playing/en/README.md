@@ -34,7 +34,7 @@ Changing the active map brings in characters linked to that map (and drops the o
 
 ## Screen / player
 
-No GM HUD. Use the side rail for round, turn order, and whose turn it is. By default PC hit points may appear as exact chips and **monster HP stays GM-only**. If the GM enables quarter HP bars, the rail shows coarse 25/50/75/100% bands for PCs and NPCs without exact numbers. Compact condition badges (e.g. PRN, FRI) show when the GM applies them. A small strip shows battle elapsed time and the latest events when present. Dice rolls flash briefly as a toast over the map. By default the screen follows the GM’s pan/zoom (**fit**). When the GM sets a physical cell size, the table screen can switch to **physical** mode (confirm in the top bar): zoom locks so one cell matches that cm size after device calibration (auto estimate or ruler). Pan stays independent; GM zoom-follow pauses. Calibration is stored in this browser only. Unrevealed map areas stay under solid fog (including tokens in those areas).
+No GM HUD. Use the side rail for round, turn order, and whose turn it is. By default PC hit points may appear as exact chips and **monster HP stays GM-only**. If the GM enables quarter HP bars, the rail shows coarse 25/50/75/100% bands for PCs and NPCs without exact numbers. Compact condition badges (e.g. PRN, FRI) show when the GM applies them. A small strip shows battle elapsed time and the latest events when present. Dice rolls flash briefly as a toast over the map. By default the screen follows the GM’s pan/zoom (**fit**). When the GM sets a physical cell size, the table screen can switch to **physical** mode (confirm in the top bar): zoom locks so one cell matches that cm size after device calibration (auto estimate or ruler). Pan stays independent; GM zoom-follow pauses. Calibration is stored in this browser only. Fog on the screen has two layers: never-seen stays solid black; once-seen areas that are not in current LoS/reveal look grey (like the GM fog tint); current visibility is clear. PC tokens may show in explored or clear areas; NPC tokens appear only while currently visible (they can move in black/grey without flashing on the screen).
 
 ## Look & lantern
 
@@ -69,6 +69,7 @@ Optional Traefik labels (`TRAEFIK_ENABLE` / `FQDN`) attach to an existing Traefi
 - HP visibility ADR: [../../decisions/0009-hp-screen-visibility.md](../../decisions/0009-hp-screen-visibility.md)
 - Manual fog ADR: [../../decisions/0010-manual-fog-of-war.md](../../decisions/0010-manual-fog-of-war.md)
 - LoS fog ADR: [../../decisions/0016-los-fog-from-walls.md](../../decisions/0016-los-fog-from-walls.md)
+- Screen explored fog ADR: [../../decisions/0029-screen-explored-fog.md](../../decisions/0029-screen-explored-fog.md)
 - UVTT walls + path movement ADR: [../../decisions/0028-uvtt-walls-and-path-movement.md](../../decisions/0028-uvtt-walls-and-path-movement.md)
 - Conditions ADR: [../../decisions/0011-token-conditions.md](../../decisions/0011-token-conditions.md)
 - Room / GM auth ADR: [../../decisions/0012-room-identity-gm-auth.md](../../decisions/0012-room-identity-gm-auth.md)

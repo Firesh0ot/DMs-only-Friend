@@ -15,6 +15,7 @@ import {
   mapGridBounds,
   movementBlockerSegments,
   reachableCells,
+  shouldShowTokenForAudience,
   type CameraState,
   type FogPaintMode,
   type FogState,
@@ -475,8 +476,11 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
   }, [props.tokens, props.activeTokenId]);
 
   useEffect(() => {
+    orderFogAndTokens(props.role);
+    syncTokens(props.tokens, props.activeTokenId);
     syncFog(props.fog, props.map, props.tokens, props.role);
-  }, [props.fog, props.map, props.tokens, props.role]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.fog, props.map, props.tokens, props.role, props.activeTokenId]);
 
   useEffect(() => {
     syncOverlay();
@@ -601,8 +605,26 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       return;
     }
 
+    const role = propsRef.current.role;
+    const fog = propsRef.current.fog;
     const seen = new Set<string>();
     for (const token of tokens) {
+      const show = shouldShowTokenForAudience({
+        role,
+        token,
+        map,
+        fog,
+        tokens,
+      });
+      if (!show) {
+        const hidden = tokenViewsRef.current.get(token.id);
+        if (hidden) {
+          tokenLayer.removeChild(hidden.root);
+          hidden.root.destroy({ children: true });
+          tokenViewsRef.current.delete(token.id);
+        }
+        continue;
+      }
       seen.add(token.id);
       let view = tokenViewsRef.current.get(token.id);
       if (!view) {
@@ -705,9 +727,33 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       }
       return;
     }
-    renderFogMask(app, texture, map, fog, tokens);
+    renderFogMask(app, texture, map, fog, tokens, role);
     sprite.visible = true;
     sprite.alpha = role === "gm" ? 0.58 : 1;
+    orderFogAndTokens(role);
+  }
+
+  function orderFogAndTokens(role: Role): void {
+    const world = worldRef.current;
+    const fogLayer = fogLayerRef.current;
+    const tokenLayer = tokenLayerRef.current;
+    const fogPreview = fogPreviewRef.current;
+    const overlayLayer = overlayLayerRef.current;
+    if (!world || !fogLayer || !tokenLayer || !fogPreview) {
+      return;
+    }
+    if (role === "gm") {
+      world.addChild(tokenLayer);
+      world.addChild(fogLayer);
+      world.addChild(fogPreview);
+    } else {
+      world.addChild(fogLayer);
+      world.addChild(fogPreview);
+      world.addChild(tokenLayer);
+    }
+    if (overlayLayer) {
+      world.addChild(overlayLayer);
+    }
   }
 
   function clearFogPreview(): void {

@@ -1,7 +1,13 @@
 import {
   assignSpawnPoints,
+  createEmptyExplored,
+  createFullExplored,
+  encodeExploredBits,
+  growExploredFromCurrentVisibility,
+  growExploredFromStroke,
   hpToQuarter,
   normalizeRoomCode,
+  parseExploredCells,
   RoomCodeSchema,
   type BattleState,
   type CameraState,
@@ -137,6 +143,7 @@ type MapFogRow = {
   base_covered: number;
   strokes_json: string;
   los_enabled: number;
+  explored_cells: string;
 };
 
 export type Session = {
@@ -1566,13 +1573,14 @@ export class RoomStore {
       | MapFogRow
       | undefined;
     if (!row) {
-      return { mapId, baseCovered: true, strokes: [], losEnabled: false };
+      return { mapId, baseCovered: true, strokes: [], losEnabled: false, exploredCells: "" };
     }
     return {
       mapId: row.map_id,
       baseCovered: row.base_covered === 1,
       strokes: JSON.parse(row.strokes_json) as FogStroke[],
       losEnabled: row.los_enabled === 1,
+      exploredCells: row.explored_cells ?? "",
     };
   }
 
@@ -1613,17 +1621,21 @@ export class RoomStore {
           },
     );
     const strokes = [...current.strokes, stroke];
-    this.db
-      .prepare(
-        `INSERT INTO map_fog (map_id, base_covered, strokes_json, los_enabled)
-         VALUES (?, ?, ?, ?)
-         ON CONFLICT(map_id) DO UPDATE SET
-           base_covered = excluded.base_covered,
-           strokes_json = excluded.strokes_json,
-           los_enabled = excluded.los_enabled`,
-      )
-      .run(mapId, current.baseCovered ? 1 : 0, JSON.stringify(strokes), current.losEnabled ? 1 : 0);
-    return { mapId, baseCovered: current.baseCovered, strokes, losEnabled: current.losEnabled };
+    const explored = parseExploredCells(current.exploredCells, map);
+    growExploredFromStroke(explored, map, stroke);
+    const next: FogState = {
+      mapId,
+      baseCovered: current.baseCovered,
+      strokes,
+      losEnabled: current.losEnabled,
+      exploredCells: encodeExploredBits(explored.bits),
+    };
+    if (current.losEnabled) {
+      growExploredFromCurrentVisibility(explored, next, map, this.listAllTokensOnActiveMap(roomId));
+      next.exploredCells = encodeExploredBits(explored.bits);
+    }
+    this.writeFog(mapId, next);
+    return next;
   }
 
   resetFog(roomId: string, mapId: string, baseCovered: boolean): FogState {
@@ -1632,17 +1644,25 @@ export class RoomStore {
       throw new Error("Map not found");
     }
     const current = this.getFog(mapId);
-    this.db
-      .prepare(
-        `INSERT INTO map_fog (map_id, base_covered, strokes_json, los_enabled)
-         VALUES (?, ?, '[]', ?)
-         ON CONFLICT(map_id) DO UPDATE SET
-           base_covered = excluded.base_covered,
-           strokes_json = '[]',
-           los_enabled = excluded.los_enabled`,
-      )
-      .run(mapId, baseCovered ? 1 : 0, current.losEnabled ? 1 : 0);
-    return { mapId, baseCovered, strokes: [], losEnabled: current.losEnabled };
+    const explored = baseCovered ? createEmptyExplored(map) : createFullExplored(map);
+    const next: FogState = {
+      mapId,
+      baseCovered,
+      strokes: [],
+      losEnabled: current.losEnabled,
+      exploredCells: encodeExploredBits(explored.bits),
+    };
+    if (!baseCovered && current.losEnabled) {
+      growExploredFromCurrentVisibility(
+        explored,
+        next,
+        map,
+        this.listAllTokensOnActiveMap(roomId),
+      );
+      next.exploredCells = encodeExploredBits(explored.bits);
+    }
+    this.writeFog(mapId, next);
+    return next;
   }
 
   setFogLos(roomId: string, mapId: string, enabled: boolean): FogState {
@@ -1654,22 +1674,65 @@ export class RoomStore {
       throw new Error("Line of sight needs wall or portal data from a .dd2vtt map");
     }
     const current = this.getFog(mapId);
+    const next: FogState = {
+      mapId,
+      baseCovered: current.baseCovered,
+      strokes: current.strokes,
+      losEnabled: enabled,
+      exploredCells: current.exploredCells,
+    };
+    if (enabled) {
+      const explored = parseExploredCells(current.exploredCells, map);
+      growExploredFromCurrentVisibility(
+        explored,
+        next,
+        map,
+        this.listAllTokensOnActiveMap(roomId),
+      );
+      next.exploredCells = encodeExploredBits(explored.bits);
+    }
+    this.writeFog(mapId, next);
+    return next;
+  }
+
+  growExploredFromVision(roomId: string): FogState | null {
+    const map = this.getActiveMap(roomId);
+    if (!map) {
+      return null;
+    }
+    const current = this.getFog(map.id);
+    const explored = parseExploredCells(current.exploredCells, map);
+    const tokens = this.listAllTokensOnActiveMap(roomId);
+    const changed = growExploredFromCurrentVisibility(explored, current, map, tokens);
+    if (!changed) {
+      return null;
+    }
+    const next: FogState = {
+      ...current,
+      exploredCells: encodeExploredBits(explored.bits),
+    };
+    this.writeFog(map.id, next);
+    return next;
+  }
+
+  private writeFog(mapId: string, fog: FogState): void {
     this.db
       .prepare(
-        `INSERT INTO map_fog (map_id, base_covered, strokes_json, los_enabled)
-         VALUES (?, ?, ?, ?)
+        `INSERT INTO map_fog (map_id, base_covered, strokes_json, los_enabled, explored_cells)
+         VALUES (?, ?, ?, ?, ?)
          ON CONFLICT(map_id) DO UPDATE SET
            base_covered = excluded.base_covered,
            strokes_json = excluded.strokes_json,
-           los_enabled = excluded.los_enabled`,
+           los_enabled = excluded.los_enabled,
+           explored_cells = excluded.explored_cells`,
       )
       .run(
         mapId,
-        current.baseCovered ? 1 : 0,
-        JSON.stringify(current.strokes),
-        enabled ? 1 : 0,
+        fog.baseCovered ? 1 : 0,
+        JSON.stringify(fog.strokes),
+        fog.losEnabled ? 1 : 0,
+        fog.exploredCells,
       );
-    return { mapId, baseCovered: current.baseCovered, strokes: current.strokes, losEnabled: enabled };
   }
 
   setPortalClosed(roomId: string, mapId: string, portalId: string, closed: boolean): MapState {

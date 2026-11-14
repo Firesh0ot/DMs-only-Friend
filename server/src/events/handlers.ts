@@ -241,6 +241,10 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         if (session.role === "player" && movement.active && movement.tokenId === moved.id) {
           io.to(roomChannel(session.roomId)).emit(ServerEvents.MovementUpdated, movement);
         }
+        const exploredFog = rooms.growExploredFromVision(session.roomId);
+        if (exploredFog) {
+          io.to(roomChannel(session.roomId)).emit(ServerEvents.FogUpdated, exploredFog);
+        }
         const moveEvent = rooms.logTokenMove({
           roomId: session.roomId,
           tokenId: moved.id,
@@ -1124,6 +1128,10 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         const active = rooms.getActiveMap(session.roomId);
         if (active?.id === map.id) {
           io.to(roomChannel(session.roomId)).emit(ServerEvents.MapSet, map);
+          const exploredFog = rooms.growExploredFromVision(session.roomId);
+          if (exploredFog) {
+            io.to(roomChannel(session.roomId)).emit(ServerEvents.FogUpdated, exploredFog);
+          }
         }
       } catch (error) {
         emitError(socket, error);

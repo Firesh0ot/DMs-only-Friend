@@ -254,14 +254,17 @@ describe("event schemas", () => {
     });
     expect(fog.strokes[0]?.kind).toBe("rect");
     expect(fog.losEnabled).toBe(false);
+    expect(fog.exploredCells).toBe("");
 
     const withLos = FogStateSchema.parse({
       mapId: "map-1",
       baseCovered: false,
       strokes: [],
       losEnabled: true,
+      exploredCells: "AQID",
     });
     expect(withLos.losEnabled).toBe(true);
+    expect(withLos.exploredCells).toBe("AQID");
   });
 
   it("accepts map portals and portal toggle payloads", () => {
