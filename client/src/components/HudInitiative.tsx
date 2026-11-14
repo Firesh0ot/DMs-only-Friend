@@ -21,15 +21,8 @@ export function HudInitiative({
   characters,
   initiative,
   visibility,
-  remainingCells = null,
   movement = null,
 }: Props) {
-  const budget =
-    movement ??
-    (remainingCells !== null && remainingCells !== undefined
-      ? { tokenId: null, turnStart: null, remainingCells, active: true }
-      : null);
-
   return (
     <TurnCarousel
       role="gm"
@@ -37,7 +30,7 @@ export function HudInitiative({
       tokens={tokens}
       characters={characters}
       visibility={visibility}
-      movement={budget}
+      movement={movement}
       compact
     />
   );
