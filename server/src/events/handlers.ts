@@ -17,6 +17,8 @@ import {
   MapActivatePayloadSchema,
   MapRemovePayloadSchema,
   MapUpdateGridPayloadSchema,
+  moveBlockedByWalls,
+  movementBlockerSegments,
   RoomJoinPayloadSchema,
   ScreenCommandPayloadSchema,
   ServerEvents,
@@ -153,6 +155,22 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         if (!rooms.canSessionMoveToken(session, token)) {
           emitError(socket, new Error("Not allowed to move this token"));
           return;
+        }
+
+        const map = token.mapId
+          ? rooms.getMapById(token.mapId)
+          : rooms.getActiveMap(session.roomId);
+        if (map) {
+          const blockers = movementBlockerSegments(map.walls, map.portals);
+          if (
+            moveBlockedByWalls({ x: token.x, y: token.y }, { x: data.x, y: data.y }, blockers)
+          ) {
+            socket.emit(ServerEvents.MovementRejected, {
+              tokenId: token.id,
+              reason: "Blocked by wall",
+            });
+            return;
+          }
         }
 
         let movement = rooms.getMovementBudget(session.roomId);

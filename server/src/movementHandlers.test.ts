@@ -222,4 +222,85 @@ describe("spawn and movement budget", () => {
     gm.close();
     player.close();
   });
+
+  it("rejects token:move through walls for GM and player without consuming budget", async () => {
+    const { url, rooms } = await startServer();
+    const created = rooms.createRoom({ code: "WALL1", pin: "1234" });
+    const map = rooms.addMap(created.room.id, {
+      name: "Split",
+      filename: "split.png",
+      width: 700,
+      height: 700,
+      gridPx: 70,
+      walls: [
+        [
+          { x: 2, y: 0 },
+          { x: 2, y: 4 },
+        ],
+      ],
+    });
+    rooms.setActiveMap(created.room.id, map.id);
+    const aria = rooms.upsertCharacter({
+      roomId: created.room.id,
+      name: "Aria",
+      kind: "pc",
+      speedCells: 6,
+      mapIds: [map.id],
+    });
+    const token = rooms
+      .listAllTokensOnActiveMap(created.room.id)
+      .find((entry) => entry.characterId === aria.id)!;
+    rooms.moveToken(token.id, 0, 1);
+
+    const gm = connect(url);
+    const player = connect(url);
+    await waitConnected(gm);
+    await waitConnected(player);
+    await join(gm, { code: created.code, role: "gm", pin: "1234", invite: created.gmInviteToken });
+    await join(player, { code: created.code, role: "player", characterId: aria.id });
+
+    gm.emit(ClientEvents.InitiativeSet, {
+      order: [{ tokenId: token.id, initiative: 12 }],
+    });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    const budgetReady = new Promise<MovementBudget>((resolve) => {
+      player.once(ServerEvents.MovementUpdated, resolve);
+    });
+    gm.emit(ClientEvents.InitiativeNext);
+    await budgetReady;
+
+    const playerRejected = new Promise<{ tokenId: string; reason: string }>((resolve) => {
+      player.once(ServerEvents.MovementRejected, resolve);
+    });
+    player.emit(ClientEvents.TokenMove, { tokenId: token.id, x: 3, y: 1 });
+    await expect(playerRejected).resolves.toMatchObject({
+      tokenId: token.id,
+      reason: "Blocked by wall",
+    });
+    expect(rooms.getToken(token.id)).toMatchObject({ x: 0, y: 1 });
+    expect(rooms.getMovementBudget(created.room.id).remainingCells).toBe(6);
+
+    const alongWall = new Promise<TokenState>((resolve) => {
+      player.once(ServerEvents.TokenMoved, resolve);
+    });
+    const budgetAfter = new Promise<MovementBudget>((resolve) => {
+      player.once(ServerEvents.MovementUpdated, resolve);
+    });
+    player.emit(ClientEvents.TokenMove, { tokenId: token.id, x: 0, y: 3 });
+    await expect(alongWall).resolves.toMatchObject({ x: 0, y: 3 });
+    await expect(budgetAfter).resolves.toMatchObject({ remainingCells: 4 });
+
+    const gmRejected = new Promise<{ tokenId: string; reason: string }>((resolve) => {
+      gm.once(ServerEvents.MovementRejected, resolve);
+    });
+    gm.emit(ClientEvents.TokenMove, { tokenId: token.id, x: 4, y: 3 });
+    await expect(gmRejected).resolves.toMatchObject({
+      tokenId: token.id,
+      reason: "Blocked by wall",
+    });
+    expect(rooms.getToken(token.id)).toMatchObject({ x: 0, y: 3 });
+
+    gm.close();
+    player.close();
+  });
 });

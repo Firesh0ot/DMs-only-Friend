@@ -18,11 +18,11 @@
   - Der GM darf **jeden Token jederzeit unbegrenzt** bewegen (Ausnahme-Regel fürs Erzählen).
   - `remaining_cells` wird an alle Sessions gebroadcastet; der aktive Spieler sieht seinen Radius als Overlay.
 - **Radius-Overlay (visualisiert das Budget, konsistent zum Pfad-Summen-Modell):** Haltransparentes Quadrat/Kreis **um die aktuelle Token-Position** mit Radius = `remaining_cells` – nicht um `turn_start`. Grund: das Budget ist eine Pfad-Summe (3 Zellen hin + 3 zurück = 6 verbraucht), ein Kreis um `turn_start` würde fälschlich „noch 6 frei“ zeigen, obwohl das Budget aufgebraucht ist. Die Runden-Startposition wird zusätzlich als dezente Marke angezeigt. Nur für den aktiven Spieler (Spieler-Ansicht) und den GM (Kontrolle) sichtbar, nicht auf dem Player-Screen.
-- **Kein Wand-Pathfinding in dieser Phase:** Der Radius prüft nur die Distanz, nicht, ob der Weg durch Wände führt – Bewegung „durch Wände" bleibt vorerst möglich und ist als bekanntes, dokumentiertes Loch akzeptiert. (Anmerkung: LoS-Fog ist auf `main` bereits implementiert – Vision-Polygone aus Wänden/Portalen, siehe PRs #40/#42. Ein späterer Ausbau kann diese Wanddaten für Movement-Checks wiederverwenden; bewusst nicht Teil dieser Phase.)
+- **Wand-Kollision (Server-SoT):** `token:move` prüft die Gerade zwischen Zellen-Mitten gegen `maps.walls_json` und **geschlossene** Portale. Kreuzt die Gerade ein Blocker-Segment → `movement:rejected` (`Blocked by wall`); Budget wird nicht verbraucht. Gilt für GM- und Spieler-`token:move` gleich. Offene Portale blockieren nicht. Karten ohne Wände verhalten sich wie zuvor. **Kein Pathfinding:** nur Gerade + Chebyshev-Budget; um Wände herumlaufen muss der Spieler in Teilzügen entlang freier Zellen. `spawn:apply` teleportiert ohne Kollisionscheck.
 
 ## Abgrenzung (bewusst NICHT drin)
 
-- Kein Dash/Dodge/Disengage, keine Aktionen, kein Terrain-Kosten-Modell (schwieriges Gelände), keine Diagonal-5-10-Regel-Option, kein Pathfinding um Wände, kein Rückgängigmachen von Zügen, kein „Bewegung zurückgeben" bei Rundenende-Rücksetzungen über mehrere Runden.
+- Kein Dash/Dodge/Disengage, keine Aktionen, kein Terrain-Kosten-Modell (schwieriges Gelände), keine Diagonal-5-10-Regel-Option, kein Pathfinding um Wände (nur Gerade Zellenmitte→Zellenmitte), kein Rückgängigmachen von Zügen, kein „Bewegung zurückgeben" bei Rundenende-Rücksetzungen über mehrere Runden.
 
 ## Datenmodell
 
@@ -54,7 +54,8 @@ Client → Server (alle GM only ausser `token:move`, das existiert):
 - `character:setSpeed` `{ characterId, speedCells }`
 - `initiative:next` (bestehend) – erweitert: setzt `turn_start` und `remaining_cells = speed_cells` des aktiven Tokens.
 - `token:move` (bestehend) – erweiterte Validierung:
-  - GM: unbegrenzt (wie bisher).
+  - Alle Rollen: Ziel darf keine Wand / kein geschlossenes Portal auf der Geraden Zellenmitte→Zellenmitte kreuzen; sonst `movement:rejected { reason: "Blocked by wall" }`.
+  - GM: Distanz-Budget unbegrenzt (wie bisher); Wand-Kollision gilt trotzdem.
   - Spieler: nur wenn sein Token **der aktive Initiative-Eintrag** ist **und** `remaining_cells >= distanz(letzte Position, Ziel)`; sonst Fehler-Event `movement:rejected { reason }`.
 
 Server → Clients:
@@ -79,7 +80,7 @@ Server → Clients:
 5. GM kann jeden Token jederzeit ohne Limit bewegen.
 6. Nach `initiative:next` ist das Budget des nächsten Tokens frisch; der vorherige Spieler ist gesperrt.
 7. Spawn-Punkte und Bewegungs-Budget überleben Reload (Persistenz).
-8. `npm run lint && npm run test && npm run build` grün; neue Unit-Tests: Chebyshev-Distanz/Budget-Verbrauch (pure Funktion in `shared/`), Spawn-Zuweisungslogik, `token:move`-Validierung (GM vs. Spieler, aktiv vs. inaktiv).
+8. `npm run lint && npm run test && npm run build` grün; neue Unit-Tests: Chebyshev-Distanz/Budget-Verbrauch (pure Funktion in `shared/`), Wand-Kollision (Gerade vs. Wall/Portal-Segmente), Spawn-Zuweisungslogik, `token:move`-Validierung (GM vs. Spieler, aktiv vs. inaktiv, Wand-Block).
 
 ## Umsetzungsreihenfolge
 
