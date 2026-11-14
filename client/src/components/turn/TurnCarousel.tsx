@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import {
   ClientEvents,
   type CharacterState,
@@ -13,6 +21,7 @@ import { formatHp, formatHpQuarter } from "../../lib/hp";
 import { getSocket } from "../../socket/socket";
 import { ConditionBadges } from "../ConditionBadges";
 import { ConditionToggles } from "../ConditionToggles";
+import { buildTurnSlots, playCardFlip } from "./carouselMotion";
 
 type Props = {
   role: Role;
@@ -95,6 +104,8 @@ export function TurnCarousel({
   const [orderOpen, setOrderOpen] = useState(false);
   const [slide, setSlide] = useState<"none" | "forward" | "back">("none");
   const prevIndex = useRef<number | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const flipRects = useRef<Map<string, DOMRect>>(new Map());
 
   const byToken = useMemo(() => new Map(tokens.map((token) => [token.id, token])), [tokens]);
   const byCharacter = useMemo(
@@ -105,6 +116,7 @@ export function TurnCarousel({
   useEffect(() => {
     if (!initiative || initiative.order.length === 0) {
       prevIndex.current = null;
+      setSlide("none");
       return;
     }
     const previous = prevIndex.current;
@@ -115,8 +127,17 @@ export function TurnCarousel({
     const len = initiative.order.length;
     const forward = (previous + 1) % len === initiative.activeIndex;
     setSlide(forward ? "forward" : "back");
-    const timer = window.setTimeout(() => setSlide("none"), 320);
+    const timer = window.setTimeout(() => setSlide("none"), 300);
     return () => window.clearTimeout(timer);
+  }, [initiative]);
+
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || !initiative || initiative.order.length === 0) {
+      flipRects.current = new Map();
+      return;
+    }
+    flipRects.current = playCardFlip(stage, flipRects.current);
   }, [initiative]);
 
   const activeEntry = initiative?.order[initiative.activeIndex] ?? null;
@@ -132,42 +153,19 @@ export function TurnCarousel({
     if (!initiative || initiative.order.length === 0) {
       return [];
     }
-    const len = initiative.order.length;
-    const activeIndex = initiative.activeIndex;
-    const prevIdx = len > 1 ? (activeIndex - 1 + len) % len : -1;
-    const nextIdx = len > 1 ? (activeIndex + 1) % len : -1;
-    const result: CardModel[] = [];
-    if (prevIdx >= 0) {
-      const entry = initiative.order[prevIdx]!;
-      result.push({
-        entry,
-        character: characterFor(entry, byToken, byCharacter),
-        token: byToken.get(entry.tokenId),
-        index: prevIdx,
-        slot: "prev",
-      });
-    }
-    {
-      const entry = initiative.order[activeIndex]!;
-      result.push({
-        entry,
-        character: characterFor(entry, byToken, byCharacter),
-        token: byToken.get(entry.tokenId),
-        index: activeIndex,
-        slot: "active",
-      });
-    }
-    if (nextIdx >= 0) {
-      const entry = initiative.order[nextIdx]!;
-      result.push({
-        entry,
-        character: characterFor(entry, byToken, byCharacter),
-        token: byToken.get(entry.tokenId),
-        index: nextIdx,
-        slot: "next",
-      });
-    }
-    return result;
+    const tokenIds = initiative.order.map((entry) => entry.tokenId);
+    return buildTurnSlots(initiative.order.length, initiative.activeIndex, tokenIds).map(
+      (slotCard) => {
+        const entry = initiative.order[slotCard.index]!;
+        return {
+          entry,
+          character: characterFor(entry, byToken, byCharacter),
+          token: byToken.get(entry.tokenId),
+          index: slotCard.index,
+          slot: slotCard.slot,
+        };
+      },
+    );
   }, [initiative, byToken, byCharacter]);
 
   const moveRemaining =
@@ -340,7 +338,7 @@ export function TurnCarousel({
         ) : null}
       </div>
 
-      <div className="turn-carousel__stage" aria-live="polite">
+      <div ref={stageRef} className="turn-carousel__stage" aria-live="polite">
         {cards.map((card) => {
           const initial = card.entry.label.trim().charAt(0).toUpperCase() || "?";
           const hp = displayHp(card.character, role);
@@ -348,9 +346,11 @@ export function TurnCarousel({
           const isActive = card.slot === "active";
           return (
             <article
-              key={`${card.entry.tokenId}-${card.slot}`}
+              key={card.entry.tokenId}
               className={`turn-card turn-card--${card.slot}`}
               data-kind={card.entry.kind ?? "npc"}
+              data-slot={card.slot}
+              data-token-id={card.entry.tokenId}
             >
               <div className="turn-card__portrait">
                 {card.entry.image ? (
