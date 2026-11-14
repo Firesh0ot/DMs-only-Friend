@@ -42,4 +42,29 @@ describe("mapUploadForm", () => {
       error: "Attach WebM together with a base map (png/jpg/webp/.dd2vtt)",
     });
   });
+
+  it("accepts base map and webm from separate pickers in any order", () => {
+    const parts = resolveMapUploadParts(
+      [file("dungeon-map-for-testing.dd2vtt")],
+      file("dungeon-map-animated-for-testing.webm", "video/webm"),
+    );
+    expect(parts).toMatchObject({
+      map: expect.objectContaining({ name: "dungeon-map-for-testing.dd2vtt" }),
+      animated: expect.objectContaining({ name: "dungeon-map-animated-for-testing.webm" }),
+    });
+  });
+
+  it("accepts webm inside the map multi-select without the optional slot", () => {
+    const parts = resolveMapUploadParts(
+      [
+        file("cave.dd2vtt"),
+        file("cave.webm", "video/webm"),
+      ],
+      null,
+    );
+    expect(parts).toMatchObject({
+      map: expect.objectContaining({ name: "cave.dd2vtt" }),
+      animated: expect.objectContaining({ name: "cave.webm" }),
+    });
+  });
 });

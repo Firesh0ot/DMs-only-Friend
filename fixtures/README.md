@@ -13,3 +13,5 @@ Phase 1 manual testing uses `dungeon-map-for-testing.png` for map upload / grid 
 `tiny-map-package-for-unit-tests.dmsmap.json` is a version-1 map package manifest referencing the tiny `.dd2vtt` + `.webm` fixtures.
 
 `dungeon-map-animated-for-testing.webm` is a larger WebM for manual Settings → Maps animated-layer checks (pair with `dungeon-map-for-testing.dd2vtt` or the PNG).
+
+`dungeon-map-package-for-testing.dmsmap.json` is a version-1 package manifest for one-shot Settings → Maps import: multi-select it with `dungeon-map-for-testing.dd2vtt` and `dungeon-map-animated-for-testing.webm`, then Import.
