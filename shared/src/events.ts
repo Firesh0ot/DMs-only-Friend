@@ -52,6 +52,7 @@ export const MapStateSchema = z.object({
   roomId: z.string(),
   name: z.string(),
   filename: z.string(),
+  animatedFilename: z.string().nullable().default(null),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   gridPx: z.number().int().positive(),
@@ -62,6 +63,27 @@ export const MapStateSchema = z.object({
   lights: z.array(LightStateSchema).default([]),
 });
 export type MapState = z.infer<typeof MapStateSchema>;
+
+export const MapPackageManifestSchema = z
+  .object({
+    version: z.literal(1),
+    name: z.string().min(1).optional(),
+    dd2vtt: z.string().min(1).optional(),
+    image: z.string().min(1).optional(),
+    webm: z.string().min(1).optional(),
+    gridPx: z.number().int().min(8).max(512).optional(),
+  })
+  .superRefine((value, ctx) => {
+    const hasDd2vtt = Boolean(value.dd2vtt);
+    const hasImage = Boolean(value.image);
+    if (hasDd2vtt === hasImage) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Map package must set exactly one of dd2vtt or image",
+      });
+    }
+  });
+export type MapPackageManifest = z.infer<typeof MapPackageManifestSchema>;
 
 export const TokenStateSchema = z.object({
   id: z.string(),

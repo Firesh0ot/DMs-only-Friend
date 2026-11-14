@@ -8,4 +8,8 @@ Phase 1 manual testing uses `dungeon-map-for-testing.png` for map upload / grid 
 
 `dungeon-map-for-testing.dd2vtt` is a full Universal VTT export (embedded image, grid, walls, doors). Use it for manual Settings → Maps import checks.
 
-`dungeon-map-animated-for-testing.webm` is kept for a later animated-layer milestone; not wired yet.
+`tiny-map-for-unit-tests.webm` is a tiny VP8 WebM for automated animated-layer upload tests.
+
+`tiny-map-package-for-unit-tests.dmsmap.json` is a version-1 map package manifest referencing the tiny `.dd2vtt` + `.webm` fixtures.
+
+`dungeon-map-animated-for-testing.webm` is a larger WebM for manual Settings → Maps animated-layer checks (pair with `dungeon-map-for-testing.dd2vtt` or the PNG).

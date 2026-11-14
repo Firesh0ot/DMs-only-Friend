@@ -95,6 +95,76 @@ describe("map upload", () => {
     expect(fs.existsSync(path.join(uploadsDir, stored!.filename))).toBe(true);
   });
 
+  it("stores an optional WebM animated layer with a PNG map", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dms-webm-"));
+    tempDirs.push(dir);
+    const db = openDb(path.join(dir, "test.sqlite"));
+    const rooms = new RoomStore(db);
+    const { room, code } = rooms.createRoom("WebM Table");
+    const uploadToken = rooms.issueUploadToken(room.id);
+    const uploadsDir = path.join(dir, "uploads");
+    const httpServer = http.createServer();
+    const io = new Server(httpServer);
+    const app = createHttpApp({
+      rooms,
+      uploadsDir,
+      io,
+      publicOrigin: "http://localhost:5173",
+    });
+
+    const image = path.resolve(process.cwd(), "../fixtures/tiny-map-for-unit-tests.png");
+    const webm = path.resolve(process.cwd(), "../fixtures/tiny-map-for-unit-tests.webm");
+    const response = await request(app)
+      .post(`/api/rooms/${code}/map`)
+      .set("X-Dms-Upload-Token", uploadToken)
+      .field("gridPx", "70")
+      .attach("map", image)
+      .attach("animated", webm);
+
+    expect(response.status).toBe(201);
+    expect(response.body.map.animatedFilename).toMatch(/\.webm$/);
+    expect(fs.existsSync(path.join(uploadsDir, response.body.map.animatedFilename))).toBe(true);
+    expect(fs.existsSync(path.join(uploadsDir, response.body.map.filename))).toBe(true);
+  });
+
+  it("imports a map package manifest with dd2vtt + webm", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dms-package-"));
+    tempDirs.push(dir);
+    const db = openDb(path.join(dir, "test.sqlite"));
+    const rooms = new RoomStore(db);
+    const { room, code } = rooms.createRoom("Package Table");
+    const uploadToken = rooms.issueUploadToken(room.id);
+    const uploadsDir = path.join(dir, "uploads");
+    const httpServer = http.createServer();
+    const io = new Server(httpServer);
+    const app = createHttpApp({
+      rooms,
+      uploadsDir,
+      io,
+      publicOrigin: "http://localhost:5173",
+    });
+
+    const manifest = path.resolve(
+      process.cwd(),
+      "../fixtures/tiny-map-package-for-unit-tests.dmsmap.json",
+    );
+    const dd2vtt = path.resolve(process.cwd(), "../fixtures/tiny-map-for-unit-tests.dd2vtt");
+    const webm = path.resolve(process.cwd(), "../fixtures/tiny-map-for-unit-tests.webm");
+    const response = await request(app)
+      .post(`/api/rooms/${code}/map`)
+      .set("X-Dms-Upload-Token", uploadToken)
+      .attach("map", manifest)
+      .attach("dd2vtt", dd2vtt)
+      .attach("animated", webm);
+
+    expect(response.status).toBe(201);
+    expect(response.body.map.name).toBe("Tiny animated package");
+    expect(response.body.map.filename).toMatch(/\.png$/);
+    expect(response.body.map.animatedFilename).toMatch(/\.webm$/);
+    expect(response.body.map.walls).toHaveLength(2);
+    expect(fs.existsSync(path.join(uploadsDir, response.body.map.animatedFilename))).toBe(true);
+  });
+
   it("imports portals from the dungeon .dd2vtt fixture", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dms-dd2vtt-portals-"));
     tempDirs.push(dir);

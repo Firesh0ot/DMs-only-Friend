@@ -129,6 +129,7 @@ function migrate(db: Db): void {
   ensureColumn(db, "maps", "walls_json", "TEXT NOT NULL DEFAULT '[]'");
   ensureColumn(db, "maps", "portals_json", "TEXT NOT NULL DEFAULT '[]'");
   ensureColumn(db, "maps", "lights_json", "TEXT NOT NULL DEFAULT '[]'");
+  ensureColumn(db, "maps", "animated_filename", "TEXT");
   ensureColumn(db, "characters", "hp_current", "INT");
   ensureColumn(db, "characters", "hp_max", "INT");
   ensureColumn(db, "characters", "ac", "INT");

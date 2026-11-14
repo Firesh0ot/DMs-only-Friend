@@ -13,7 +13,7 @@ How-to for the GM and remote players. Table play (GM laptop + TV/tablet screen) 
 ## GM prep (Settings)
 
 1. Create a room from the home page: choose a **room code**, table name, and **GM PIN** (4–8 digits). Room codes are 3–24 characters after normalization: Unicode letters (including German ä/ö/ü and ß), digits, `_`, and `-`. Codes are NFC-normalized and stored uppercased (`ß` becomes `SS`, so `straße` and `strasse` collide). Copy the **single-use GM invite** immediately, then open it and enter the PIN.
-2. Upload one or more maps: PNG/JPG/WebP (set `grid_px`) or Universal VTT `.dd2vtt` (grid, walls, doors, and lights come from the file when present). Uploads require a joined GM session. On the GM view, imported walls show as an amber overlay; doors are thicker lines (shut vs open). Soft light glows from the file appear for everyone (no shadow casting yet).
+2. Upload one or more maps: PNG/JPG/WebP (set `grid_px`) or Universal VTT `.dd2vtt` (grid, walls, doors, and lights come from the file when present). Optionally attach a looping `.webm` animated background, or multi-select a `.dmsmap.json` / `.map.json` package with its base file and WebM. Uploads require a joined GM session. On the GM view, imported walls show as an amber overlay; doors are thicker lines (shut vs open). Soft light glows from the file appear for everyone (no shadow casting yet).
 3. In Settings → **Room links**, use **Copy** next to Room join / Screen / Player (and a minted GM invite). There is no forever GM URL — mint a new single-use invite from Settings (or home with PIN) if you need another GM device. While a GM session is open, you can **change the GM PIN** there (optionally invalidate a pending invite). If you lose the PIN with no active GM session, the table cannot be recovered — there is no recovery code.
 4. Add PCs and NPCs (display name, optional HP/AC, short notes, portrait); tick which maps each character appears on.
 5. Optional **Screen** setting: show quarter HP bars (25/50/75/100%) on the player screen — default off (exact PC HP; monsters hidden). Set **cm per cell** for table miniatures (physical size mode); leave empty to keep it off. Use **Open calibration on screens** to launch the ruler/auto wizard on connected table screens.
@@ -65,6 +65,7 @@ Optional Traefik labels (`TRAEFIK_ENABLE` / `FQDN`) attach to an existing Traefi
 - Page-wide candlelit flicker ADR: [../../decisions/0019-page-wide-candlelit-flicker.md](../../decisions/0019-page-wide-candlelit-flicker.md)
 - Dice HUD ADR: [../../decisions/0007-dice-play-island.md](../../decisions/0007-dice-play-island.md)
 - dd2vtt import ADR: [../../decisions/0008-dd2vtt-map-import.md](../../decisions/0008-dd2vtt-map-import.md)
+- WebM map packages ADR: [../../decisions/0027-webm-map-packages.md](../../decisions/0027-webm-map-packages.md)
 - HP visibility ADR: [../../decisions/0009-hp-screen-visibility.md](../../decisions/0009-hp-screen-visibility.md)
 - Manual fog ADR: [../../decisions/0010-manual-fog-of-war.md](../../decisions/0010-manual-fog-of-war.md)
 - LoS fog ADR: [../../decisions/0016-los-fog-from-walls.md](../../decisions/0016-los-fog-from-walls.md)

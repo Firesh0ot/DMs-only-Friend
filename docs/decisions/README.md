@@ -65,3 +65,4 @@ What becomes easier, harder, or out of scope.
 | [0024](0024-play-game-hud.md) | Play game-style HUD (replace islands) | accepted |
 | [0025](0025-turn-carousel-hud.md) | Turn carousel HUD, system-agnostic turn model, dual initiative paths | proposed |
 | [0026](0026-procedural-bsp-dd2vtt.md) | Procedural BSP dungeon to dd2vtt | accepted |
+| [0027](0027-webm-map-packages.md) | WebM animated map backgrounds and map packages | accepted |
