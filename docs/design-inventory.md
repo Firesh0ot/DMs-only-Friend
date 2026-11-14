@@ -81,15 +81,15 @@ Inconsistencies: empty copy uses **different plaque vs muted inline** patterns; 
 
 Semantic set already introduced in `client/src/theme/tokens.css`: surfaces, text, heading, accent/glow, HP, type scale, 4px spacing, 2 radii, 2 shadows, motion — with `tavern` / `arcane` schemes and legacy `--wood` / `--parchment` / … aliases. Remaining work (later steps): drive component styles off tokens only, unify button/empty languages, and close this inventory with before/after pairs per theme.
 
-## Landing pairs (step 3)
+## Before/after pairs (steps 3–6)
 
-Before/after screenshot pairs for Landing live in Project store:
+Project store media roots under `/cursor/stores/bc-fffa7212-a565-4be6-8d39-7107e39de2ca/media/`:
 
-`/cursor/stores/bc-fffa7212-a565-4be6-8d39-7107e39de2ca/media/design-landing/`
+| Screen | Folder | Pairs |
+|--------|--------|-------|
+| Landing | `design-landing/` | before/after × arcane+tavern (+ create-room) |
+| DM-Play | `design-play/` | before/after × arcane+tavern (+ fog rail) |
+| Settings | `design-settings/` | before/after × arcane+tavern (+ characters, calibrate) |
+| Monitor | `design-monitor/` | before/after × arcane+tavern (+ fullscreen fan) |
 
-| Theme | Before | After |
-|-------|--------|-------|
-| Arcane | `before-arcane-landing.png` | `after-arcane-landing.png` |
-| Tavern | `before-tavern-landing.png` | `after-tavern-landing.png` |
-
-Also `after-arcane-create-room.png` (create form filled). Favicon: `client/public/favicon.svg`, `favicon-32.png`, `favicon.ico`.
+Favicon: `client/public/favicon.svg`, `favicon-32.png`, `favicon.ico`. Completion notes: Project store `internal/design-rework-kickoff.md`.
