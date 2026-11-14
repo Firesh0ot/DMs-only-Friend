@@ -10,6 +10,7 @@ import "./theme/tokens.css";
 import "./theme/bootstrap";
 import "./styles.css";
 import "./theme/play.css";
+import "./theme/settings.css";
 
 const root = document.getElementById("root");
 if (!root) {
