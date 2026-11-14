@@ -2221,17 +2221,28 @@ html[data-lantern="off"] .condition-toggle.is-active {
   place-items: center;
   padding: 1rem;
   background: rgba(12, 8, 4, 0.55);
+  color: var(--ink);
 }
 
 .screen-modal__card {
   width: min(36rem, 100%);
   max-height: min(90vh, 44rem);
   overflow: auto;
+  color: var(--ink);
+}
+
+.play-topbar .screen-modal__card {
+  color: var(--ink);
+}
+
+.play-topbar .screen-modal .muted,
+.screen-modal .muted {
+  color: var(--ink-soft);
 }
 
 .calibration-ruler {
-  min-height: 3.5rem;
-  padding: 1rem 0.5rem;
+  min-height: 4.75rem;
+  padding: 1.65rem 0.75rem 1.35rem;
   border-radius: 8px;
   border: 1px dashed rgba(60, 40, 20, 0.35);
   background: rgba(255, 248, 230, 0.25);
@@ -2245,13 +2256,53 @@ html[data-lantern="off"] .condition-toggle.is-active {
   background: linear-gradient(90deg, #8a4a2a, #c47a3a);
 }
 
+.calibration-ruler__tick {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 1.05rem;
+  background: #5a3018;
+  transform: translateY(-50%);
+}
+
+.calibration-ruler__tick--start {
+  left: 0;
+}
+
+.calibration-ruler__tick--end {
+  right: 0;
+}
+
+.calibration-ruler__end {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.calibration-ruler__end--start {
+  left: 0;
+  transform: translateX(0);
+}
+
+.calibration-ruler__end--end {
+  right: 0;
+  transform: translateX(0);
+}
+
 .calibration-ruler__label {
   position: absolute;
   top: -1.35rem;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 0.75rem;
-  color: inherit;
-  opacity: 0.8;
+  color: var(--ink-soft);
+  opacity: 0.9;
+  white-space: nowrap;
 }
 
 .calibration-ruler__handle {
@@ -2285,6 +2336,15 @@ html[data-lantern="off"] .condition-toggle.is-active {
 html[data-lantern="off"] .calibration-ruler {
   border-color: rgba(120, 130, 140, 0.35);
   background: rgba(30, 36, 44, 0.55);
+}
+
+html[data-lantern="off"] .calibration-ruler__tick {
+  background: rgba(200, 180, 120, 0.9);
+}
+
+html[data-lantern="off"] .calibration-ruler__end,
+html[data-lantern="off"] .calibration-ruler__label {
+  color: #d7dde4;
 }
 
 html[data-lantern="off"] .calibration-ruler__handle {
