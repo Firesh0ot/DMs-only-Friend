@@ -1,7 +1,6 @@
 import {
   assignSpawnPoints,
   createEmptyExplored,
-  createFullExplored,
   encodeExploredBits,
   growExploredFromCurrentVisibility,
   growExploredFromStroke,
@@ -142,7 +141,7 @@ type MapFogRow = {
   map_id: string;
   base_covered: number;
   strokes_json: string;
-  los_enabled: number;
+  los_enabled: number | null;
   explored_cells: string;
 };
 
@@ -305,6 +304,7 @@ export class RoomStore {
     if (!map) {
       throw new Error("Failed to persist map");
     }
+    this.ensureDefaultFog(map);
     return map;
   }
 
@@ -1572,16 +1572,44 @@ export class RoomStore {
     const row = this.db.prepare("SELECT * FROM map_fog WHERE map_id = ?").get(mapId) as
       | MapFogRow
       | undefined;
+    const map = this.getMapById(mapId);
     if (!row) {
-      return { mapId, baseCovered: true, strokes: [], losEnabled: false, exploredCells: "" };
+      return this.defaultFogState(mapId, map);
     }
     return {
       mapId: row.map_id,
       baseCovered: row.base_covered === 1,
       strokes: JSON.parse(row.strokes_json) as FogStroke[],
-      losEnabled: row.los_enabled === 1,
+      losEnabled: row.los_enabled === null ? true : row.los_enabled === 1,
       exploredCells: row.explored_cells ?? "",
     };
+  }
+
+  private mapSupportsLos(map: MapState | null): boolean {
+    return Boolean(map && (map.walls.length > 0 || map.portals.length > 0));
+  }
+
+  private defaultFogState(mapId: string, map: MapState | null): FogState {
+    const canLos = this.mapSupportsLos(map);
+    return {
+      mapId,
+      baseCovered: !canLos,
+      strokes: [],
+      losEnabled: canLos,
+      exploredCells: "",
+    };
+  }
+
+  ensureDefaultFog(map: MapState): FogState {
+    const existing = this.db
+      .prepare("SELECT map_id FROM map_fog WHERE map_id = ?")
+      .get(map.id) as { map_id: string } | undefined;
+    if (existing) {
+      return this.getFog(map.id);
+    }
+    const fog = this.defaultFogState(map.id, map);
+    this.writeFog(map.id, fog);
+    return fog;
   }
 
   getActiveFog(roomId: string): FogState | null {
@@ -1644,13 +1672,13 @@ export class RoomStore {
       throw new Error("Map not found");
     }
     const current = this.getFog(mapId);
-    const explored = baseCovered ? createEmptyExplored(map) : createFullExplored(map);
+    const explored = createEmptyExplored(map);
     const next: FogState = {
       mapId,
       baseCovered,
       strokes: [],
       losEnabled: current.losEnabled,
-      exploredCells: encodeExploredBits(explored.bits),
+      exploredCells: "",
     };
     if (!baseCovered && current.losEnabled) {
       growExploredFromCurrentVisibility(

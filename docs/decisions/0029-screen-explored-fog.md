@@ -10,7 +10,7 @@ Manual fog (ADR 0010) and LoS fog (ADR 0016) already hide the map for Screen/pla
 ## Decision
 
 - Persist a per-map **explored cell bitset** on `map_fog.explored_cells` (base64). It is part of `FogState.exploredCells` and travels with snapshots / `fog:updated`.
-- Grow explored when cells become currently visible: manual reveal strokes, clear-all reset, LoS enable, PC vision after token moves, and portal toggles that change LoS. Hide strokes do not shrink explored. Cover-all reset clears explored.
+- Grow explored when cells become currently visible: manual reveal strokes, LoS enable, PC vision after token moves, and portal toggles that change LoS. Hide strokes do not shrink explored. Cover-all and clear-all both **reset explored to empty** (then grow from current LoS vision if LoS is on)—see [0030](0030-screen-fog-defaults.md).
 - **Currently visible** remains manual-clear ∩ LoS-clear (same OR-of-masks rule as ADR 0016).
 - Screen/player fog compositing: unseen → opaque black; explored ∩ covered → grey at GM fog strength (~0.58); currently visible → clear. GM fog stays the existing single translucent overlay (all tokens still visible for prep).
 - LoS helpers live in `@dms/shared` so the server can grow explored without trusting the client.

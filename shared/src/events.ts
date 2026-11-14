@@ -343,7 +343,7 @@ export const FogStateSchema = z.object({
   mapId: z.string(),
   baseCovered: z.boolean(),
   strokes: z.array(FogStrokeSchema),
-  losEnabled: z.boolean().default(false),
+  losEnabled: z.boolean().default(true),
   exploredCells: z.string().default(""),
 });
 export type FogState = z.infer<typeof FogStateSchema>;
