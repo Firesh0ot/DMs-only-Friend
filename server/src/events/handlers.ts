@@ -347,7 +347,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         const initiative = rooms.setInitiative(session.roomId, {
           order,
           activeIndex: 0,
-          round: previous?.round ?? 1,
+          round: previous?.round ?? 0,
           turnStart: null,
           remainingCells: null,
           activeActionUsed: false,
@@ -410,7 +410,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         const initiative = rooms.setInitiative(session.roomId, {
           order,
           activeIndex: 0,
-          round: previous?.round ?? 1,
+          round: previous?.round ?? 0,
           turnStart: null,
           remainingCells: null,
           activeActionUsed: false,
@@ -528,7 +528,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         const initiative = rooms.setInitiative(session.roomId, {
           order,
           activeIndex,
-          round: previous?.round ?? 1,
+          round: previous?.round ?? 0,
           activeActionUsed: previous?.activeActionUsed ?? false,
           activeBonusUsed: previous?.activeBonusUsed ?? false,
         });
@@ -579,9 +579,13 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           io.to(roomChannel(session.roomId)).emit(ServerEvents.BattleUpdated, ensured.battle);
           emitLog(io, session.roomId, ensured.startEvent);
         }
+        const baseRound =
+          ensured.started && ensured.initiative
+            ? ensured.initiative.round
+            : current.round;
         const wrapping = current.activeIndex + 1 >= current.order.length;
         const activeIndex = wrapping ? 0 : current.activeIndex + 1;
-        const round = wrapping ? current.round + 1 : current.round;
+        const round = wrapping ? baseRound + 1 : baseRound;
         rooms.setInitiative(session.roomId, {
           order: current.order,
           activeIndex,
@@ -1021,8 +1025,11 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         return;
       }
       try {
-        const { battle, event } = rooms.startBattle(session.roomId);
+        const { battle, event, initiative } = rooms.startBattle(session.roomId);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.BattleUpdated, battle);
+        if (initiative) {
+          io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+        }
         emitLog(io, session.roomId, event);
       } catch (error) {
         emitError(socket, error);

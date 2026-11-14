@@ -57,6 +57,7 @@ describe("session event log and battle timing", () => {
     const started = store.startBattle(room.id);
     expect(started.battle.endedAt).toBeNull();
     expect(started.event.type).toBe("battle_start");
+    expect(started.initiative).toBeNull();
     expect(store.getActiveBattle(room.id)?.id).toBe(started.battle.id);
     expect(store.getSnapshot(room.id, "screen", null).battle?.id).toBe(started.battle.id);
 
@@ -71,18 +72,44 @@ describe("session event log and battle timing", () => {
     expect(store.getSnapshot(room.id, "gm", null).battle).toBeNull();
   });
 
+  it("resets initiative round to 0 when a battle starts", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+    const aria = store.createToken({ roomId: room.id, label: "Aria", x: 1, y: 1 });
+    store.setInitiative(room.id, {
+      order: [{ tokenId: aria.id, label: "Aria", initiative: 15 }],
+      activeIndex: 0,
+      round: 3,
+    });
+
+    const started = store.startBattle(room.id);
+    expect(started.initiative?.round).toBe(0);
+    expect(store.getInitiative(room.id)?.round).toBe(0);
+    expect(store.getInitiative(room.id)?.activeIndex).toBe(0);
+  });
+
   it("auto-starts a battle on first next-turn ensure", () => {
     const store = createStore();
     const { room } = store.createRoom();
+    const goblin = store.createToken({ roomId: room.id, label: "Goblin", x: 2, y: 2 });
+    store.setInitiative(room.id, {
+      order: [{ tokenId: goblin.id, label: "Goblin", initiative: 10 }],
+      activeIndex: 0,
+      round: 2,
+    });
 
     const first = store.ensureBattleForNextTurn(room.id);
     expect(first.started).toBe(true);
     expect(first.startEvent?.type).toBe("battle_start");
+    expect(first.initiative?.round).toBe(0);
+    expect(store.getInitiative(room.id)?.round).toBe(0);
 
     const second = store.ensureBattleForNextTurn(room.id);
     expect(second.started).toBe(false);
     expect(second.battle.id).toBe(first.battle.id);
     expect(second.startEvent).toBeNull();
+    expect(second.initiative).toBeNull();
+    expect(store.getInitiative(room.id)?.round).toBe(0);
   });
 
   it("records dice rolls in dice_log and as session events", () => {
