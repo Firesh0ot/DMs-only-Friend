@@ -18,6 +18,11 @@ import {
   type TokenState,
 } from "@dms/shared";
 import { formatHp, formatHpQuarter } from "../../lib/hp";
+import {
+  SCREEN_CAROUSEL_INVERT_EVENT,
+  carouselFacingWithInvert,
+  readScreenCarouselInvert,
+} from "../../lib/screenCarouselInvert";
 import { getSocket } from "../../socket/socket";
 import { ConditionBadges } from "../ConditionBadges";
 import { fanCardTransform, fanOffsetsForOrder } from "./carouselMotion";
@@ -29,6 +34,7 @@ type Props = {
   characters: CharacterState[];
   placement: ScreenCarouselPlacement;
   draggable?: boolean;
+  invertFacing?: boolean;
 };
 
 type FanCard = {
@@ -92,9 +98,11 @@ export function ScreenFanCarousel({
   characters,
   placement,
   draggable = false,
+  invertFacing,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [localInvert, setLocalInvert] = useState(() => readScreenCarouselInvert());
   const dragOrigin = useRef<{
     pointerId: number;
     startX: number;
@@ -102,6 +110,26 @@ export function ScreenFanCarousel({
     originX: number;
     originY: number;
   } | null>(null);
+
+  useEffect(() => {
+    if (invertFacing !== undefined) {
+      return;
+    }
+    function sync() {
+      setLocalInvert(readScreenCarouselInvert());
+    }
+    function onStorage(event: StorageEvent) {
+      if (event.key === null || event.key === "dms-screen-carousel-invert") {
+        sync();
+      }
+    }
+    window.addEventListener(SCREEN_CAROUSEL_INVERT_EVENT, sync);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(SCREEN_CAROUSEL_INVERT_EVENT, sync);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [invertFacing]);
 
   const byToken = useMemo(() => new Map(tokens.map((token) => [token.id, token])), [tokens]);
   const byCharacter = useMemo(
@@ -125,7 +153,8 @@ export function ScreenFanCarousel({
     );
   }, [initiative, byToken, byCharacter]);
 
-  const facing = carouselFacingDeg(placement);
+  const inverted = invertFacing ?? localInvert;
+  const facing = carouselFacingWithInvert(carouselFacingDeg(placement), inverted);
 
   useEffect(() => {
     if (!dragging) {

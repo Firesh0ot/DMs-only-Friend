@@ -27,6 +27,11 @@ import {
   type ScreenCalibration,
   type ScreenDisplayMode,
 } from "../lib/screenCalibration";
+import {
+  SCREEN_CAROUSEL_INVERT_EVENT,
+  readScreenCarouselInvert,
+  writeScreenCarouselInvert,
+} from "../lib/screenCarouselInvert";
 import { getSocket } from "../socket/socket";
 import { useRoomStore } from "../state/roomStore";
 
@@ -91,6 +96,7 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
   const [screenFullscreen, setScreenFullscreen] = useState(
     () => role === "screen" && loadScreenFullscreen(),
   );
+  const [carouselInvert, setCarouselInvert] = useState(() => readScreenCarouselInvert());
 
   const tokens = useMemo(() => {
     if (!snapshot) {
@@ -98,6 +104,23 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
     }
     return snapshot.tokens.map((token) => optimisticTokens[token.id] ?? token);
   }, [snapshot, optimisticTokens]);
+
+  useEffect(() => {
+    function syncInvert() {
+      setCarouselInvert(readScreenCarouselInvert());
+    }
+    function onStorage(event: StorageEvent) {
+      if (event.key === null || event.key === "dms-screen-carousel-invert") {
+        syncInvert();
+      }
+    }
+    window.addEventListener(SCREEN_CAROUSEL_INVERT_EVENT, syncInvert);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(SCREEN_CAROUSEL_INVERT_EVENT, syncInvert);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
 
   useEffect(() => {
     if (role === "gm" && !pinReady) {
@@ -479,8 +502,22 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                   characters={snapshot.characters}
                   placement={carouselPlacement}
                   draggable
+                  invertFacing={carouselInvert}
                 />
                 <div className="screen-fs-controls">
+                  <button
+                    type="button"
+                    className={carouselInvert ? "is-active" : "secondary"}
+                    aria-pressed={carouselInvert}
+                    title="Flip card facing outside-in or toward center"
+                    onClick={() => {
+                      const next = !carouselInvert;
+                      writeScreenCarouselInvert(next);
+                      setCarouselInvert(next);
+                    }}
+                  >
+                    Flip
+                  </button>
                   <button
                     type="button"
                     className="secondary"
