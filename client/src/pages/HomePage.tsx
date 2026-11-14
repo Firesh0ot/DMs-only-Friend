@@ -2,6 +2,7 @@ import { useState } from "react";
 import { normalizeRoomCode, roomCodePathSegment } from "@dms/shared";
 import { LanternToggle } from "../components/LanternToggle";
 import { ThemeToggle } from "../components/ThemeToggle";
+import "./landing.css";
 
 type CreatedRoom = {
   code: string;
@@ -40,10 +41,7 @@ export function HomePage() {
         throw new Error("Could not create room");
       }
       setCreated(payload);
-      sessionStorage.setItem(
-        `dms-gm-pin:${payload.code}`,
-        pin,
-      );
+      sessionStorage.setItem(`dms-gm-pin:${payload.code}`, pin);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed");
     } finally {
@@ -147,134 +145,161 @@ export function HomePage() {
   }
 
   return (
-    <main className="app-shell">
-      <div className="chrome-bar">
+    <main className="landing">
+      <div className="landing__atmosphere" aria-hidden="true" />
+      <header className="landing__chrome">
         <ThemeToggle className="theme-toggle--prominent" />
         <LanternToggle />
-      </div>
-      <p className="muted">Self-hosted tabletop board</p>
-      <h1 className="brand">DMs-only-Friend</h1>
-      <p className="lede">
-        Open a room for the GM laptop, cast the same map to a TV screen, and keep tokens in sync
-        over the LAN.
-      </p>
+      </header>
 
-      <div className="room-layout">
-        <section className="panel stack">
-          <h2>Create room</h2>
-          <label className="stack">
-            <span className="muted">Room code</span>
-            <input
-              value={code}
-              onChange={(event) =>
-                setCode(event.target.value.normalize("NFC").toLocaleUpperCase("und"))
-              }
-              placeholder="FRIDAY-TABLE"
-              autoComplete="off"
-            />
-          </label>
-          <label className="stack">
-            <span className="muted">Table name</span>
-            <input value={name} onChange={(event) => setName(event.target.value)} />
-          </label>
-          <label className="stack">
-            <span className="muted">GM PIN (4–8 digits)</span>
-            <input
-              value={pin}
-              onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 8))}
-              inputMode="numeric"
-              autoComplete="new-password"
-              placeholder="••••"
-            />
-          </label>
-          <button disabled={busy} onClick={() => void createRoom()}>
-            {busy ? "Creating…" : "Create room"}
-          </button>
-          {created ? (
-            <div className="stack">
-              <p>
-                Code <span className="mono">{created.code}</span>
-              </p>
-              <p className="muted">
-                Copy the single-use GM invite now — it works once, then only the PIN rejoins GM.
-              </p>
-              <label className="stack">
-                <span className="muted">GM invite (single-use)</span>
-                <input
-                  readOnly
-                  value={created.gmInviteUrl}
-                  onFocus={(event) => event.target.select()}
-                />
-              </label>
-              <div className="row">
-                <button disabled={busy} onClick={() => void openRoom("gm")}>
-                  Open as GM
-                </button>
-                <button
-                  className="secondary"
-                  disabled={busy}
-                  onClick={() => void openRoom("screen")}
-                >
-                  Open screen
-                </button>
+      <div className="landing__stage">
+        <h1 className="landing__brand">DMs-only-Friend</h1>
+        <p className="landing__lede">
+          Open a room for the GM laptop, cast the same map to a TV screen, and keep tokens in sync
+          over the LAN.
+        </p>
+
+        <div className="landing__cta">
+          <section className="landing-dock landing-dock--create" aria-labelledby="landing-create-title">
+            <h2 id="landing-create-title" className="landing-dock__title">
+              Create room
+            </h2>
+            <label className="landing-field">
+              <span className="landing-field__label">Room code</span>
+              <input
+                value={code}
+                onChange={(event) =>
+                  setCode(event.target.value.normalize("NFC").toLocaleUpperCase("und"))
+                }
+                placeholder="FRIDAY-TABLE"
+                autoComplete="off"
+              />
+            </label>
+            <label className="landing-field">
+              <span className="landing-field__label">Table name</span>
+              <input value={name} onChange={(event) => setName(event.target.value)} />
+            </label>
+            <label className="landing-field">
+              <span className="landing-field__label">GM PIN (4–8 digits)</span>
+              <input
+                value={pin}
+                onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                inputMode="numeric"
+                autoComplete="new-password"
+                placeholder="••••"
+              />
+            </label>
+            <button className="landing-btn landing-btn--primary" disabled={busy} onClick={() => void createRoom()}>
+              {busy ? "Creating…" : "Create room"}
+            </button>
+            {created ? (
+              <div className="landing-dock__success">
+                <p>
+                  Code <span className="mono">{created.code}</span>
+                </p>
+                <p className="landing-dock__hint">
+                  Copy the single-use GM invite now — it works once, then only the PIN rejoins GM.
+                </p>
+                <label className="landing-field">
+                  <span className="landing-field__label">GM invite (single-use)</span>
+                  <input
+                    readOnly
+                    value={created.gmInviteUrl}
+                    onFocus={(event) => event.target.select()}
+                  />
+                </label>
+                <div className="landing-dock__row">
+                  <button
+                    className="landing-btn landing-btn--primary"
+                    disabled={busy}
+                    onClick={() => void openRoom("gm")}
+                  >
+                    Open as GM
+                  </button>
+                  <button
+                    className="landing-btn landing-btn--ghost"
+                    disabled={busy}
+                    onClick={() => void openRoom("screen")}
+                  >
+                    Open screen
+                  </button>
+                </div>
+                <p className="landing-dock__hint mono">{created.screenUrl}</p>
               </div>
-              <p className="muted mono">{created.screenUrl}</p>
+            ) : null}
+          </section>
+
+          <section className="landing-dock landing-dock--join" aria-labelledby="landing-join-title">
+            <h2 id="landing-join-title" className="landing-dock__title">
+              Join room
+            </h2>
+            <label className="landing-field">
+              <span className="landing-field__label">Room code</span>
+              <input
+                value={joinCode}
+                onChange={(event) =>
+                  setJoinCode(event.target.value.normalize("NFC").toLocaleUpperCase("und"))
+                }
+                placeholder="FRIDAY-TABLE"
+              />
+            </label>
+            <label className="landing-field">
+              <span className="landing-field__label">GM PIN (for GM join / new invite)</span>
+              <input
+                value={joinPin}
+                onChange={(event) => setJoinPin(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                inputMode="numeric"
+                autoComplete="current-password"
+                placeholder="••••"
+              />
+            </label>
+            <label className="landing-field">
+              <span className="landing-field__label">PC name to claim (remote)</span>
+              <input
+                value={playerName}
+                onChange={(event) => setPlayerName(event.target.value)}
+                placeholder="Aria"
+              />
+            </label>
+            <div className="landing-dock__row">
+              <button
+                className="landing-btn landing-btn--primary"
+                disabled={busy}
+                onClick={() => void openRoom("screen")}
+              >
+                Join screen
+              </button>
+              <button
+                className="landing-btn landing-btn--ghost"
+                onClick={() => void openRoom("player")}
+                disabled={busy || !playerName.trim()}
+              >
+                Join as player
+              </button>
+              <button
+                className="landing-btn landing-btn--ghost"
+                disabled={busy}
+                onClick={() => void openRoom("gm")}
+              >
+                Join as GM
+              </button>
             </div>
-          ) : null}
-        </section>
-
-        <section className="panel stack">
-          <h2>Join room</h2>
-          <label className="stack">
-            <span className="muted">Room code</span>
-            <input
-              value={joinCode}
-              onChange={(event) =>
-                setJoinCode(event.target.value.normalize("NFC").toLocaleUpperCase("und"))
-              }
-              placeholder="FRIDAY-TABLE"
-            />
-          </label>
-          <label className="stack">
-            <span className="muted">GM PIN (for GM join / new invite)</span>
-            <input
-              value={joinPin}
-              onChange={(event) => setJoinPin(event.target.value.replace(/\D/g, "").slice(0, 8))}
-              inputMode="numeric"
-              autoComplete="current-password"
-              placeholder="••••"
-            />
-          </label>
-          <label className="stack">
-            <span className="muted">PC name to claim (remote)</span>
-            <input
-              value={playerName}
-              onChange={(event) => setPlayerName(event.target.value)}
-              placeholder="Aria"
-            />
-          </label>
-          <div className="row">
-            <button disabled={busy} onClick={() => void openRoom("screen")}>
-              Join screen
-            </button>
             <button
-              className="secondary"
-              onClick={() => void openRoom("player")}
-              disabled={busy || !playerName.trim()}
+              className="landing-btn landing-btn--ghost landing-btn--wide"
+              disabled={busy}
+              onClick={() => void mintInvite()}
             >
-              Join as player
+              Mint new GM invite
             </button>
-            <button className="secondary" disabled={busy} onClick={() => void openRoom("gm")}>
-              Join as GM
-            </button>
-          </div>
-          <button className="secondary" disabled={busy} onClick={() => void mintInvite()}>
-            Mint new GM invite
-          </button>
-        </section>
-      </div>
+          </section>
+        </div>
 
-      {error ? <p className="error">{error}</p> : null}
+        {error ? (
+          <p className="landing__error" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
     </main>
   );
 }
