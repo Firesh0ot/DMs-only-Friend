@@ -107,7 +107,7 @@ Kein Bestiarium-Editor, kein Bündeln der Portraits im Repo/Container (Lizenz er
 
 1. Suche „goblin" liefert offline (ohne Internet) Treffer aus dem Indexfile; Import scheitert offline ohne Voll-Datei mit klarem Fehler, mit Voll-Datei funktioniert er komplett offline.
 2. Import mit Internet: API-Fetch genau beim ersten Import des Monsters; zweiter Import desselben Monsters löst **keinen** HTTP-Request aus (Cache-Hit, per Test verifiziert).
-3. Importiertes Monster verhählt sich wie ein per `character:upsert` angelegter NPC: Token auf der Karte, HP/AC/Conditions editierbar, sichtbar auf allen Screens, überlebt Reload. Die reichen Felder liegen als formatierter Statblock in `notes` (max. 2000 Zeichen, editierbar) – keine zusätzlichen `characters`-Spalten.
+3. Importiertes Monster verhält sich wie ein per `character:upsert` angelegter NPC: Token auf der Karte, HP/AC/Conditions editierbar, sichtbar auf allen Screens, überlebt Reload. Die reichen Felder liegen als formatierter Statblock in `notes` (max. 2000 Zeichen, editierbar) – keine zusätzlichen `characters`-Spalten.
 3a. **Portrait:** Import mit Internet setzt `characters.image` auf `/uploads/srd-{monsterIndex}.png`; das Portrait erscheint in Token und TurnCarousel-Karte; zweiter Import desselben Monsters löst keinen erneuten Bild-Fetch aus (Test). Ein bestehendes GM-Portrait wird bei Re-Import **nie** überschrieben (Test). Import ohne Internet/ohne `image`-Feld: kein harter Fehler, Platzhalter-Portrait.
 3b. **Offline nach Vorbereitung:** Mit `fetch-srd-full.ts --images` vorbereitete Installation importiert Monster inklusive Portrait komplett offline.
 4. `rollHp: true` würfelt `2d6` für einen Goblin serverseitig und setzt `hpCurrent` entsprechend.
