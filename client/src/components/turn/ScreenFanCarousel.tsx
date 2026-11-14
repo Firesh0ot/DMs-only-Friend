@@ -18,8 +18,14 @@ import {
   type TokenState,
 } from "@dms/shared";
 import { formatHp, formatHpQuarter } from "../../lib/hp";
+import {
+  SCREEN_CAROUSEL_INVERT_EVENT,
+  carouselFacingWithInvert,
+  readScreenCarouselInvert,
+} from "../../lib/screenCarouselInvert";
 import { getSocket } from "../../socket/socket";
 import { ConditionBadges } from "../ConditionBadges";
+import { fanCardTransform, fanOffsetsForOrder } from "./carouselMotion";
 
 type Props = {
   role: Role;
@@ -28,6 +34,7 @@ type Props = {
   characters: CharacterState[];
   placement: ScreenCarouselPlacement;
   draggable?: boolean;
+  invertFacing?: boolean;
 };
 
 type FanCard = {
@@ -35,8 +42,6 @@ type FanCard = {
   character?: CharacterState;
   offset: number;
 };
-
-const FAN_OFFSETS = [-2, -1, 0, 1, 2] as const;
 
 function characterFor(
   entry: InitiativeEntry,
@@ -86,17 +91,6 @@ function hpQuarterValue(character: CharacterState | undefined): number | null {
   return 4;
 }
 
-function fanStyle(offset: number): { transform: string; zIndex: number } {
-  const angle = offset * 14;
-  const x = offset * 2.15;
-  const y = Math.abs(offset) * 0.35;
-  const scale = offset === 0 ? 1 : Math.max(0.72, 1 - Math.abs(offset) * 0.1);
-  return {
-    transform: `translate(-50%, -70%) rotate(${angle}deg) translate(${x}rem, ${y}rem) scale(${scale})`,
-    zIndex: 10 - Math.abs(offset),
-  };
-}
-
 export function ScreenFanCarousel({
   role,
   initiative,
@@ -104,9 +98,11 @@ export function ScreenFanCarousel({
   characters,
   placement,
   draggable = false,
+  invertFacing,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [localInvert, setLocalInvert] = useState(() => readScreenCarouselInvert());
   const dragOrigin = useRef<{
     pointerId: number;
     startX: number;
@@ -114,6 +110,26 @@ export function ScreenFanCarousel({
     originX: number;
     originY: number;
   } | null>(null);
+
+  useEffect(() => {
+    if (invertFacing !== undefined) {
+      return;
+    }
+    function sync() {
+      setLocalInvert(readScreenCarouselInvert());
+    }
+    function onStorage(event: StorageEvent) {
+      if (event.key === null || event.key === "dms-screen-carousel-invert") {
+        sync();
+      }
+    }
+    window.addEventListener(SCREEN_CAROUSEL_INVERT_EVENT, sync);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(SCREEN_CAROUSEL_INVERT_EVENT, sync);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [invertFacing]);
 
   const byToken = useMemo(() => new Map(tokens.map((token) => [token.id, token])), [tokens]);
   const byCharacter = useMemo(
@@ -125,30 +141,20 @@ export function ScreenFanCarousel({
     if (!initiative || initiative.order.length === 0) {
       return [];
     }
-    const len = initiative.order.length;
-    const activeIndex = initiative.activeIndex;
-    const seen = new Set<number>();
-    const result: FanCard[] = [];
-    for (const offset of FAN_OFFSETS) {
-      if (Math.abs(offset) >= len) {
-        continue;
-      }
-      const index = (activeIndex + offset + len * 4) % len;
-      if (seen.has(index)) {
-        continue;
-      }
-      seen.add(index);
-      const entry = initiative.order[index]!;
-      result.push({
-        entry,
-        character: characterFor(entry, byToken, byCharacter),
-        offset,
-      });
-    }
-    return result;
+    return fanOffsetsForOrder(initiative.order.length, initiative.activeIndex).map(
+      ({ index, offset }) => {
+        const entry = initiative.order[index]!;
+        return {
+          entry,
+          character: characterFor(entry, byToken, byCharacter),
+          offset,
+        };
+      },
+    );
   }, [initiative, byToken, byCharacter]);
 
-  const facing = carouselFacingDeg(placement);
+  const inverted = invertFacing ?? localInvert;
+  const facing = carouselFacingWithInvert(carouselFacingDeg(placement), inverted);
 
   useEffect(() => {
     if (!dragging) {
@@ -259,10 +265,10 @@ export function ScreenFanCarousel({
                 const hp = displayHp(card.character, role);
                 const quarter = hpQuarterValue(card.character);
                 const isActive = card.offset === 0;
-                const style = fanStyle(card.offset);
+                const style = fanCardTransform(card.offset);
                 return (
                   <article
-                    key={`${card.entry.tokenId}-${card.offset}`}
+                    key={card.entry.tokenId}
                     className={`screen-fan__card ${isActive ? "is-active" : ""}`}
                     data-kind={card.entry.kind ?? "npc"}
                     data-offset={card.offset}

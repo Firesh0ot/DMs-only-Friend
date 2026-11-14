@@ -14,6 +14,11 @@ import {
 } from "@dms/shared";
 import { parseOptionalInt } from "../lib/hp";
 import { appendMapUploadFormData, resolveMapUploadParts } from "../lib/mapUploadForm";
+import {
+  SCREEN_CAROUSEL_INVERT_EVENT,
+  readScreenCarouselInvert,
+  writeScreenCarouselInvert,
+} from "../lib/screenCarouselInvert";
 import { getSocket } from "../socket/socket";
 import { CopyableLinkField } from "./CopyableLinkField";
 import { ThemeToggle } from "./ThemeToggle";
@@ -95,6 +100,7 @@ export function SettingsPanel({
   const [physicalCellCmDraft, setPhysicalCellCmDraft] = useState(
     settings.physicalCellCm === null ? "" : String(settings.physicalCellCm),
   );
+  const [carouselInvert, setCarouselInvert] = useState(() => readScreenCarouselInvert());
   const [srdQuery, setSrdQuery] = useState("");
   const [srdResults, setSrdResults] = useState<MonsterSearchResult[]>([]);
   const [srdSource, setSrdSource] = useState<"index" | "cache" | null>(null);
@@ -108,6 +114,23 @@ export function SettingsPanel({
       settings.physicalCellCm === null ? "" : String(settings.physicalCellCm),
     );
   }, [settings.physicalCellCm]);
+
+  useEffect(() => {
+    function sync() {
+      setCarouselInvert(readScreenCarouselInvert());
+    }
+    function onStorage(event: StorageEvent) {
+      if (event.key === null || event.key === "dms-screen-carousel-invert") {
+        sync();
+      }
+    }
+    window.addEventListener(SCREEN_CAROUSEL_INVERT_EVENT, sync);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(SCREEN_CAROUSEL_INVERT_EVENT, sync);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
 
   const srdSearchGen = useRef(0);
 
@@ -1167,8 +1190,9 @@ export function SettingsPanel({
         <fieldset className="settings-fieldset stack">
           <legend>Fullscreen initiative carousel</legend>
           <p className="muted">
-            Edge placement for the Screen fullscreen fan. Cards face toward the screen center so
-            players around the table can read them. Screens can also drag the Place handle.
+            Edge placement for the Screen fullscreen fan. By default cards face toward the screen
+            center; Flip turns them outside-in. Flip is saved on this device (like theme /
+            fullscreen). Screens can also drag the Place handle.
           </p>
           <div className="row" role="group" aria-label="Carousel edge">
             {(
@@ -1194,9 +1218,23 @@ export function SettingsPanel({
                 </button>
               );
             })}
+            <button
+              type="button"
+              className={carouselInvert ? "is-active" : "secondary"}
+              aria-pressed={carouselInvert}
+              title="Flip card facing outside-in or toward center"
+              onClick={() => {
+                const next = !carouselInvert;
+                writeScreenCarouselInvert(next);
+                setCarouselInvert(next);
+              }}
+            >
+              Flip
+            </button>
           </div>
           <p className="muted mono">
             {settings.screenCarousel.xNorm.toFixed(2)}, {settings.screenCarousel.yNorm.toFixed(2)}
+            {carouselInvert ? " · flipped" : ""}
           </p>
         </fieldset>
       </section>

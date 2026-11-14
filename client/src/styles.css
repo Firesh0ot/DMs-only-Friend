@@ -284,6 +284,12 @@ html[data-lantern-fx="light"] body.tavern-body::before {
   html[data-lantern-fx="light"] .lantern-toggle__flame {
     animation: none;
   }
+
+  .turn-card,
+  .screen-fan__card {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 button,
@@ -2592,6 +2598,8 @@ html[data-lantern="off"] .calibration-preview-cell {
 }
 
 .turn-card {
+  --flip-x: 0px;
+  --flip-y: 0px;
   position: relative;
   display: grid;
   gap: 0.25rem;
@@ -2601,68 +2609,47 @@ html[data-lantern="off"] .calibration-preview-cell {
   background: rgba(255, 248, 230, 0.55);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transition:
-    transform 300ms ease,
-    opacity 300ms ease,
-    filter 300ms ease;
+    transform var(--motion-turn),
+    opacity var(--motion-turn),
+    filter var(--motion-turn),
+    box-shadow var(--motion-fast);
   transform-origin: bottom center;
+  will-change: transform, opacity;
 }
 
 .turn-card--prev {
-  transform: rotate(-8deg) translateX(18%) scale(0.88);
+  grid-column: 1;
+  transform: translate(var(--flip-x), var(--flip-y)) rotate(-8deg) translateX(18%) scale(0.88);
   opacity: 0.72;
   filter: saturate(0.85);
   z-index: 1;
+  pointer-events: none;
 }
 
 .turn-card--next {
-  transform: rotate(8deg) translateX(-18%) scale(0.88);
+  grid-column: 3;
+  transform: translate(var(--flip-x), var(--flip-y)) rotate(8deg) translateX(-18%) scale(0.88);
   opacity: 0.72;
   filter: saturate(0.85);
   z-index: 1;
+  pointer-events: none;
 }
 
 .turn-card--active {
-  transform: rotate(0deg) scale(1);
+  grid-column: 2;
+  transform: translate(var(--flip-x), var(--flip-y)) rotate(0deg) scale(1);
   opacity: 1;
+  filter: none;
   z-index: 2;
   outline: 2px solid var(--signal);
   background: rgba(232, 160, 69, 0.22);
   padding: 0.35rem;
+  pointer-events: auto;
 }
 
 .turn-carousel.is-sliding-forward .turn-card--prev,
 .turn-carousel.is-sliding-back .turn-card--next {
-  opacity: 0.35;
-}
-
-.turn-carousel.is-sliding-forward .turn-card--active {
-  animation: turn-slide-in-left 300ms ease;
-}
-
-.turn-carousel.is-sliding-back .turn-card--active {
-  animation: turn-slide-in-right 300ms ease;
-}
-
-@keyframes turn-slide-in-left {
-  from {
-    transform: rotate(8deg) translateX(35%) scale(0.9);
-    opacity: 0.5;
-  }
-  to {
-    transform: rotate(0) scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes turn-slide-in-right {
-  from {
-    transform: rotate(-8deg) translateX(-35%) scale(0.9);
-    opacity: 0.5;
-  }
-  to {
-    transform: rotate(0) scale(1);
-    opacity: 1;
-  }
+  opacity: 0.4;
 }
 
 .turn-card__portrait {
@@ -2941,11 +2928,14 @@ html[data-lantern="off"] .calibration-preview-cell {
     0 10px 18px rgba(0, 0, 0, 0.35);
   transform-origin: 50% 110%;
   transition:
-    transform 280ms ease,
-    opacity 280ms ease,
-    filter 280ms ease;
+    transform var(--motion-turn),
+    opacity var(--motion-turn),
+    filter var(--motion-turn),
+    width var(--motion-turn),
+    box-shadow var(--motion-fast);
   opacity: 0.82;
   filter: saturate(0.9);
+  will-change: transform, opacity;
 }
 
 .screen-fan__card.is-active {

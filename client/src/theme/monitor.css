@@ -167,6 +167,7 @@
     transform var(--motion-turn),
     opacity var(--motion-turn),
     filter var(--motion-turn),
+    width var(--motion-turn),
     box-shadow var(--motion-fast);
 }
 
