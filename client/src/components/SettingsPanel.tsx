@@ -70,6 +70,7 @@ export function SettingsPanel({
   const baseId = useId();
   const [uploadGridPx, setUploadGridPx] = useState("70");
   const [mapName, setMapName] = useState("");
+  const [pendingMapFiles, setPendingMapFiles] = useState<File[]>([]);
   const [animatedWebm, setAnimatedWebm] = useState<File | null>(null);
   const [generateSeed, setGenerateSeed] = useState("");
   const [busy, setBusy] = useState(false);
@@ -219,16 +220,16 @@ export function SettingsPanel({
     }
   }
 
-  async function onUploadMap(fileList: FileList | null) {
-    const selected = Array.from(fileList ?? []);
-    if (selected.length === 0 && !animatedWebm) {
+  async function onImportMap() {
+    if (pendingMapFiles.length === 0 && !animatedWebm) {
+      setMessage("Choose a map file (and optional WebM) before importing");
       return;
     }
     if (!uploadToken) {
       setMessage("Rejoin as GM to upload maps");
       return;
     }
-    const parts = resolveMapUploadParts(selected, animatedWebm);
+    const parts = resolveMapUploadParts(pendingMapFiles, animatedWebm);
     if ("error" in parts) {
       setMessage(parts.error);
       return;
@@ -252,6 +253,7 @@ export function SettingsPanel({
         : parts.map.name;
       setMessage(`Uploaded map ${label}`);
       setMapName("");
+      setPendingMapFiles([]);
       setAnimatedWebm(null);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Upload failed");
@@ -755,11 +757,12 @@ export function SettingsPanel({
           />
         </label>
         <p className="muted">
-          Upload PNG/JPG/WebP (set grid_px) or Universal VTT <code>.dd2vtt</code> (grid, walls, doors,
-          and lights come from the file when present). Optional animated <code>.webm</code> plays as a
-          looping background layer. A map package is a <code>.dmsmap.json</code> / <code>.map.json</code>{" "}
-          manifest plus its base file (multi-select). Or generate a procedural BSP dungeon (Phase 6
-          slice — walls + soft lights, no AI stylization yet).
+          Choose PNG/JPG/WebP (set grid_px) or Universal VTT <code>.dd2vtt</code> (grid, walls, doors,
+          and lights come from the file when present), optionally with a looping <code>.webm</code>{" "}
+          layer — pick files in any order, then Import. Or multi-select a{" "}
+          <code>.dmsmap.json</code> / <code>.map.json</code> package with its base file and WebM in one
+          dialog. Procedural BSP dungeon generate is a Phase 6 slice (walls + soft lights, no AI
+          stylization yet).
         </p>
         <div className="row settings-upload-row">
           <label className="stack" htmlFor={`${baseId}-grid`}>
@@ -781,7 +784,7 @@ export function SettingsPanel({
               accept="image/png,image/jpeg,image/webp,.dd2vtt,.uvtt,.dmsmap.json,.map.json,video/webm,.webm"
               disabled={busy}
               onChange={(event) => {
-                void onUploadMap(event.target.files);
+                setPendingMapFiles(Array.from(event.target.files ?? []));
                 event.target.value = "";
               }}
             />
@@ -793,10 +796,28 @@ export function SettingsPanel({
               type="file"
               accept="video/webm,.webm"
               disabled={busy}
-              onChange={(event) => setAnimatedWebm(event.target.files?.[0] ?? null)}
+              onChange={(event) => {
+                setAnimatedWebm(event.target.files?.[0] ?? null);
+                event.target.value = "";
+              }}
             />
           </label>
+          <button
+            type="button"
+            disabled={busy || !uploadToken || (pendingMapFiles.length === 0 && !animatedWebm)}
+            onClick={() => void onImportMap()}
+          >
+            Import map
+          </button>
         </div>
+        {(pendingMapFiles.length > 0 || animatedWebm) && (
+          <p className="muted">
+            Ready:{" "}
+            {[...pendingMapFiles.map((file) => file.name), animatedWebm?.name]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        )}
         <div className="row settings-upload-row">
           <label className="stack" htmlFor={`${baseId}-gen-seed`}>
             <span className="muted">Seed (optional)</span>

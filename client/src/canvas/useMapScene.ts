@@ -36,6 +36,7 @@ import {
   lightWorldPosition,
   softLightAlpha,
 } from "./mapLights";
+import { loadMapVideoLayer } from "./mapVideoLayer";
 
 export type FogToolMode = "off" | "brush" | "rect";
 
@@ -536,30 +537,16 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     mapLayer.addChild(sprite);
 
     if (map.animatedFilename) {
-      const animatedUrl = `/uploads/${map.animatedFilename}`;
-      try {
-        const videoTexture = (await Assets.load({
-          src: animatedUrl,
-          data: {
-            loop: true,
-            muted: true,
-            autoPlay: true,
-            playsinline: true,
-            preload: true,
-          },
-        })) as Texture;
-        if (mapLayerRef.current !== mapLayer) {
-          await Assets.unload(animatedUrl).catch(() => undefined);
-          return;
+      const videoLayer = await loadMapVideoLayer(map.animatedFilename, map.width, map.height);
+      if (mapLayerRef.current !== mapLayer) {
+        if (videoLayer) {
+          await Assets.unload(videoLayer.url).catch(() => undefined);
         }
-        sprite.visible = false;
-        const videoSprite = new Sprite(videoTexture);
-        videoSprite.width = map.width;
-        videoSprite.height = map.height;
-        mapLayer.addChild(videoSprite);
-        animatedUrlRef.current = animatedUrl;
-      } catch {
-        sprite.visible = true;
+        return;
+      }
+      if (videoLayer) {
+        mapLayer.addChild(videoLayer.sprite);
+        animatedUrlRef.current = videoLayer.url;
       }
     }
 
