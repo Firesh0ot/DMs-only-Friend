@@ -20,6 +20,10 @@ The DM should be able to import D&D 5e monsters as NPCs. Full monster content fr
 - Homebrew/non-SRD monsters are out of scope for this feature (separate follow-up) to avoid any licensing grey zone.
 - If dnd5eapi.co disappears, the committed index plus the downloadable full file keep the feature alive.
 
+## Amendment (2026-11-14): Portrait-Import
+
+The API's `image` field provides per-monster illustrations from the 5e-bits project (not WotC art). Portraits follow the same on-demand + local-cache pattern as statblocks: fetched once at import, persisted in `server/uploads/`, referenced via `characters.image`. Bundling portraits in the repo/container is explicitly out of scope until the 5e-bits image license is verified.
+
 ## References
 
 - [docs/srd-monster-library.md](../srd-monster-library.md)

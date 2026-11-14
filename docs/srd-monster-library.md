@@ -85,15 +85,31 @@ Server → Clients:
 - **Offline-Badge:** Wenn `monster:search` `source: "cache"` meldet oder fehlschlägt: Hinweis „Offline: N Monster aus Cache verfügbar".
 - **Attribution:** Statischer Textblock im SettingsPanel (siehe Lizenz).
 
+## Portrait-Import (Erweiterung)
+
+Die API liefert pro Monster ein eigenes Portrait: Feld `image` im Detail-Endpunkt (z. B. `/api/images/monsters/goblin.png`). Diese Illustrationen stammen vom 5e-bits-API-Projekt (nicht von WotC) und dürfen wie die Statblöcke on-demand abgerufen werden.
+
+- **Beim `monster:import`:** Der Server fetched parallel zum Statblock das Portrait (ein GET auf den `image`-Pfad), speichert es in `server/uploads/` und setzt `characters.image` auf die lokale URL. Damit ist das Portrait wie jedes GM-Portrait in Token, TurnCarousel-Karte und Charakterblatt sichtbar.
+- **URL-Konvention (verbindlich, genau einmal):** SRD-Portraits liegen unter **`/uploads/srd-{monsterIndex}.png`** (Server-Datei `server/uploads/srd-{monsterIndex}.png`). Genau dieses Muster nutzen Server, Client und Carousel – keine Varianten.
+- **Überschreib-Policy:** Das SRD-Portrait wird nur gesetzt, wenn `characters.image` **leer** ist **oder** bereits auf ein SRD-Portrait zeigt (erkennbar am `srd-`-Namensraum). Hat der GM ein eigenes Portrait hochgeladen oder ersetzt, **gewinnt das manuelle Bild** – Re-Import überschreibt es nie. Der GM kann jederzeit manuell durch ein SRD-Portrait zurückwechseln, indem er das Bild löscht (dann füllt der nächste Import das SRD-Portrait nach).
+- **Auth/Egress:** Der Portrait-GET geht an denselben Host wie der Statblock-Fetch (dnd5eapi.co), mit denselben Regeln: Timeout 5 s, 1 Retry, danach **kein harter Fehler** – der Import schliesst mit Statblock ohne Portrait ab (Platzhalter). Offline ohne `--images`-Vorbereitung gilt dasselbe: NPC importierbar, ohne Bild.
+- **Cache:** Das Portrait wird mit dem Statblock zusammen einmalig geladen und lokal persistiert – danach offline nutzbar. Kein zweiter Fetch bei Re-Import (Cache-Hit-Pfad bleibt erhalten).
+- **Fehlender/fehlerhafter `image`-Pfad:** kein harter Fehler – Import ohne Portrait (leeres `image`), UI zeigt Platzhalter wie bei manuell angelegten NPCs.
+- **Nur PNG-Whitelist, Grössenlimit 5 MB pro Portrait** (wie Upload-Regeln, aber enger).
+- **`scripts/fetch-srd-full.ts --images`:** optionaler Flag lädt alle Portraits mit in den lokalen Voll-Datensatz – offline-fähige Importe auch für neue Monster. Ohne Flag bleibt der Download schlank (nur Statblöcke).
+- **Lizenz-Hinweis (ADR 0023-Ergänzung):** On-Demand-Fetch wie beim Statblock gedeckt. Wer die Portraits später **im Repo/Container bündeln** will, muss vorher die Lizenz der 5e-bits-Illustrationen prüfen – bis dahin ist Bündeln bewusst nicht Teil dieser Erweiterung.
+
 ## Abgrenzung (bewusst NICHT drin)
 
-Kein Bestiarium-Editor, keine Spell-Datenbank, kein automatisches Würfeln von Attacken, kein Encounter-Builder (XP-Budget), kein Import von Homebrew-JSON (separater Folgeschritt), kein CR-Filter-UI (nur Freitextsuche; CR wird angezeigt).
+Kein Bestiarium-Editor, kein Bündeln der Portraits im Repo/Container (Lizenz erst prüfen), kein Portrait-Upload der Community, keine Bildbearbeitung/Crop, keine Spell-Datenbank, kein automatisches Würfeln von Attacken, kein Encounter-Builder (XP-Budget), kein Import von Homebrew-JSON (separater Folgeschritt), kein CR-Filter-UI (nur Freitextsuche; CR wird angezeigt).
 
 ## Abnahmekriterien
 
 1. Suche „goblin" liefert offline (ohne Internet) Treffer aus dem Indexfile; Import scheitert offline ohne Voll-Datei mit klarem Fehler, mit Voll-Datei funktioniert er komplett offline.
 2. Import mit Internet: API-Fetch genau beim ersten Import des Monsters; zweiter Import desselben Monsters löst **keinen** HTTP-Request aus (Cache-Hit, per Test verifiziert).
 3. Importiertes Monster verhält sich wie ein per `character:upsert` angelegter NPC: Token auf der Karte, HP/AC/Conditions editierbar, sichtbar auf allen Screens, überlebt Reload. Die reichen Felder liegen als formatierter Statblock in `notes` (max. 2000 Zeichen, editierbar) – keine zusätzlichen `characters`-Spalten.
+3a. **Portrait:** Import mit Internet setzt `characters.image` auf `/uploads/srd-{monsterIndex}.png`; das Portrait erscheint in Token und TurnCarousel-Karte; zweiter Import desselben Monsters löst keinen erneuten Bild-Fetch aus (Test). Ein bestehendes GM-Portrait wird bei Re-Import **nie** überschrieben (Test). Import ohne Internet/ohne `image`-Feld: kein harter Fehler, Platzhalter-Portrait.
+3b. **Offline nach Vorbereitung:** Mit `fetch-srd-full.ts --images` vorbereitete Installation importiert Monster inklusive Portrait komplett offline.
 4. `rollHp: true` würfelt `2d6` für einen Goblin serverseitig und setzt `hpCurrent` entsprechend.
 5. Attribution-Text steht im SettingsPanel.
 6. API-Ausfall (Timeout) während des Imports zerstört nichts: Fehler-Toast, kein halber Datensatz.
@@ -104,7 +120,15 @@ Kein Bestiarium-Editor, keine Spell-Datenbank, kein automatisches Würfeln von A
 1. `scripts/build-srd-index.ts` + committetes Indexfile (einmaliger Lauf).
 2. `shared/`: `MonsterSearchResult`/`MonsterImportPayload`-Typen + zod-Schemas.
 3. Server: `srdMonster.ts` (Fetch + Normalisierung + Cache) mit Fixture-Tests.
-4. Server: Events (`monster:search/import/cache:list`) in `events/`.
+4. Server: Events (`monster:search/import/cache:list`) in `events/`; Portrait-Fetch + lokale Speicherung in `srdMonster.ts` (mit Fixture-Test: image-Pfad vorhanden / fehlend).
 5. Client: Suchfeld + Import-Flow + Offline-Badge (Settings/Characters als primärer Ort, NpcIsland als Interim).
-6. `scripts/fetch-srd-full.ts` + Doku in `docs/developing/README.md`.
+6. `scripts/fetch-srd-full.ts` (inkl. `--images`-Flag) + Doku in `docs/developing/README.md`.
 7. Abnahmekriterien durchtesten.
+
+## Implementierungs-Checkliste (Portrait-Slice)
+
+- [ ] `monster:import` erweitert: Portrait-Fetch + Speicherung + `characters.image` gemäss Überschreib-Policy
+- [ ] Fixture-Tests: `image`-Feld vorhanden / fehlend / Cache-Hit (kein erneuter Bild-Fetch)
+- [ ] Überschreib-Policy-Test: GM-Bild bleibt bei Re-Import; leeres Feld + Re-Import füllt SRD-Portrait nach
+- [ ] `scripts/fetch-srd-full.ts --images` (optionaler Flag) + Doku
+- [ ] Keine UI-Änderung über bestehendes `characters.image` hinaus
