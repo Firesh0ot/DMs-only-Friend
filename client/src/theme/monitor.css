@@ -1,0 +1,214 @@
+.play-shell--screen .play-topbar,
+.play-shell:has(.play-stage--with-rail) .play-topbar {
+  font-size: var(--text-md);
+}
+
+.play-shell--screen .play-topbar .brand,
+.play-shell .play-topbar .brand {
+  font-size: clamp(var(--text-lg), 2.4vw, var(--text-xl));
+}
+
+.initiative-rail {
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+}
+
+:root[data-theme="tavern"] .initiative-rail {
+  background-color: var(--surface-1);
+  background-image:
+    linear-gradient(180deg, color-mix(in srgb, white 14%, transparent), transparent 46%),
+    url("/theme/parchment.webp");
+  background-size: auto, 320px 320px;
+  border: 3px solid var(--wood-deep);
+  box-shadow: var(--shadow-lg);
+}
+
+:root[data-theme="tavern"] .initiative-rail::before {
+  inset: var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--wood) 30%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+:root[data-theme="tavern"] .initiative-rail::after {
+  display: none;
+}
+
+:root[data-theme="arcane"] .initiative-rail {
+  background: var(--surface-1);
+  background-image: none;
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 26%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="arcane"] .initiative-rail::before,
+:root[data-theme="arcane"] .initiative-rail::after {
+  display: none;
+}
+
+.initiative-rail__round,
+.initiative-rail__turn {
+  font-size: var(--text-md);
+  color: var(--heading);
+}
+
+.initiative-rail__round strong {
+  font-size: var(--text-lg);
+  color: var(--accent);
+}
+
+.tcg-card {
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 30%, transparent);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="tavern"] .tcg-card {
+  background: color-mix(in srgb, var(--surface-1) 72%, white);
+  border-color: color-mix(in srgb, var(--wood-deep) 28%, transparent);
+  color: var(--ink);
+}
+
+.initiative-rail__list li.is-active .tcg-card {
+  border-color: var(--accent);
+  box-shadow: var(--accent-glow);
+}
+
+.map-table--screen-fs {
+  background: var(--surface-0);
+}
+
+:root[data-theme="tavern"] .map-table--screen-fs {
+  background:
+    linear-gradient(color-mix(in srgb, var(--surface-0) 25%, transparent), color-mix(in srgb, var(--surface-0) 25%, transparent)),
+    url("/theme/wood-plank.webp");
+  background-size: auto, 520px 520px;
+}
+
+:root[data-theme="arcane"] .map-table--screen-fs {
+  background:
+    radial-gradient(ellipse at 50% 20%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 50%),
+    linear-gradient(color-mix(in srgb, var(--surface-0) 40%, transparent), color-mix(in srgb, var(--surface-0) 40%, transparent)),
+    url("/theme/stone.webp");
+  background-size: auto, auto, 560px 560px;
+}
+
+.screen-fs-controls {
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 35%, transparent);
+  box-shadow: var(--shadow-sm);
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+}
+
+.screen-fs-controls__hint {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.screen-fs-controls button {
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 35%, transparent);
+  min-height: 2.2rem;
+  font-size: var(--text-sm);
+  box-shadow: none;
+}
+
+:root[data-theme="tavern"] .screen-fs-controls button {
+  background: linear-gradient(180deg, var(--wood-mid), var(--wood-deep));
+  color: color-mix(in srgb, var(--parchment) 92%, white);
+}
+
+.screen-fan__handle,
+.screen-fan__round {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-0) 88%, black);
+  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 40%, transparent);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.screen-fan__round strong {
+  color: var(--accent);
+  font-size: var(--text-md);
+}
+
+.screen-fan__idle {
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 30%, transparent);
+  color: var(--text-primary);
+  font-size: var(--text-md);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="tavern"] .screen-fan__idle {
+  background: color-mix(in srgb, var(--surface-1) 92%, white);
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--wood-deep) 30%, transparent);
+}
+
+.screen-fan__card {
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 30%, transparent);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+  width: 5.2rem;
+  padding: var(--space-2);
+  transition:
+    transform var(--motion-turn),
+    opacity var(--motion-turn),
+    filter var(--motion-turn),
+    box-shadow var(--motion-fast);
+}
+
+:root[data-theme="tavern"] .screen-fan__card {
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--surface-1) 88%, white), var(--surface-2));
+  border-color: color-mix(in srgb, var(--wood-deep) 30%, transparent);
+  color: var(--ink);
+}
+
+.screen-fan__card.is-active {
+  width: 6.1rem;
+  outline: none;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface-2));
+  box-shadow: var(--accent-glow);
+  filter: none;
+  opacity: 1;
+}
+
+:root[data-theme="tavern"] .screen-fan__card.is-active {
+  background: color-mix(in srgb, var(--accent) 24%, var(--surface-1));
+  box-shadow: var(--shadow-lg);
+}
+
+.screen-fan__placeholder {
+  background: linear-gradient(160deg, var(--wood-mid), var(--surface-0));
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+}
+
+.screen-fan__name {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  color: var(--heading);
+}
+
+.play-stage__empty {
+  font-size: var(--text-md);
+}
+
+.play-shell--screen .ScreenDisplayControls,
+.play-shell .screen-display-controls {
+  font-size: var(--text-md);
+}

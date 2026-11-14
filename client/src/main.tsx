@@ -11,6 +11,7 @@ import "./theme/bootstrap";
 import "./styles.css";
 import "./theme/play.css";
 import "./theme/settings.css";
+import "./theme/monitor.css";
 
 const root = document.getElementById("root");
 if (!root) {
