@@ -6,6 +6,7 @@ import "@fontsource/ibm-plex-sans/latin-700.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import "./theme/tokens.css";
 import "./theme/bootstrap";
 import "./styles.css";
 

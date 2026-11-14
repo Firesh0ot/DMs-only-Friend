@@ -1,9 +1,17 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="arcane">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DMs-only-Friend</title>
+    <script>
+      try {
+        var t = localStorage.getItem("dms.theme.v1");
+        if (t === "tavern" || t === "arcane") {
+          document.documentElement.dataset.theme = t;
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body class="tavern-body">
     <div id="root"></div>
