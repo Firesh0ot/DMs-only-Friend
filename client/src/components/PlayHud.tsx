@@ -27,7 +27,6 @@ import { HudDice } from "./HudDice";
 import { HudFog } from "./HudFog";
 import { HudInitiative } from "./HudInitiative";
 import { HudPanel } from "./HudPanel";
-import { HudSpawn } from "./HudSpawn";
 
 type Props = {
   roomCode: string;
@@ -127,24 +126,6 @@ export function PlayHud({
             movement={movement}
           />
         </HudPanel>
-        <HudPanel
-          title="Spawn"
-          collapsed={isHudCollapsed(prefs, "spawn")}
-          onToggleCollapsed={() => toggle("spawn")}
-        >
-          <HudSpawn
-            mapId={activeMap?.id ?? null}
-            characters={characters}
-            spawnPoints={spawnPoints}
-            toolActive={spawnTool}
-            onToolChange={(active) => {
-              if (active) {
-                onFogToolChange("off");
-              }
-              onSpawnToolChange(active);
-            }}
-          />
-        </HudPanel>
       </div>
 
       <div className="play-hud__right">
@@ -172,6 +153,15 @@ export function PlayHud({
           logCollapsed={isHudCollapsed(prefs, "log")}
           onToggleLog={() => toggle("log")}
           canNext={Boolean(initiative?.order.length)}
+          characters={characters}
+          spawnPoints={spawnPoints}
+          spawnTool={spawnTool}
+          onSpawnToolChange={(active) => {
+            if (active) {
+              onFogToolChange("off");
+            }
+            onSpawnToolChange(active);
+          }}
         />
       </div>
     </div>
