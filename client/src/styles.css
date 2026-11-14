@@ -1537,6 +1537,36 @@ button.hud-panel__collapse:focus-visible {
   font-size: 0.82rem;
 }
 
+.hud-spawn-actions {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.hud-spawn__hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+}
+
+.hud-spawn__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 7rem;
+  overflow: auto;
+}
+
+.hud-spawn__row {
+  justify-content: space-between;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+}
+
+.hud-spawn__row select {
+  min-height: 1.7rem;
+  max-width: 8rem;
+  font-size: 0.78rem;
+}
+
 .hud-bottom__log {
   margin-top: 0.4rem;
   max-height: 6.5rem;

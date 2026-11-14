@@ -7,6 +7,7 @@ type Props = {
   spawnPoints: SpawnPoint[];
   toolActive: boolean;
   onToolChange: (active: boolean) => void;
+  mode?: "actions" | "details";
 };
 
 export function HudSpawn({
@@ -15,11 +16,14 @@ export function HudSpawn({
   spawnPoints,
   toolActive,
   onToolChange,
+  mode = "actions",
 }: Props) {
   const mapPoints = mapId ? spawnPoints.filter((point) => point.mapId === mapId) : [];
   const pcs = characters.filter((character) => character.kind === "pc");
 
-  function emitPoints(next: Array<Omit<SpawnPoint, "mapId" | "roomId"> & { assignedCharacterId: string | null }>) {
+  function emitPoints(
+    next: Array<Omit<SpawnPoint, "mapId" | "roomId"> & { assignedCharacterId: string | null }>,
+  ) {
     if (!mapId) {
       return;
     }
@@ -38,9 +42,7 @@ export function HudSpawn({
   function assignCharacter(pointId: string, characterId: string | null) {
     emitPoints(
       mapPoints.map((point) =>
-        point.id === pointId
-          ? { ...point, assignedCharacterId: characterId }
-          : point,
+        point.id === pointId ? { ...point, assignedCharacterId: characterId } : point,
       ),
     );
   }
@@ -56,9 +58,9 @@ export function HudSpawn({
     getSocket().emit(ClientEvents.SpawnApply, { mapId });
   }
 
-  return (
-    <div className="hud-spawn stack" aria-label="Spawn points">
-      <div className="row">
+  if (mode === "actions") {
+    return (
+      <div className="hud-bottom__group hud-spawn-actions" aria-label="Spawn">
         <button
           type="button"
           className={toolActive ? "is-active hud-chip" : "secondary hud-chip"}
@@ -76,6 +78,11 @@ export function HudSpawn({
           Apply spawn
         </button>
       </div>
+    );
+  }
+
+  return (
+    <div className="hud-spawn stack" aria-label="Spawn points">
       {toolActive ? (
         <p className="muted hud-muted">Click the map to place a spawn cell.</p>
       ) : null}
