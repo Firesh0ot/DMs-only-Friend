@@ -224,7 +224,7 @@ export type TurnStart = z.infer<typeof TurnStartSchema>;
 export const InitiativeStateSchema = z.object({
   order: z.array(InitiativeEntrySchema),
   activeIndex: z.number().int().nonnegative(),
-  round: z.number().int().positive(),
+  round: z.number().int().nonnegative(),
   turnStart: TurnStartSchema.nullable().optional(),
   remainingCells: z.number().int().nonnegative().nullable().optional(),
   activeActionUsed: z.boolean().optional(),

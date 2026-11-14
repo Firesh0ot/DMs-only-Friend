@@ -1178,7 +1178,7 @@ export class RoomStore {
     return {
       order,
       activeIndex: row.active_index,
-      round: row.round || 1,
+      round: row.round ?? 0,
       turnStart,
       remainingCells,
       activeActionUsed: Boolean(row.action_used),
@@ -1393,7 +1393,11 @@ export class RoomStore {
     return row ? battleRowToState(row) : null;
   }
 
-  startBattle(roomId: string): { battle: BattleState; event: SessionEvent } {
+  startBattle(roomId: string): {
+    battle: BattleState;
+    event: SessionEvent;
+    initiative: InitiativeState | null;
+  } {
     if (this.getActiveBattle(roomId)) {
       throw new Error("Battle already active");
     }
@@ -1406,6 +1410,19 @@ export class RoomStore {
     if (!battle) {
       throw new Error("Failed to start battle");
     }
+    const current = this.getInitiative(roomId);
+    const initiative = current
+      ? this.setInitiative(roomId, {
+          order: current.order,
+          activeIndex: current.activeIndex,
+          round: 0,
+          turnStart: current.turnStart ?? null,
+          remainingCells: current.remainingCells ?? null,
+          activeActionUsed: current.activeActionUsed ?? false,
+          activeBonusUsed: current.activeBonusUsed ?? false,
+          activeMovementRemaining: current.activeMovementRemaining ?? null,
+        })
+      : null;
     const event = this.appendEvent({
       roomId,
       type: "battle_start",
@@ -1413,7 +1430,7 @@ export class RoomStore {
       payload: { battleId: battle.id },
       battleId: battle.id,
     });
-    return { battle, event };
+    return { battle, event, initiative };
   }
 
   endBattle(roomId: string): { battle: BattleState; event: SessionEvent } {
@@ -1440,13 +1457,14 @@ export class RoomStore {
     battle: BattleState;
     started: boolean;
     startEvent: SessionEvent | null;
+    initiative: InitiativeState | null;
   } {
     const existing = this.getActiveBattle(roomId);
     if (existing) {
-      return { battle: existing, started: false, startEvent: null };
+      return { battle: existing, started: false, startEvent: null, initiative: null };
     }
-    const { battle, event } = this.startBattle(roomId);
-    return { battle, started: true, startEvent: event };
+    const { battle, event, initiative } = this.startBattle(roomId);
+    return { battle, started: true, startEvent: event, initiative };
   }
 
   appendEvent(input: {

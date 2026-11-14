@@ -159,7 +159,7 @@ describe("event schemas", () => {
       visibility: { showPcs: true, showNpcs: true },
       settings: { screenHpQuarters: false, physicalCellCm: null },
       camera: null,
-      initiative: { order: [], activeIndex: 0, round: 1 },
+      initiative: { order: [], activeIndex: 0, round: 0 },
       eventLog: [],
       battle: null,
       fog: null,

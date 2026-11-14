@@ -124,6 +124,7 @@ describe("initiative socket handlers", () => {
     const first = await updated;
     expect(first.order.map((entry) => entry.label)).toEqual(["Aria", "Goblin"]);
     expect(first.activeIndex).toBe(0);
+    expect(first.round).toBe(0);
     expect(first.activeActionUsed).toBe(false);
     expect(first.activeBonusUsed).toBe(false);
 
@@ -131,8 +132,48 @@ describe("initiative socket handlers", () => {
     gm.emit(ClientEvents.InitiativeNext);
     const second = await next;
     expect(second.activeIndex).toBe(1);
+    expect(second.round).toBe(0);
     expect(second.order[1]?.label).toBe("Goblin");
     expect(second.activeActionUsed).toBe(false);
+
+    gm.close();
+  });
+
+  it("sets round to 0 on battle:start and keeps it through first next-turn", async () => {
+    const { url, rooms } = await startServer();
+    const { room, code, gmInviteToken } = rooms.createRoom();
+    const aria = rooms.createToken({ roomId: room.id, label: "Aria", x: 1, y: 1 });
+    const goblin = rooms.createToken({ roomId: room.id, label: "Goblin", x: 2, y: 2 });
+    rooms.setInitiative(room.id, {
+      order: [
+        { tokenId: aria.id, label: "Aria", initiative: 20 },
+        { tokenId: goblin.id, label: "Goblin", initiative: 10 },
+      ],
+      activeIndex: 0,
+      round: 4,
+    });
+
+    const gm = connect(url);
+    await waitConnected(gm);
+    await join(gm, { code, role: "gm", pin: "1234", invite: gmInviteToken });
+
+    const reset = nextInitiative(gm);
+    gm.emit(ClientEvents.BattleStart);
+    const afterStart = await reset;
+    expect(afterStart.round).toBe(0);
+    expect(rooms.getInitiative(room.id)?.round).toBe(0);
+
+    const next = nextInitiative(gm);
+    gm.emit(ClientEvents.InitiativeNext);
+    const afterNext = await next;
+    expect(afterNext.activeIndex).toBe(1);
+    expect(afterNext.round).toBe(0);
+
+    const wrap = nextInitiative(gm);
+    gm.emit(ClientEvents.InitiativeNext);
+    const afterWrap = await wrap;
+    expect(afterWrap.activeIndex).toBe(0);
+    expect(afterWrap.round).toBe(1);
 
     gm.close();
   });

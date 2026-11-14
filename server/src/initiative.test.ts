@@ -28,19 +28,35 @@ describe("initiative persistence", () => {
         { tokenId: goblin.id, label: "Goblin", initiative: 12 },
       ],
       activeIndex: 0,
-      round: 1,
+      round: 0,
     });
     expect(first.activeIndex).toBe(0);
-    expect(first.round).toBe(1);
+    expect(first.round).toBe(0);
 
     const nextIndex = (first.activeIndex + 1) % first.order.length;
     const second = store.setInitiative(room.id, {
       order: first.order,
       activeIndex: nextIndex,
-      round: 1,
+      round: 0,
     });
     expect(second.activeIndex).toBe(1);
     expect(store.getInitiative(room.id)?.order[1]?.label).toBe("Goblin");
+    expect(store.getInitiative(room.id)?.round).toBe(0);
+  });
+
+  it("persists round 0 without coercing to 1", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dms-init-round0-"));
+    tempDirs.push(dir);
+    const store = new RoomStore(openDb(path.join(dir, "test.sqlite")));
+    const { room } = store.createRoom();
+    const aria = store.createToken({ roomId: room.id, label: "Aria", x: 1, y: 1 });
+
+    store.setInitiative(room.id, {
+      order: [{ tokenId: aria.id, label: "Aria", initiative: 18 }],
+      activeIndex: 0,
+      round: 0,
+    });
+    expect(store.getInitiative(room.id)?.round).toBe(0);
   });
 
   it("prunes removed tokens and keeps the active combatant when possible", () => {
