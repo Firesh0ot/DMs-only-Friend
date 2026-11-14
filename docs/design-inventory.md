@@ -21,7 +21,7 @@ Captured against main tip after #69 merge (`9d9df0f`), with step-2 theme tokens 
 | 9 | Wood letterbox (#68) | `09-wood-letterbox.png` | Map host uses wood plank letterbox (not white Pixi fill) |
 | 10 | GM Fog rail | `10-gm-fog-rail.png` | Fog tool rail + map with fog overlay |
 | 11 | Explored fog (#64) | `11-explored-fog.png` | Screen view with fog over dungeon map |
-| — | WebM (#66) | *(not captured this pass)* | Import of animated package did not finish in the inventory session; re-shoot during Settings/Map screen rework |
+| — | WebM (#66) | see `design-followups/webm-*.png` | Captured post-theme with animated dungeon package (both themes) |
 
 ## Inconsistencies
 
@@ -72,10 +72,10 @@ Inconsistencies: empty copy uses **different plaque vs muted inline** patterns; 
 
 ### Screen-specific notes
 
-- **Fullscreen fan (#67):** inventory shot shows chrome-hidden fullscreen with empty fan; populated facing-center cards need a follow-up shot once initiative is rolled (reference art already in store).
+- **Fullscreen fan (#67):** inventory shot shows chrome-hidden fullscreen with empty fan. Populated facing-center cards (combat session) captured post-theme in store `media/design-followups/fan-populated-{arcane,tavern}.png`.
 - **Wood letterbox (#68):** wood behind map is present; ensure letterbox uses theme surface tokens (not a one-off URL) when Screen is redesigned.
-- **Explored fog (#64):** screen shows dim/fogged map; confirm never-seen vs explored gray vs clear LoS use semantic fog tokens when Monitor pass runs.
-- **WebM (#66):** deferred screenshot; treat as Settings Maps acceptance item.
+- **Explored fog (#64):** post-theme Screen shots (NPC hide / explored grey / clear LoS) in `media/design-followups/explored-fog-{arcane,tavern}.png`.
+- **WebM (#66):** animated package visible on GM Play — `media/design-followups/webm-{arcane,tavern}.png` (`.webm` request confirmed).
 
 ## Input to tokens (step 2)
 
@@ -91,5 +91,6 @@ Project store media roots under `/cursor/stores/bc-fffa7212-a565-4be6-8d39-7107e
 | DM-Play | `design-play/` | before/after × arcane+tavern (+ fog rail) |
 | Settings | `design-settings/` | before/after × arcane+tavern (+ characters, calibrate) |
 | Monitor | `design-monitor/` | before/after × arcane+tavern (+ fullscreen fan) |
+| Follow-ups | `design-followups/` | WebM, explored-fog, populated fan × arcane+tavern |
 
 Favicon: `client/public/favicon.svg`, `favicon-32.png`, `favicon.ico`. Completion notes: Project store `internal/design-rework-kickoff.md`.
