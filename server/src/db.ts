@@ -152,6 +152,19 @@ function migrate(db: Db): void {
   ensureColumn(db, "room_initiative", "bonus_used", "INT NOT NULL DEFAULT 0");
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS srd_cache (
+      monster_index TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      cr TEXT,
+      type TEXT,
+      size TEXT,
+      statblock_json TEXT NOT NULL,
+      source TEXT NOT NULL,
+      fetched_at TEXT NOT NULL
+    );
+  `);
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS spawn_points (
       id TEXT PRIMARY KEY,
       map_id TEXT NOT NULL REFERENCES maps(id) ON DELETE CASCADE,

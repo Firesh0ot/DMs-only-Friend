@@ -4,6 +4,7 @@ dist/
 *.sqlite3
 server/uploads/
 server/data/
+server/src/data/srd-monsters-full.json
 .env
 .DS_Store
 coverage/

@@ -624,11 +624,12 @@ html[data-lantern="off"] .brand {
 }
 
 .settings-panel {
-  max-width: 920px;
+  width: min(100%, 1400px);
+  max-width: none;
   margin: 0 auto;
   max-height: calc(100vh - 6rem);
   overflow: auto;
-  padding: 1.25rem;
+  padding: 1.25rem 1.5rem;
 }
 
 .settings-panel > * {
@@ -1736,6 +1737,99 @@ button.hud-panel__collapse:focus-visible {
 
 .settings-upload-row {
   align-items: end;
+}
+
+.settings-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.settings-action-bar button {
+  min-height: 2.4rem;
+  padding-inline: 0.9rem;
+  font-weight: 600;
+}
+
+.settings-action-bar button.is-active {
+  background: var(--wood-mid);
+  color: var(--parchment);
+  border-color: var(--wood-deep);
+}
+
+.settings-characters-prep {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.settings-map-checks {
+  flex-wrap: wrap;
+}
+
+.settings-roster--wide {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .settings-roster--wide {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  .settings-section#settings-maps,
+  .settings-section[aria-labelledby="settings-maps"] {
+    display: grid;
+    gap: 0.85rem;
+  }
+}
+
+.srd-result-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  max-height: 18rem;
+  overflow: auto;
+}
+
+.srd-result-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(60, 40, 20, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 248, 230, 0.4);
+}
+
+.settings-offline-badge {
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid rgba(90, 60, 30, 0.28);
+  background: rgba(232, 160, 69, 0.18);
+  color: var(--wood-deep);
+  font-weight: 600;
+}
+
+.settings-attribution {
+  margin-top: 0.35rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(60, 40, 20, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 248, 230, 0.45);
+}
+
+.settings-attribution p {
+  margin: 0.25rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.45;
 }
 
 .settings-link-field {

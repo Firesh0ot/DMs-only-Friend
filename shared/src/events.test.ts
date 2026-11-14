@@ -22,6 +22,8 @@ import {
   TokenMovePayloadSchema,
   VisibilitySetPayloadSchema,
   CharacterSetSpeedPayloadSchema,
+  MonsterImportPayloadSchema,
+  MonsterSearchPayloadSchema,
   MovementRejectedPayloadSchema,
   hpToQuarter,
   normalizeRoomCode,
@@ -121,6 +123,20 @@ describe("event schemas", () => {
     expect(character.hpMax).toBe(24);
     expect(character.ac).toBe(15);
     expect(VisibilitySetPayloadSchema.parse({ showNpcs: false }).showNpcs).toBe(false);
+    const longNotes = "x".repeat(2000);
+    expect(CharacterUpsertPayloadSchema.parse({ name: "Orc", kind: "npc", notes: longNotes }).notes).toBe(
+      longNotes,
+    );
+    expect(() =>
+      CharacterUpsertPayloadSchema.parse({ name: "Orc", kind: "npc", notes: `${longNotes}y` }),
+    ).toThrow();
+  });
+
+  it("accepts monster search and import payloads", () => {
+    expect(MonsterSearchPayloadSchema.parse({ query: "gob" }).query).toBe("gob");
+    expect(
+      MonsterImportPayloadSchema.parse({ monsterIndex: "goblin", rollHp: true, x: 2, y: 3 }).monsterIndex,
+    ).toBe("goblin");
   });
 
   it("accepts character HP adjust payloads", () => {

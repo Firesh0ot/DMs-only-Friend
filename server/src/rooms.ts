@@ -158,7 +158,7 @@ export class RoomStore {
   private tokenMoveLogAt = new Map<string, number>();
   private uploadTokens = new Map<string, { roomId: string; expiresAt: number }>();
 
-  constructor(private readonly db: Db) {}
+  constructor(readonly db: Db) {}
 
   createRoom(input: CreateRoomInput | string = {}): {
     room: RoomState;
@@ -870,6 +870,37 @@ export class RoomStore {
       roomId: character.roomId,
       initiative: this.pruneStaleInitiative(character.roomId),
     };
+  }
+
+  setCharacterMapPosition(
+    characterId: string,
+    mapId: string,
+    x: number,
+    y: number,
+  ): void {
+    const character = this.getCharacter(characterId);
+    if (!character) {
+      throw new Error("Character not found");
+    }
+    const map = this.listMaps(character.roomId).find((entry) => entry.id === mapId);
+    if (!map) {
+      throw new Error("Map not found");
+    }
+    const existing = this.db
+      .prepare("SELECT character_id FROM character_maps WHERE character_id = ? AND map_id = ?")
+      .get(characterId, mapId) as { character_id: string } | undefined;
+    if (existing) {
+      this.db
+        .prepare("UPDATE character_maps SET x = ?, y = ? WHERE character_id = ? AND map_id = ?")
+        .run(x, y, characterId, mapId);
+    } else {
+      this.db
+        .prepare(
+          `INSERT INTO character_maps (character_id, map_id, x, y) VALUES (?, ?, ?, ?)`,
+        )
+        .run(characterId, mapId, x, y);
+    }
+    this.syncTokensForActiveMap(character.roomId);
   }
 
   private setCharacterMaps(characterId: string, roomId: string, mapIds: string[]): void {

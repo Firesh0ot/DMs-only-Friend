@@ -12,7 +12,9 @@
     "build": "npm run build -w shared && npm run build -w server && npm run build -w client",
     "lint": "eslint .",
     "test": "npm run build -w shared && npm run test -w shared && npm run test -w server && npm run test -w client",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "srd:build-index": "npx tsx scripts/build-srd-index.ts",
+    "srd:fetch-full": "npx tsx scripts/fetch-srd-full.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
