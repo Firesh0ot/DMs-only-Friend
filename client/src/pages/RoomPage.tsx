@@ -133,8 +133,11 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
   ]);
 
   function onTokenMove(tokenId: string, x: number, y: number) {
-    moveTokenOptimistic(tokenId, x, y);
-    getSocket().emit(ClientEvents.TokenMove, { tokenId, x, y });
+    const next = moveTokenOptimistic(tokenId, x, y);
+    if (!next) {
+      return;
+    }
+    getSocket().emit(ClientEvents.TokenMove, { tokenId, x: next.x, y: next.y });
   }
 
   function onSpawnPlace(x: number, y: number) {

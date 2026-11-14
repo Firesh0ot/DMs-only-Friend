@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { applyMove, assignSpawnPoints, chebyshev } from "./movement.js";
+import {
+  applyMove,
+  assignSpawnPoints,
+  chebyshev,
+  clampMoveToBudget,
+} from "./movement.js";
 
 describe("chebyshev", () => {
   it("counts diagonal as one cell", () => {
@@ -18,12 +23,16 @@ describe("applyMove", () => {
       from: { x: 0, y: 0 },
       to: { x: 3, y: 0 },
       remainingCells: 6,
+      turnStart: { x: 0, y: 0 },
+      budgetCells: 6,
     });
     expect(first).toEqual({ ok: true, distance: 3, remainingCells: 3 });
     const second = applyMove({
       from: { x: 3, y: 0 },
       to: { x: 5, y: 0 },
       remainingCells: 3,
+      turnStart: { x: 0, y: 0 },
+      budgetCells: 6,
     });
     expect(second).toEqual({ ok: true, distance: 2, remainingCells: 1 });
   });
@@ -33,12 +42,43 @@ describe("applyMove", () => {
       from: { x: 0, y: 0 },
       to: { x: 4, y: 0 },
       remainingCells: 3,
+      turnStart: { x: 0, y: 0 },
+      budgetCells: 6,
     });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.reason).toMatch(/Need 4 cells/);
       expect(result.remainingCells).toBe(3);
     }
+  });
+
+  it("rejects destinations outside the turn-start budget square", () => {
+    const result = applyMove({
+      from: { x: 3, y: 0 },
+      to: { x: 7, y: 0 },
+      remainingCells: 4,
+      turnStart: { x: 0, y: 0 },
+      budgetCells: 6,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toMatch(/Outside movement range/);
+      expect(result.remainingCells).toBe(4);
+    }
+  });
+});
+
+describe("clampMoveToBudget", () => {
+  it("clamps into the intersection of step remaining and turn-start budget", () => {
+    expect(
+      clampMoveToBudget({
+        from: { x: 3, y: 0 },
+        to: { x: 10, y: 0 },
+        remainingCells: 4,
+        turnStart: { x: 0, y: 0 },
+        budgetCells: 6,
+      }),
+    ).toEqual({ x: 6, y: 0 });
   });
 });
 

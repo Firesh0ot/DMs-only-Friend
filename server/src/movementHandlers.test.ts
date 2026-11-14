@@ -193,7 +193,9 @@ describe("spawn and movement budget", () => {
     gm.emit(ClientEvents.InitiativeNext);
     const budget = await movementPromise;
     expect(budget.remainingCells).toBe(6);
+    expect(budget.budgetCells).toBe(6);
     expect(budget.tokenId).toBe(token.id);
+    expect(budget.turnStart).toEqual({ x: 0, y: 0 });
 
     const rejected = new Promise<{ tokenId: string; reason: string }>((resolve) => {
       player.once(ServerEvents.MovementRejected, resolve);
@@ -218,6 +220,25 @@ describe("spawn and movement budget", () => {
     gm.emit(ClientEvents.TokenMove, { tokenId: token.id, x: 20, y: 20 });
     await new Promise((resolve) => setTimeout(resolve, 40));
     expect(rooms.getToken(token.id)).toMatchObject({ x: 20, y: 20 });
+
+    const beyondOrigin = new Promise<{ tokenId: string; reason: string }>((resolve) => {
+      player.once(ServerEvents.MovementRejected, resolve);
+    });
+    rooms.moveToken(token.id, 5, 0);
+    rooms.setMovementBudget(created.room.id, {
+      tokenId: token.id,
+      turnStart: { x: 0, y: 0 },
+      remainingCells: 4,
+      budgetCells: 6,
+      active: true,
+    });
+    player.emit(ClientEvents.TokenMove, { tokenId: token.id, x: 7, y: 0 });
+    await expect(beyondOrigin).resolves.toMatchObject({
+      tokenId: token.id,
+      reason: expect.stringMatching(/Outside movement range/),
+    });
+    expect(rooms.getToken(token.id)).toMatchObject({ x: 5, y: 0 });
+    expect(rooms.getMovementBudget(created.room.id).remainingCells).toBe(4);
 
     gm.close();
     player.close();

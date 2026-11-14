@@ -1,6 +1,7 @@
 import {
   ClientEvents,
   ServerEvents,
+  clampMoveToBudget,
   type BattleState,
   type CameraState,
   type CharacterState,
@@ -59,7 +60,11 @@ type RoomStore = {
   setFog: (fog: FogState | null) => void;
   setSpawnPoints: (mapId: string, points: SpawnPoint[]) => void;
   setMovement: (movement: MovementBudget | null) => void;
-  moveTokenOptimistic: (tokenId: string, x: number, y: number) => void;
+  moveTokenOptimistic: (
+    tokenId: string,
+    x: number,
+    y: number,
+  ) => { x: number; y: number } | null;
   clearError: () => void;
   lastMovementReject: { tokenId: string; reason: string } | null;
   clearMovementReject: () => void;
@@ -240,19 +245,37 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
   moveTokenOptimistic: (tokenId, x, y) => {
     const snapshot = get().snapshot;
     if (!snapshot) {
-      return;
+      return null;
     }
     const current =
       get().optimisticTokens[tokenId] ?? snapshot.tokens.find((token) => token.id === tokenId);
     if (!current) {
-      return;
+      return null;
+    }
+    let next = { x, y };
+    const movement = snapshot.movement;
+    if (
+      movement?.active &&
+      movement.tokenId === tokenId &&
+      movement.turnStart &&
+      movement.remainingCells !== null &&
+      movement.budgetCells !== null
+    ) {
+      next = clampMoveToBudget({
+        from: { x: current.x, y: current.y },
+        to: next,
+        remainingCells: movement.remainingCells,
+        turnStart: movement.turnStart,
+        budgetCells: movement.budgetCells,
+      });
     }
     set({
       optimisticTokens: {
         ...get().optimisticTokens,
-        [tokenId]: { ...current, x, y },
+        [tokenId]: { ...current, x: next.x, y: next.y },
       },
     });
+    return next;
   },
 
   joinRoom: async ({ code, role, name, characterId, pin, invite }) => {

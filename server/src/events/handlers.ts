@@ -199,6 +199,8 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
             from: { x: token.x, y: token.y },
             to: { x: data.x, y: data.y },
             remainingCells: movement.remainingCells,
+            turnStart: movement.turnStart,
+            budgetCells: movement.budgetCells ?? movement.remainingCells,
           });
           if (!result.ok) {
             socket.emit(ServerEvents.MovementRejected, {
@@ -211,6 +213,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
             tokenId: token.id,
             turnStart: movement.turnStart,
             remainingCells: result.remainingCells,
+            budgetCells: movement.budgetCells ?? movement.remainingCells,
             active: true,
           });
         }
