@@ -215,6 +215,14 @@ npm run srd:fetch-full
 
 That writes `server/src/data/srd-monsters-full.json` (~15 MB, gitignored). The server uses it automatically as a fallback when the API fails. Keep the file on the host (or bake it into a private image) for table-day offline imports. Attribution (CC-BY-4.0) is shown in Settings.
 
+Optional portraits for offline import (same host, PNG only, `server/uploads/srd-{index}.png`):
+
+```bash
+npx tsx scripts/fetch-srd-full.ts --images
+```
+
+Without `--images` the download stays slim (statblocks only). On-demand `monster:import` still fetches a missing portrait when online; existing `srd-*.png` files are reused and never re-fetched.
+
 ## Related manuals
 
 - [SRD-Monster-Bibliothek](../srd-monster-library.md): on-demand SRD import via `monster:search` / `monster:import`, local index + `srd_cache`, optional `scripts/fetch-srd-full.ts` for offline-LAN.

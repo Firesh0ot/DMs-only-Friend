@@ -127,8 +127,8 @@ Kein Bestiarium-Editor, kein Bündeln der Portraits im Repo/Container (Lizenz er
 
 ## Implementierungs-Checkliste (Portrait-Slice)
 
-- [ ] `monster:import` erweitert: Portrait-Fetch + Speicherung + `characters.image` gemäss Überschreib-Policy
-- [ ] Fixture-Tests: `image`-Feld vorhanden / fehlend / Cache-Hit (kein erneuter Bild-Fetch)
-- [ ] Überschreib-Policy-Test: GM-Bild bleibt bei Re-Import; leeres Feld + Re-Import füllt SRD-Portrait nach
-- [ ] `scripts/fetch-srd-full.ts --images` (optionaler Flag) + Doku
-- [ ] Keine UI-Änderung über bestehendes `characters.image` hinaus
+- [x] `monster:import` erweitert: Portrait-Fetch + Speicherung + `characters.image` gemäss Überschreib-Policy
+- [x] Fixture-Tests: `image`-Feld vorhanden / fehlend / Cache-Hit (kein erneuter Bild-Fetch)
+- [x] Überschreib-Policy-Test: GM-Bild bleibt bei Re-Import; leeres Feld + Re-Import füllt SRD-Portrait nach
+- [x] `scripts/fetch-srd-full.ts --images` (optionaler Flag) + Doku
+- [x] Keine UI-Änderung über bestehendes `characters.image` hinaus

@@ -7,9 +7,12 @@ import type { Db } from "./db.js";
 import bundledMonsterIndex from "./data/srd-monster-index.json" with { type: "json" };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const API_BASE = "https://www.dnd5eapi.co/api/2014/monsters";
+const API_HOST = "https://www.dnd5eapi.co";
+const API_BASE = `${API_HOST}/api/2014/monsters`;
 const FETCH_TIMEOUT_MS = 5000;
 const NOTES_MAX = 2000;
+const PORTRAIT_MAX_BYTES = 5 * 1024 * 1024;
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 export type SrdIndexEntry = {
   index: string;
@@ -87,6 +90,7 @@ type ApiMonster = {
   actions?: ApiAction[];
   legendary_actions?: ApiAbility[];
   reactions?: ApiAbility[];
+  image?: string;
 };
 
 let indexCache: SrdIndexEntry[] | null = null;
@@ -473,17 +477,167 @@ export type ResolveMonsterOptions = {
   fullPath?: string;
 };
 
+export type ResolvedMonster = {
+  monster: NormalizedMonster;
+  fromCache: boolean;
+  source: "api" | "full-file" | "cache";
+  imagePath: string | null;
+};
+
+export function extractMonsterImagePath(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+  const image = (raw as ApiMonster).image;
+  if (typeof image !== "string") {
+    return null;
+  }
+  const trimmed = image.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+export function isSafeMonsterIndex(monsterIndex: string): boolean {
+  return /^[a-z0-9-]+$/i.test(monsterIndex);
+}
+
+export function srdPortraitFilename(monsterIndex: string): string {
+  if (!isSafeMonsterIndex(monsterIndex)) {
+    throw new Error("Invalid monster index for portrait");
+  }
+  return `srd-${monsterIndex}.png`;
+}
+
+export function srdPortraitUrl(monsterIndex: string): string {
+  return `/uploads/${srdPortraitFilename(monsterIndex)}`;
+}
+
+export function isSrdPortraitUrl(image: string | null | undefined): boolean {
+  if (!image) {
+    return false;
+  }
+  return /(?:^|\/)uploads\/srd-[a-z0-9-]+\.png$/i.test(image);
+}
+
+export function shouldApplySrdPortrait(currentImage: string | null | undefined): boolean {
+  return !currentImage || isSrdPortraitUrl(currentImage);
+}
+
+export function resolveImportImage(
+  currentImage: string | null | undefined,
+  srdPortraitLocalUrl: string | null,
+): string | null {
+  if (!shouldApplySrdPortrait(currentImage)) {
+    return currentImage ?? null;
+  }
+  return srdPortraitLocalUrl;
+}
+
+export function localSrdPortraitPath(uploadsDir: string, monsterIndex: string): string {
+  return path.join(uploadsDir, srdPortraitFilename(monsterIndex));
+}
+
+export function hasLocalSrdPortrait(uploadsDir: string, monsterIndex: string): boolean {
+  if (!isSafeMonsterIndex(monsterIndex)) {
+    return false;
+  }
+  return fs.existsSync(localSrdPortraitPath(uploadsDir, monsterIndex));
+}
+
+function resolvePortraitFetchUrl(imagePath: string, apiHost = API_HOST): string {
+  if (/^https?:\/\//i.test(imagePath)) {
+    return imagePath;
+  }
+  if (imagePath.startsWith("/")) {
+    return `${apiHost}${imagePath}`;
+  }
+  return `${apiHost}/${imagePath}`;
+}
+
+function isPngBuffer(buffer: Buffer): boolean {
+  return buffer.length >= PNG_MAGIC.length && buffer.subarray(0, PNG_MAGIC.length).equals(PNG_MAGIC);
+}
+
+export type EnsureSrdPortraitOptions = {
+  uploadsDir: string;
+  fetchImpl?: typeof fetch;
+  apiHost?: string;
+};
+
+export async function ensureSrdPortrait(
+  monsterIndex: string,
+  imagePathFromApi: string | null | undefined,
+  options: EnsureSrdPortraitOptions,
+): Promise<{ url: string | null; fetched: boolean }> {
+  if (!isSafeMonsterIndex(monsterIndex)) {
+    return { url: null, fetched: false };
+  }
+
+  const destPath = localSrdPortraitPath(options.uploadsDir, monsterIndex);
+  const localUrl = srdPortraitUrl(monsterIndex);
+  if (fs.existsSync(destPath)) {
+    return { url: localUrl, fetched: false };
+  }
+
+  if (!imagePathFromApi) {
+    return { url: null, fetched: false };
+  }
+
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const url = resolvePortraitFetchUrl(imagePathFromApi, options.apiHost ?? API_HOST);
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+      let response: Response;
+      try {
+        response = await fetchImpl(url, { signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+      if (!response.ok) {
+        throw new Error(`SRD portrait returned ${response.status}`);
+      }
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType && !contentType.toLowerCase().includes("image/png")) {
+        throw new Error("SRD portrait must be image/png");
+      }
+      const contentLength = Number(response.headers.get("content-length") ?? NaN);
+      if (Number.isFinite(contentLength) && contentLength > PORTRAIT_MAX_BYTES) {
+        throw new Error("SRD portrait exceeds 5 MB");
+      }
+      const buffer = Buffer.from(await response.arrayBuffer());
+      if (buffer.length === 0 || buffer.length > PORTRAIT_MAX_BYTES) {
+        throw new Error("SRD portrait exceeds 5 MB");
+      }
+      if (!isPngBuffer(buffer)) {
+        throw new Error("SRD portrait is not a PNG");
+      }
+      fs.mkdirSync(options.uploadsDir, { recursive: true });
+      fs.writeFileSync(destPath, buffer);
+      return { url: localUrl, fetched: true };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  void lastError;
+  return { url: null, fetched: false };
+}
+
 export async function resolveNormalizedMonster(
   db: Db,
   monsterIndex: string,
   options: ResolveMonsterOptions = {},
-): Promise<{ monster: NormalizedMonster; fromCache: boolean; source: "api" | "full-file" | "cache" }> {
+): Promise<ResolvedMonster> {
   const cached = getCachedMonster(db, monsterIndex);
   if (cached) {
     return {
       monster: JSON.parse(cached.statblock_json) as NormalizedMonster,
       fromCache: true,
       source: "cache",
+      imagePath: null,
     };
   }
 
@@ -491,13 +645,23 @@ export async function resolveNormalizedMonster(
     const raw = await fetchMonsterFromApi(monsterIndex, options.fetchImpl ?? fetch);
     const monster = normalizeMonster(raw);
     putCachedMonster(db, { monsterIndex, monster, source: "api" });
-    return { monster, fromCache: false, source: "api" };
+    return {
+      monster,
+      fromCache: false,
+      source: "api",
+      imagePath: extractMonsterImagePath(raw),
+    };
   } catch (error) {
     const full = loadMonsterFromFullFile(monsterIndex, options.fullPath);
     if (full) {
       const monster = normalizeMonster(full);
       putCachedMonster(db, { monsterIndex, monster, source: "full-file" });
-      return { monster, fromCache: false, source: "full-file" };
+      return {
+        monster,
+        fromCache: false,
+        source: "full-file",
+        imagePath: extractMonsterImagePath(full),
+      };
     }
     const message =
       error instanceof Error ? error.message : "SRD API not reachable";
