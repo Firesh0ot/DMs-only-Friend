@@ -286,3 +286,90 @@
   border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   font-size: var(--text-xs);
 }
+
+.settings-file-field {
+  min-width: min(16rem, 100%);
+  flex: 1 1 14rem;
+}
+
+.settings-file-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.4rem;
+}
+
+.settings-file-picker__choose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.4rem;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 40%, transparent);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+:root[data-theme="tavern"] .settings-file-picker__choose {
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+  color: var(--heading);
+  border-color: color-mix(in srgb, var(--wood-deep) 35%, transparent);
+}
+
+.settings-file-picker__choose:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.settings-file-picker__empty {
+  font-size: var(--text-sm);
+}
+
+.settings-file-picker__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.settings-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: min(22rem, 100%);
+  min-height: 2rem;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+}
+
+:root[data-theme="tavern"] .settings-file-chip {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--wood-deep) 28%, transparent);
+}
+
+.settings-file-chip__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-file-chip__clear {
+  min-height: 1.5rem;
+  min-width: 1.5rem;
+  padding: 0;
+  line-height: 1;
+  font-size: var(--text-md);
+}

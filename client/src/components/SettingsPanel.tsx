@@ -808,33 +808,110 @@ export function SettingsPanel({
               onChange={(event) => setUploadGridPx(event.target.value)}
             />
           </label>
-          <label className="stack" htmlFor={`${baseId}-map-file`}>
-            <span className="muted">Map file(s)</span>
-            <input
-              id={`${baseId}-map-file`}
-              type="file"
-              multiple
-              accept="image/png,image/jpeg,image/webp,.dd2vtt,.uvtt,.dmsmap.json,.map.json,video/webm,.webm"
-              disabled={busy}
-              onChange={(event) => {
-                setPendingMapFiles(Array.from(event.target.files ?? []));
-                event.target.value = "";
-              }}
-            />
-          </label>
-          <label className="stack" htmlFor={`${baseId}-map-webm`}>
-            <span className="muted">WebM layer (optional)</span>
-            <input
-              id={`${baseId}-map-webm`}
-              type="file"
-              accept="video/webm,.webm"
-              disabled={busy}
-              onChange={(event) => {
-                setAnimatedWebm(event.target.files?.[0] ?? null);
-                event.target.value = "";
-              }}
-            />
-          </label>
+          <div className="stack settings-file-field">
+            <span className="muted" id={`${baseId}-map-file-label`}>
+              Map file(s)
+            </span>
+            <div
+              className="settings-file-picker"
+              role="group"
+              aria-labelledby={`${baseId}-map-file-label`}
+            >
+              <label className="settings-file-picker__choose" htmlFor={`${baseId}-map-file`}>
+                <input
+                  id={`${baseId}-map-file`}
+                  className="visually-hidden"
+                  type="file"
+                  multiple
+                  accept="image/png,image/jpeg,image/webp,.dd2vtt,.uvtt,.dmsmap.json,.map.json,video/webm,.webm"
+                  disabled={busy}
+                  onChange={(event) => {
+                    setPendingMapFiles(Array.from(event.target.files ?? []));
+                    event.target.value = "";
+                  }}
+                />
+                Choose…
+              </label>
+              {pendingMapFiles.length === 0 ? (
+                <span className="settings-file-picker__empty muted">None selected</span>
+              ) : (
+                <ul className="settings-file-picker__chips">
+                  {pendingMapFiles.map((file) => (
+                    <li key={`${file.name}-${file.size}-${file.lastModified}`} className="settings-file-chip">
+                      <span className="settings-file-chip__name" title={file.name}>
+                        {file.name}
+                      </span>
+                      <button
+                        type="button"
+                        className="secondary settings-file-chip__clear"
+                        disabled={busy}
+                        aria-label={`Remove ${file.name}`}
+                        onClick={() =>
+                          setPendingMapFiles((files) =>
+                            files.filter(
+                              (entry) =>
+                                !(
+                                  entry.name === file.name &&
+                                  entry.size === file.size &&
+                                  entry.lastModified === file.lastModified
+                                ),
+                            ),
+                          )
+                        }
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+          <div className="stack settings-file-field">
+            <span className="muted" id={`${baseId}-map-webm-label`}>
+              WebM layer (optional)
+            </span>
+            <div
+              className="settings-file-picker"
+              role="group"
+              aria-labelledby={`${baseId}-map-webm-label`}
+            >
+              <label className="settings-file-picker__choose" htmlFor={`${baseId}-map-webm`}>
+                <input
+                  id={`${baseId}-map-webm`}
+                  className="visually-hidden"
+                  type="file"
+                  accept="video/webm,.webm"
+                  disabled={busy}
+                  onChange={(event) => {
+                    setAnimatedWebm(event.target.files?.[0] ?? null);
+                    event.target.value = "";
+                  }}
+                />
+                Choose…
+              </label>
+              {animatedWebm ? (
+                <ul className="settings-file-picker__chips">
+                  <li className="settings-file-chip">
+                    <span className="settings-file-chip__name" title={animatedWebm.name}>
+                      {animatedWebm.name}
+                    </span>
+                    <button
+                      type="button"
+                      className="secondary settings-file-chip__clear"
+                      disabled={busy}
+                      aria-label={`Remove ${animatedWebm.name}`}
+                      onClick={() => setAnimatedWebm(null)}
+                    >
+                      ×
+                    </button>
+                  </li>
+                </ul>
+              ) : (
+                <span className="settings-file-picker__empty muted">None selected</span>
+              )}
+            </div>
+          </div>
           <button
             type="button"
             disabled={busy || !uploadToken || (pendingMapFiles.length === 0 && !animatedWebm)}
@@ -843,14 +920,6 @@ export function SettingsPanel({
             Import map
           </button>
         </div>
-        {(pendingMapFiles.length > 0 || animatedWebm) && (
-          <p className="muted">
-            Ready:{" "}
-            {[...pendingMapFiles.map((file) => file.name), animatedWebm?.name]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-        )}
         <div className="row settings-upload-row">
           <label className="stack" htmlFor={`${baseId}-gen-seed`}>
             <span className="muted">Seed (optional)</span>
