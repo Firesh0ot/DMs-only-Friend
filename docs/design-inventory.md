@@ -80,3 +80,16 @@ Inconsistencies: empty copy uses **different plaque vs muted inline** patterns; 
 ## Input to tokens (step 2)
 
 Semantic set already introduced in `client/src/theme/tokens.css`: surfaces, text, heading, accent/glow, HP, type scale, 4px spacing, 2 radii, 2 shadows, motion — with `tavern` / `arcane` schemes and legacy `--wood` / `--parchment` / … aliases. Remaining work (later steps): drive component styles off tokens only, unify button/empty languages, and close this inventory with before/after pairs per theme.
+
+## Landing pairs (step 3)
+
+Before/after screenshot pairs for Landing live in Project store:
+
+`/cursor/stores/bc-fffa7212-a565-4be6-8d39-7107e39de2ca/media/design-landing/`
+
+| Theme | Before | After |
+|-------|--------|-------|
+| Arcane | `before-arcane-landing.png` | `after-arcane-landing.png` |
+| Tavern | `before-tavern-landing.png` | `after-tavern-landing.png` |
+
+Also `after-arcane-create-room.png` (create form filled). Favicon: `client/public/favicon.svg`, `favicon-32.png`, `favicon.ico`.
