@@ -193,8 +193,8 @@ export function ScreenCalibrationWizard({ physicalCellCm, onClose, onSaved }: Pr
         {step === 2 ? (
           <section className="stack">
             <p className="muted">
-              Lay a ruler on the screen. Drag the handle so the line matches a known length, then
-              confirm.
+              Lay a physical ruler on the screen. Align 0 cm with the left tip and your length with
+              the right tip (handle), then confirm.
             </p>
             <label className="stack" htmlFor={`${baseId}-ruler-cm`}>
               <span className="muted">Ruler length (cm)</span>
@@ -205,13 +205,22 @@ export function ScreenCalibrationWizard({ physicalCellCm, onClose, onSaved }: Pr
                 onChange={(event) => setRulerCm(event.target.value)}
               />
             </label>
-            <div className="calibration-ruler" aria-label="Calibration ruler line">
+            <div
+              className="calibration-ruler"
+              aria-label={`Calibration ruler from 0 cm to ${rulerCm || "?"} cm`}
+            >
               <div className="calibration-ruler__line" style={{ width: `${linePx}px` }}>
+                <span className="calibration-ruler__tick calibration-ruler__tick--start" aria-hidden="true" />
+                <span className="calibration-ruler__tick calibration-ruler__tick--end" aria-hidden="true" />
+                <span className="calibration-ruler__end calibration-ruler__end--start">0 cm</span>
+                <span className="calibration-ruler__end calibration-ruler__end--end">
+                  {rulerCm.trim() || "?"} cm
+                </span>
                 <span className="calibration-ruler__label">{linePx} CSS-px</span>
                 <button
                   type="button"
                   className="calibration-ruler__handle"
-                  aria-label="Drag to match ruler"
+                  aria-label={`Drag so the line matches ${rulerCm.trim() || "?"} cm on a physical ruler`}
                   onPointerDown={onHandlePointerDown}
                   onPointerMove={onHandlePointerMove}
                   onPointerUp={onHandlePointerUp}
