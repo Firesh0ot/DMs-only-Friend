@@ -253,17 +253,17 @@ describe("event schemas", () => {
       ],
     });
     expect(fog.strokes[0]?.kind).toBe("rect");
-    expect(fog.losEnabled).toBe(false);
+    expect(fog.losEnabled).toBe(true);
     expect(fog.exploredCells).toBe("");
 
     const withLos = FogStateSchema.parse({
       mapId: "map-1",
       baseCovered: false,
       strokes: [],
-      losEnabled: true,
+      losEnabled: false,
       exploredCells: "AQID",
     });
-    expect(withLos.losEnabled).toBe(true);
+    expect(withLos.losEnabled).toBe(false);
     expect(withLos.exploredCells).toBe("AQID");
   });
 

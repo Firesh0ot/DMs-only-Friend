@@ -2,6 +2,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  createFullExplored,
+  encodeExploredBits,
+  isCellExplored,
+  parseExploredCells,
+} from "@dms/shared";
 import { openDb } from "./db.js";
 import { RoomStore } from "./rooms.js";
 
@@ -40,6 +46,7 @@ describe("manual fog of war", () => {
       losEnabled: false,
       exploredCells: "",
     });
+    expect(store.getFog(map.id).losEnabled).toBe(false);
 
     const painted = store.paintFog(room.id, map.id, {
       kind: "brush",
@@ -134,13 +141,88 @@ describe("manual fog of war", () => {
     expect(cleared.baseCovered).toBe(false);
     expect(cleared.strokes).toEqual([]);
     expect(cleared.losEnabled).toBe(false);
-    expect(cleared.exploredCells.length).toBeGreaterThan(0);
+    expect(cleared.exploredCells).toBe("");
     expect(store.getFog(map.id).baseCovered).toBe(false);
 
     const covered = store.resetFog(room.id, map.id, true);
     expect(covered.baseCovered).toBe(true);
     expect(covered.strokes).toEqual([]);
     expect(covered.exploredCells).toBe("");
+  });
+
+  it("defaults wall maps to LoS on, uncovered, empty explored", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+    const map = store.addMap(room.id, {
+      name: "Dungeon",
+      filename: "dungeon.png",
+      width: 280,
+      height: 140,
+      gridPx: 70,
+      walls: [
+        [
+          { x: 0, y: 0 },
+          { x: 4, y: 0 },
+        ],
+      ],
+    });
+    const fog = store.getFog(map.id);
+    expect(fog).toEqual({
+      mapId: map.id,
+      baseCovered: false,
+      strokes: [],
+      losEnabled: true,
+      exploredCells: "",
+    });
+  });
+
+  it("clear-all with LoS only explores current vision, not the whole map", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+    const map = store.addMap(room.id, {
+      name: "Rooms",
+      filename: "rooms.png",
+      width: 280,
+      height: 140,
+      gridPx: 70,
+      walls: [
+        [
+          { x: 0, y: 0 },
+          { x: 4, y: 0 },
+          { x: 4, y: 2 },
+          { x: 0, y: 2 },
+          { x: 0, y: 0 },
+        ],
+        [
+          { x: 2, y: 0 },
+          { x: 2, y: 2 },
+        ],
+      ],
+    });
+    store.createToken({
+      roomId: room.id,
+      label: "Hero",
+      x: 0.5,
+      y: 0.5,
+      isPlayer: true,
+      mapId: map.id,
+    });
+    store.paintFog(room.id, map.id, {
+      kind: "rect",
+      mode: "hide",
+      x: 0,
+      y: 0,
+      w: 10,
+      h: 10,
+    });
+    const cleared = store.resetFog(room.id, map.id, false);
+    expect(cleared.baseCovered).toBe(false);
+    expect(cleared.losEnabled).toBe(true);
+    expect(cleared.exploredCells.length).toBeGreaterThan(0);
+    expect(cleared.exploredCells).not.toBe(encodeExploredBits(createFullExplored(map).bits));
+    const explored = parseExploredCells(cleared.exploredCells, map);
+    expect(isCellExplored(explored, 0, 0)).toBe(true);
+    expect(isCellExplored(explored, 3, 0)).toBe(false);
   });
 
   it("grows explored cells from reveal paints and LoS vision", () => {

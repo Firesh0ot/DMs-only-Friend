@@ -121,7 +121,7 @@ function migrate(db: Db): void {
       map_id TEXT PRIMARY KEY REFERENCES maps(id) ON DELETE CASCADE,
       base_covered INT NOT NULL DEFAULT 1,
       strokes_json TEXT NOT NULL DEFAULT '[]',
-      los_enabled INT NOT NULL DEFAULT 0,
+      los_enabled INT DEFAULT NULL,
       explored_cells TEXT NOT NULL DEFAULT ''
     );
   `);
@@ -141,8 +141,9 @@ function migrate(db: Db): void {
   ensureColumn(db, "rooms", "screen_hp_quarters", "INT NOT NULL DEFAULT 0");
   ensureColumn(db, "rooms", "physical_cell_cm", "REAL");
   ensureColumn(db, "rooms", "gm_claimed", "INT NOT NULL DEFAULT 1");
-  ensureColumn(db, "map_fog", "los_enabled", "INT NOT NULL DEFAULT 0");
+  ensureColumn(db, "map_fog", "los_enabled", "INT DEFAULT NULL");
   ensureColumn(db, "map_fog", "explored_cells", "TEXT NOT NULL DEFAULT ''");
+  migrateUnsetLosToDefaultOn(db);
   ensureColumn(db, "characters", "speed_cells", "INT NOT NULL DEFAULT 6");
   ensureColumn(db, "characters", "initiative_bonus", "INT NOT NULL DEFAULT 0");
   ensureColumn(db, "room_initiative", "turn_start_x", "REAL");
@@ -254,6 +255,51 @@ function ensureColumn(db: Db, table: string, column: string, definition: string)
     return;
   }
   db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+function migrateUnsetLosToDefaultOn(db: Db): void {
+  const tables = db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'map_fog'")
+    .get() as { name: string } | undefined;
+  if (!tables) {
+    return;
+  }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_meta (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  `);
+  const done = db
+    .prepare("SELECT value FROM schema_meta WHERE key = 'los_default_on_v1'")
+    .get() as { value: string } | undefined;
+  if (done) {
+    return;
+  }
+  const info = db.prepare("PRAGMA table_info(map_fog)").all() as Array<{ name: string }>;
+  if (!info.some((column) => column.name === "los_enabled")) {
+    db.prepare(
+      "INSERT INTO schema_meta (key, value) VALUES ('los_default_on_v1', '1')",
+    ).run();
+    return;
+  }
+  db.prepare(
+    `UPDATE map_fog
+     SET los_enabled = 1,
+         base_covered = CASE
+           WHEN map_id IN (
+             SELECT id FROM maps
+             WHERE walls_json != '[]' OR portals_json != '[]'
+           ) THEN 0
+           ELSE base_covered
+         END
+     WHERE los_enabled = 0
+       AND strokes_json = '[]'
+       AND IFNULL(explored_cells, '') = ''`,
+  ).run();
+  db.prepare(
+    "INSERT INTO schema_meta (key, value) VALUES ('los_default_on_v1', '1')",
+  ).run();
 }
 
 function backfillActiveMaps(db: Db): void {

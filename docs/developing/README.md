@@ -162,11 +162,12 @@ See [ADR 0027](../decisions/0027-webm-map-packages.md).
 
 ### Manual fog of war
 
-See [ADR 0010](../decisions/0010-manual-fog-of-war.md). Screen explored layers: [ADR 0029](../decisions/0029-screen-explored-fog.md).
+See [ADR 0010](../decisions/0010-manual-fog-of-war.md). Screen explored layers: [ADR 0029](../decisions/0029-screen-explored-fog.md). Defaults: [ADR 0030](../decisions/0030-screen-fog-defaults.md).
 
 - Table: `map_fog` (`base_covered`, `strokes_json`, `los_enabled`, `explored_cells`) keyed by `map_id`.
 - Snapshot field: `fog` for the active map (`losEnabled`, `exploredCells` included).
-- Events: `fog:paint`, `fog:reset`, `fog:setLos` → `fog:updated` (GM only to mutate). Explored grows on reveal / LoS vision (token moves, portal toggles).
+- Events: `fog:paint`, `fog:reset`, `fog:setLos` → `fog:updated` (GM only to mutate). Explored grows on reveal / LoS vision (token moves, portal toggles); clear-all does **not** seed full explored.
+- Wall/portal maps default to LoS on + uncovered + empty explored. PNG maps stay covered with LoS off.
 - Client: PixiJS v8 fog mask; Fog HUD panel for brush/rect tools and LoS toggle. Screen/player: black unseen, grey explored, clear current; NPCs hidden unless currently visible.
 
 ### Automatic LoS fog
