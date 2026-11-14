@@ -7,6 +7,7 @@ const map: MapState = {
   roomId: "room-1",
   name: "Tiny",
   filename: "tiny.png",
+  animatedFilename: null,
   width: 140,
   height: 70,
   gridPx: 70,

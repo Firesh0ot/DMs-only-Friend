@@ -14,9 +14,25 @@ import { isDd2vttUpload, parseDd2vtt } from "./dd2vtt.js";
 import { generateDungeonDd2vtt } from "./dungeon/toDd2vtt.js";
 import { emitCharactersUpdated } from "./events/handlers.js";
 import { readImageSize } from "./imageSize.js";
+import {
+  basenamesMatch,
+  isAllowedImageUpload,
+  isMapPackageUpload,
+  isWebmUpload,
+  parseMapPackageManifest,
+} from "./mapPackage.js";
 import { roomChannel, type RoomStore } from "./rooms.js";
 
 const ALLOWED_IMAGE_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+type UploadedFile = {
+  path: string;
+  filename: string;
+  originalname: string;
+  mimetype: string;
+};
+
+type MulterFiles = Partial<Record<string, UploadedFile[]>>;
 
 export type HttpDeps = {
   rooms: RoomStore;
@@ -47,11 +63,16 @@ export function createHttpApp(deps: HttpDeps): Express {
     storage,
     limits: { fileSize: 50 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
-      if (isDd2vttUpload(file) || ALLOWED_IMAGE_MIME.has(file.mimetype)) {
+      if (
+        isDd2vttUpload(file) ||
+        isWebmUpload(file) ||
+        isMapPackageUpload(file) ||
+        isAllowedImageUpload(file)
+      ) {
         cb(null, true);
         return;
       }
-      cb(new Error("Only png/jpg/webp or .dd2vtt uploads are allowed"));
+      cb(new Error("Only png/jpg/webp/.dd2vtt/.webm or .dmsmap.json/.map.json uploads are allowed"));
     },
   });
 
@@ -141,7 +162,13 @@ export function createHttpApp(deps: HttpDeps): Express {
     "/api/rooms/:code/map",
     requireGmUpload,
     (req, res, next) => {
-      upload.single("map")(req, res, (error) => {
+      upload.fields([
+        { name: "map", maxCount: 1 },
+        { name: "dd2vtt", maxCount: 1 },
+        { name: "image", maxCount: 1 },
+        { name: "animated", maxCount: 1 },
+        { name: "webm", maxCount: 1 },
+      ])(req, res, (error) => {
         if (error) {
           res.status(400).json({ error: error.message });
           return;
@@ -160,30 +187,36 @@ export function createHttpApp(deps: HttpDeps): Express {
         res.status(404).json({ error: "Room not found" });
         return;
       }
-      if (!req.file) {
+
+      const files = (req.files ?? {}) as MulterFiles;
+      const uploaded = collectUploadedFiles(files);
+      const mapFile = files.map?.[0];
+      if (!mapFile) {
+        cleanupUploadedFiles(uploaded);
         res.status(400).json({ error: "Missing map file" });
         return;
       }
 
-      const displayName =
-        typeof req.body?.name === "string" && req.body.name.trim()
-          ? req.body.name.trim()
-          : path.parse(req.file.originalname).name || "Map";
-
       try {
+        const resolved = resolveMapUpload({
+          mapFile,
+          files,
+          uploadsDir: deps.uploadsDir,
+          body: req.body ?? {},
+        });
         const previousActive = deps.rooms.getActiveMap(room.id);
-        const stored = materializeUploadedMap(req.file, deps.uploadsDir, req.body);
         const map = deps.rooms.addMap(room.id, {
-          name: displayName,
-          filename: stored.filename,
-          width: stored.width,
-          height: stored.height,
-          gridPx: stored.gridPx,
-          offsetX: stored.offsetX,
-          offsetY: stored.offsetY,
-          walls: stored.walls,
-          portals: stored.portals,
-          lights: stored.lights,
+          name: resolved.name,
+          filename: resolved.filename,
+          animatedFilename: resolved.animatedFilename,
+          width: resolved.width,
+          height: resolved.height,
+          gridPx: resolved.gridPx,
+          offsetX: resolved.offsetX,
+          offsetY: resolved.offsetY,
+          walls: resolved.walls,
+          portals: resolved.portals,
+          lights: resolved.lights,
         });
         deps.rooms.syncTokensForActiveMap(room.id);
         const active = deps.rooms.getActiveMap(room.id);
@@ -206,9 +239,7 @@ export function createHttpApp(deps: HttpDeps): Express {
         }
         res.status(201).json({ map, maps: deps.rooms.listMaps(room.id) });
       } catch (error) {
-        if (req.file && fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-        }
+        cleanupUploadedFiles(uploaded);
         const message = error instanceof Error ? error.message : "Upload failed";
         res.status(400).json({ error: message });
       }
@@ -392,16 +423,16 @@ function mimeToExt(mime: string): string {
       return ".jpg";
     case "image/webp":
       return ".webp";
+    case "video/webm":
+      return ".webm";
+    case "application/json":
+      return ".json";
     default:
       return "";
   }
 }
 
-function materializeUploadedMap(
-  file: { path: string; filename: string; originalname: string; mimetype: string },
-  uploadsDir: string,
-  body: { gridPx?: string; grid_px?: string },
-): {
+type MaterializedMap = {
   filename: string;
   width: number;
   height: number;
@@ -423,7 +454,120 @@ function materializeUploadedMap(
     color: string;
     shadows: boolean;
   }>;
-} {
+};
+
+type ResolvedMapUpload = MaterializedMap & {
+  name: string;
+  animatedFilename: string | null;
+};
+
+function collectUploadedFiles(files: MulterFiles): UploadedFile[] {
+  return Object.values(files).flatMap((entries) => entries ?? []);
+}
+
+function cleanupUploadedFiles(files: UploadedFile[]): void {
+  for (const file of files) {
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+  }
+}
+
+function optionalWebm(files: MulterFiles): UploadedFile | null {
+  const candidate = files.animated?.[0] ?? files.webm?.[0] ?? null;
+  if (!candidate) {
+    return null;
+  }
+  if (!isWebmUpload(candidate)) {
+    throw new Error("Animated layer must be a .webm file");
+  }
+  return candidate;
+}
+
+function resolveMapUpload(input: {
+  mapFile: UploadedFile;
+  files: MulterFiles;
+  uploadsDir: string;
+  body: { name?: string; gridPx?: string; grid_px?: string };
+}): ResolvedMapUpload {
+  const bodyName =
+    typeof input.body?.name === "string" && input.body.name.trim()
+      ? input.body.name.trim()
+      : null;
+
+  if (isMapPackageUpload(input.mapFile)) {
+    const manifest = parseMapPackageManifest(fs.readFileSync(input.mapFile.path));
+    fs.unlinkSync(input.mapFile.path);
+
+    const baseFile = manifest.dd2vtt ? input.files.dd2vtt?.[0] : input.files.image?.[0];
+    if (!baseFile) {
+      throw new Error(
+        manifest.dd2vtt
+          ? "Map package requires a dd2vtt multipart field"
+          : "Map package requires an image multipart field",
+      );
+    }
+    const expectedBase = manifest.dd2vtt ?? manifest.image;
+    if (!expectedBase || !basenamesMatch(expectedBase, baseFile.originalname)) {
+      throw new Error(`Map package base file must be named ${expectedBase}`);
+    }
+    if (manifest.dd2vtt && !isDd2vttUpload(baseFile)) {
+      throw new Error("Map package dd2vtt field must be a .dd2vtt/.uvtt file");
+    }
+    if (manifest.image && !isAllowedImageUpload(baseFile)) {
+      throw new Error("Map package image field must be png/jpg/webp");
+    }
+
+    const gridBody = {
+      gridPx:
+        manifest.gridPx !== undefined
+          ? String(manifest.gridPx)
+          : (input.body.gridPx ?? input.body.grid_px),
+      grid_px: input.body.grid_px,
+    };
+    const stored = materializeUploadedMap(baseFile, input.uploadsDir, gridBody);
+
+    let animatedFilename: string | null = null;
+    const webm = optionalWebm(input.files);
+    if (manifest.webm) {
+      if (!webm) {
+        throw new Error("Map package lists webm but no animated/webm file was uploaded");
+      }
+      if (!basenamesMatch(manifest.webm, webm.originalname)) {
+        throw new Error(`Map package webm file must be named ${manifest.webm}`);
+      }
+      animatedFilename = webm.filename;
+    } else if (webm) {
+      throw new Error("Unexpected webm upload; omit it or list it in the map package manifest");
+    }
+
+    const packageFallback = path.parse(expectedBase).name || "Map";
+    return {
+      ...stored,
+      name: bodyName ?? manifest.name ?? packageFallback,
+      animatedFilename,
+    };
+  }
+
+  if (isWebmUpload(input.mapFile)) {
+    throw new Error("Upload a base map (or .dmsmap.json package) and attach WebM as animated/webm");
+  }
+
+  const stored = materializeUploadedMap(input.mapFile, input.uploadsDir, input.body);
+  const webm = optionalWebm(input.files);
+  const fallbackName = path.parse(input.mapFile.originalname).name || "Map";
+  return {
+    ...stored,
+    name: bodyName ?? fallbackName,
+    animatedFilename: webm?.filename ?? null,
+  };
+}
+
+function materializeUploadedMap(
+  file: UploadedFile,
+  uploadsDir: string,
+  body: { gridPx?: string; grid_px?: string },
+): MaterializedMap {
   if (isDd2vttUpload(file)) {
     const parsed = parseDd2vtt(fs.readFileSync(file.path));
     const imageName = `${path.parse(file.filename).name}${parsed.imageExt}`;

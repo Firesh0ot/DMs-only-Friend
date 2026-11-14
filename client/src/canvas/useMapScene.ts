@@ -87,6 +87,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
   const fogTextureRef = useRef<RenderTexture | null>(null);
   const fogPreviewRef = useRef<Graphics | null>(null);
   const overlayLayerRef = useRef<Graphics | null>(null);
+  const animatedUrlRef = useRef<string | null>(null);
   const tokenViewsRef = useRef<Map<string, TokenView>>(new Map());
   const cameraRef = useRef<CameraState>(props.camera ?? DEFAULT_CAMERA);
   const lastCameraEmitRef = useRef(0);
@@ -374,6 +375,11 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       destroyed = true;
       host.removeEventListener("wheel", onWheel);
       tokenViews.clear();
+      const animatedUrl = animatedUrlRef.current;
+      animatedUrlRef.current = null;
+      if (animatedUrl) {
+        void Assets.unload(animatedUrl).catch(() => undefined);
+      }
       fogTextureRef.current?.destroy(true);
       fogTextureRef.current = null;
       fogSpriteRef.current = null;
@@ -479,6 +485,19 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     host.classList.toggle("canvas-host--fog-tool", props.role === "gm" && props.fogTool !== "off");
   }, [host, props.fogTool, props.role]);
 
+  async function releaseAnimatedTexture(): Promise<void> {
+    const previous = animatedUrlRef.current;
+    animatedUrlRef.current = null;
+    if (!previous) {
+      return;
+    }
+    try {
+      await Assets.unload(previous);
+    } catch {
+      // ignore unload races when maps change quickly
+    }
+  }
+
   async function syncMap(map: MapState | null): Promise<void> {
     const mapLayer = mapLayerRef.current;
     const lightLayer = lightLayerRef.current;
@@ -488,6 +507,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       return;
     }
 
+    await releaseAnimatedTexture();
     mapLayer.removeChildren();
     lightLayer.removeChildren();
     gridLayer.clear();
@@ -506,6 +526,35 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     sprite.width = map.width;
     sprite.height = map.height;
     mapLayer.addChild(sprite);
+
+    if (map.animatedFilename) {
+      const animatedUrl = `/uploads/${map.animatedFilename}`;
+      try {
+        const videoTexture = (await Assets.load({
+          src: animatedUrl,
+          data: {
+            loop: true,
+            muted: true,
+            autoPlay: true,
+            playsinline: true,
+            preload: true,
+          },
+        })) as Texture;
+        if (mapLayerRef.current !== mapLayer) {
+          await Assets.unload(animatedUrl).catch(() => undefined);
+          return;
+        }
+        sprite.visible = false;
+        const videoSprite = new Sprite(videoTexture);
+        videoSprite.width = map.width;
+        videoSprite.height = map.height;
+        mapLayer.addChild(videoSprite);
+        animatedUrlRef.current = animatedUrl;
+      } catch {
+        sprite.visible = true;
+      }
+    }
+
     drawLights(lightLayer, softLightTextureRef.current, map);
     drawGrid(gridLayer, map);
     if (propsRef.current.role === "gm") {

@@ -57,6 +57,7 @@ type MapRow = {
   room_id: string;
   name: string;
   filename: string;
+  animated_filename: string | null;
   width: number;
   height: number;
   grid_px: number;
@@ -253,6 +254,7 @@ export class RoomStore {
     input: {
       name: string;
       filename: string;
+      animatedFilename?: string | null;
       width: number;
       height: number;
       gridPx: number;
@@ -266,14 +268,15 @@ export class RoomStore {
     const id = makeId();
     this.db
       .prepare(
-        `INSERT INTO maps (id, room_id, name, filename, width, height, grid_px, offset_x, offset_y, walls_json, portals_json, lights_json)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO maps (id, room_id, name, filename, animated_filename, width, height, grid_px, offset_x, offset_y, walls_json, portals_json, lights_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
         roomId,
         input.name,
         input.filename,
+        input.animatedFilename ?? null,
         input.width,
         input.height,
         input.gridPx,
@@ -1822,6 +1825,7 @@ function mapRowToState(row: MapRow): MapState {
     roomId: row.room_id,
     name: row.name || deriveMapName(row.filename),
     filename: row.filename,
+    animatedFilename: row.animated_filename ?? null,
     width: row.width,
     height: row.height,
     gridPx: row.grid_px,

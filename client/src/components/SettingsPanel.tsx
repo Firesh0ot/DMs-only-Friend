@@ -10,6 +10,7 @@ import {
   type RoomSettings,
 } from "@dms/shared";
 import { parseOptionalInt } from "../lib/hp";
+import { appendMapUploadFormData, resolveMapUploadParts } from "../lib/mapUploadForm";
 import { getSocket } from "../socket/socket";
 import { CopyableLinkField } from "./CopyableLinkField";
 
@@ -63,6 +64,7 @@ export function SettingsPanel({
   const baseId = useId();
   const [uploadGridPx, setUploadGridPx] = useState("70");
   const [mapName, setMapName] = useState("");
+  const [animatedWebm, setAnimatedWebm] = useState<File | null>(null);
   const [generateSeed, setGenerateSeed] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -156,23 +158,25 @@ export function SettingsPanel({
     }
   }
 
-  async function onUploadMap(file: File | null) {
-    if (!file) {
+  async function onUploadMap(fileList: FileList | null) {
+    const selected = Array.from(fileList ?? []);
+    if (selected.length === 0 && !animatedWebm) {
       return;
     }
     if (!uploadToken) {
       setMessage("Rejoin as GM to upload maps");
       return;
     }
+    const parts = resolveMapUploadParts(selected, animatedWebm);
+    if ("error" in parts) {
+      setMessage(parts.error);
+      return;
+    }
     setBusy(true);
     setMessage(null);
     try {
       const body = new FormData();
-      body.append("map", file);
-      body.append("gridPx", uploadGridPx);
-      if (mapName.trim()) {
-        body.append("name", mapName.trim());
-      }
+      appendMapUploadFormData(body, parts, { gridPx: uploadGridPx, name: mapName });
       const response = await fetch(`/api/rooms/${roomCodePathSegment(code)}/map`, {
         method: "POST",
         headers: uploadHeaders(),
@@ -182,8 +186,12 @@ export function SettingsPanel({
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(payload?.error ?? "Upload failed");
       }
-      setMessage(`Uploaded map ${file.name}`);
+      const label = parts.animated
+        ? `${parts.map.name} + ${parts.animated.name}`
+        : parts.map.name;
+      setMessage(`Uploaded map ${label}`);
       setMapName("");
+      setAnimatedWebm(null);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Upload failed");
     } finally {
@@ -632,7 +640,9 @@ export function SettingsPanel({
         </label>
         <p className="muted">
           Upload PNG/JPG/WebP (set grid_px) or Universal VTT <code>.dd2vtt</code> (grid, walls, doors,
-          and lights come from the file when present). Or generate a procedural BSP dungeon (Phase 6
+          and lights come from the file when present). Optional animated <code>.webm</code> plays as a
+          looping background layer. A map package is a <code>.dmsmap.json</code> / <code>.map.json</code>{" "}
+          manifest plus its base file (multi-select). Or generate a procedural BSP dungeon (Phase 6
           slice — walls + soft lights, no AI stylization yet).
         </p>
         <div className="row settings-upload-row">
@@ -647,13 +657,27 @@ export function SettingsPanel({
             />
           </label>
           <label className="stack" htmlFor={`${baseId}-map-file`}>
-            <span className="muted">Map file</span>
+            <span className="muted">Map file(s)</span>
             <input
               id={`${baseId}-map-file`}
               type="file"
-              accept="image/png,image/jpeg,image/webp,.dd2vtt,application/json"
+              multiple
+              accept="image/png,image/jpeg,image/webp,.dd2vtt,.uvtt,.dmsmap.json,.map.json,video/webm,.webm"
               disabled={busy}
-              onChange={(event) => void onUploadMap(event.target.files?.[0] ?? null)}
+              onChange={(event) => {
+                void onUploadMap(event.target.files);
+                event.target.value = "";
+              }}
+            />
+          </label>
+          <label className="stack" htmlFor={`${baseId}-map-webm`}>
+            <span className="muted">WebM layer (optional)</span>
+            <input
+              id={`${baseId}-map-webm`}
+              type="file"
+              accept="video/webm,.webm"
+              disabled={busy}
+              onChange={(event) => setAnimatedWebm(event.target.files?.[0] ?? null)}
             />
           </label>
         </div>
@@ -686,6 +710,7 @@ export function SettingsPanel({
                     {map.walls.length > 0 ? ` · ${map.walls.length} walls` : ""}
                     {map.portals.length > 0 ? ` · ${map.portals.length} doors` : ""}
                     {map.lights.length > 0 ? ` · ${map.lights.length} lights` : ""}
+                    {map.animatedFilename ? " · WebM" : ""}
                     {map.id === activeMapId ? " · active" : ""}
                   </span>
                   <div className="row">

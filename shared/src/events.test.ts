@@ -8,6 +8,7 @@ import {
   FogStateSchema,
   GmChangePinPayloadSchema,
   MapActivatePayloadSchema,
+  MapPackageManifestSchema,
   MapStateSchema,
   PortalSetClosedPayloadSchema,
   RoomCodeSchema,
@@ -253,6 +254,7 @@ describe("event schemas", () => {
       roomId: "room-1",
       name: "Dungeon",
       filename: "dungeon.png",
+      animatedFilename: "dungeon.webm",
       width: 100,
       height: 100,
       gridPx: 70,
@@ -279,6 +281,7 @@ describe("event schemas", () => {
         },
       ],
     });
+    expect(map.animatedFilename).toBe("dungeon.webm");
     expect(map.portals[0]?.freestanding).toBe(false);
     expect(map.portals[0]?.closed).toBe(true);
     expect(map.lights[0]?.shadows).toBe(true);
@@ -290,6 +293,26 @@ describe("event schemas", () => {
       closed: false,
     });
     expect(payload.closed).toBe(false);
+
+    const withoutAnimated = MapStateSchema.parse({
+      id: "map-2",
+      roomId: "room-1",
+      name: "Static",
+      filename: "static.png",
+      width: 100,
+      height: 100,
+      gridPx: 70,
+      offsetX: 0,
+      offsetY: 0,
+    });
+    expect(withoutAnimated.animatedFilename).toBeNull();
+
+    const pack = MapPackageManifestSchema.parse({
+      version: 1,
+      dd2vtt: "crypt.dd2vtt",
+      webm: "crypt.webm",
+    });
+    expect(pack.webm).toBe("crypt.webm");
   });
 
   it("accepts session log and battle schemas", () => {
