@@ -1,4 +1,4 @@
-# 0032 — Design rework: tokens-first, screen-by-screen, three variants
+# 0032 — Design rework: tokens-first, screen-by-screen, two themes as dark/light mode
 
 - **Status:** proposed
 - **Date:** 2026-11-14

@@ -4,8 +4,8 @@ Phase für ein systematisches Design-Rework der gesamten Website. Ansatz: **Desi
 
 ## Ziel
 
-1. **Drei Design-Varianten** ausarbeiten (Richtung, Palette, Typografie, Formensprache) – Oli wählt eine.
-2. **Zentrales Token-System** (`theme.css`) mit allen Design-Entscheidungen an einer Stelle.
+1. **Zwei Themes als Dark/Light-Modus** umsetzen (Richtung, Palette, Typografie, Formensprache je Theme) – entschieden, keine Auswahl mehr nötig.
+2. **Zentrales Token-System** (`tokens.css`) mit allen Design-Entscheidungen an einer Stelle.
 3. **Screen-für-Screen-Umsetzung** in Priorität: Landing → DM-Play → Settings → Tisch-Monitor.
 4. **Favicon** als reduzierte Silhouette aus der gewählten Variante.
 
