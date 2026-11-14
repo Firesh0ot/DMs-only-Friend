@@ -1,0 +1,375 @@
+.play-shell {
+  color: var(--text-primary);
+}
+
+.play-topbar {
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 35%, transparent);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  background: var(--surface-1);
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+}
+
+:root[data-theme="tavern"] .play-topbar {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%),
+    url("/theme/wood-dark.webp");
+  background-size: auto, 280px 280px;
+  border: 2px solid color-mix(in srgb, var(--wood-deep) 85%, black);
+  color: color-mix(in srgb, var(--parchment) 92%, white);
+  box-shadow: var(--shadow-lg);
+}
+
+:root[data-theme="arcane"] .play-topbar {
+  background: color-mix(in srgb, var(--surface-1) 92%, black);
+  border-color: color-mix(in srgb, var(--text-secondary) 22%, transparent);
+}
+
+.play-topbar .brand {
+  color: var(--text-primary);
+  text-shadow: none;
+  font-size: var(--text-xl);
+}
+
+:root[data-theme="tavern"] .play-topbar .brand {
+  color: color-mix(in srgb, var(--parchment) 94%, white);
+  text-shadow: 0 2px 0 color-mix(in srgb, black 45%, transparent);
+}
+
+.play-topbar .muted {
+  color: var(--text-secondary);
+}
+
+.play-topbar a {
+  color: var(--accent);
+}
+
+.play-shell .hud-panel,
+.play-shell .hud-fog-rail,
+.play-shell .hud-bottom,
+.play-shell .session-strip,
+.play-shell .initiative-rail,
+.play-shell .dice-toast {
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  outline: none;
+}
+
+:root[data-theme="tavern"] .play-shell .hud-panel,
+:root[data-theme="tavern"] .play-shell .hud-fog-rail,
+:root[data-theme="tavern"] .play-shell .hud-bottom,
+:root[data-theme="tavern"] .play-shell .session-strip,
+:root[data-theme="tavern"] .play-shell .initiative-rail,
+:root[data-theme="tavern"] .play-shell .dice-toast {
+  background-color: var(--surface-1);
+  background-image:
+    linear-gradient(180deg, color-mix(in srgb, white 16%, transparent), transparent 46%),
+    url("/theme/parchment.webp");
+  background-size: auto, 320px 320px;
+  border: 3px solid var(--wood-deep);
+  box-shadow: var(--shadow-lg);
+}
+
+:root[data-theme="tavern"] .play-shell .hud-panel::before,
+:root[data-theme="tavern"] .play-shell .hud-fog-rail::before,
+:root[data-theme="tavern"] .play-shell .hud-bottom::before,
+:root[data-theme="tavern"] .play-shell .session-strip::before,
+:root[data-theme="tavern"] .play-shell .initiative-rail::before,
+:root[data-theme="tavern"] .play-shell .dice-toast::before {
+  inset: var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--wood) 32%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+:root[data-theme="tavern"] .play-shell .hud-panel::after,
+:root[data-theme="tavern"] .play-shell .hud-fog-rail::after,
+:root[data-theme="tavern"] .play-shell .hud-bottom::after,
+:root[data-theme="tavern"] .play-shell .session-strip::after,
+:root[data-theme="tavern"] .play-shell .initiative-rail::after,
+:root[data-theme="tavern"] .play-shell .dice-toast::after {
+  display: none;
+}
+
+:root[data-theme="arcane"] .play-shell .hud-panel,
+:root[data-theme="arcane"] .play-shell .hud-fog-rail,
+:root[data-theme="arcane"] .play-shell .hud-bottom,
+:root[data-theme="arcane"] .play-shell .session-strip,
+:root[data-theme="arcane"] .play-shell .initiative-rail,
+:root[data-theme="arcane"] .play-shell .dice-toast {
+  background: var(--surface-1);
+  background-image: none;
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 26%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="arcane"] .play-shell .hud-panel::before,
+:root[data-theme="arcane"] .play-shell .hud-fog-rail::before,
+:root[data-theme="arcane"] .play-shell .hud-bottom::before,
+:root[data-theme="arcane"] .play-shell .session-strip::before,
+:root[data-theme="arcane"] .play-shell .initiative-rail::before,
+:root[data-theme="arcane"] .play-shell .dice-toast::before,
+:root[data-theme="arcane"] .play-shell .hud-panel::after,
+:root[data-theme="arcane"] .play-shell .hud-fog-rail::after,
+:root[data-theme="arcane"] .play-shell .hud-bottom::after,
+:root[data-theme="arcane"] .play-shell .session-strip::after,
+:root[data-theme="arcane"] .play-shell .initiative-rail::after,
+:root[data-theme="arcane"] .play-shell .dice-toast::after {
+  display: none;
+}
+
+.play-shell .hud-panel__header h2,
+.play-shell .hud-dice__result strong,
+.play-shell .dice-toast__total,
+.play-shell .turn-carousel__round strong {
+  color: var(--heading);
+  font-size: var(--text-md);
+}
+
+.play-shell .hud-muted,
+.play-shell .hud-init__status,
+.play-shell .turn-carousel__idle {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.play-shell button.hud-chip,
+.play-shell .hud-bottom button,
+.play-shell .play-topbar button:not(.lantern-toggle):not(.theme-toggle) {
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 35%, transparent);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  box-shadow: none;
+  min-height: 2.1rem;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+:root[data-theme="tavern"] .play-shell button.hud-chip,
+:root[data-theme="tavern"] .play-shell .hud-bottom button,
+:root[data-theme="tavern"] .play-shell .play-topbar button:not(.lantern-toggle):not(.theme-toggle) {
+  background: linear-gradient(180deg, var(--wood-mid), var(--wood-deep));
+  color: color-mix(in srgb, var(--parchment) 92%, white);
+  border-color: color-mix(in srgb, var(--wood-deep) 80%, black);
+}
+
+.play-shell button.hud-chip.is-active,
+.play-shell .play-topbar button.is-active,
+.play-shell .hud-bottom button.is-active {
+  background: var(--accent);
+  color: var(--surface-0);
+  border-color: color-mix(in srgb, var(--accent) 70%, black);
+  box-shadow: var(--accent-glow);
+}
+
+:root[data-theme="tavern"] .play-shell button.hud-chip.is-active,
+:root[data-theme="tavern"] .play-shell .play-topbar button.is-active {
+  color: color-mix(in srgb, var(--parchment) 94%, white);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 35%, transparent), transparent 45%),
+    linear-gradient(180deg, var(--wood-mid), var(--wood-deep));
+  box-shadow: var(--shadow-sm);
+}
+
+.play-shell .play-topbar button.secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--text-secondary) 40%, transparent);
+}
+
+:root[data-theme="tavern"] .play-shell .play-topbar button.secondary {
+  background: color-mix(in srgb, black 45%, transparent);
+  color: color-mix(in srgb, var(--parchment) 88%, white);
+}
+
+.play-shell button.hud-fog-rail__btn {
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 35%, transparent);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="tavern"] .play-shell button.hud-fog-rail__btn {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, white 35%, transparent), transparent 55%),
+    var(--parchment-deep);
+  color: var(--heading);
+  border-color: color-mix(in srgb, var(--wood-deep) 40%, transparent);
+}
+
+.play-shell button.hud-fog-rail__btn.is-active {
+  background: var(--accent);
+  color: var(--surface-0);
+  border-color: color-mix(in srgb, var(--accent) 65%, black);
+  box-shadow: var(--accent-glow);
+}
+
+:root[data-theme="tavern"] .play-shell button.hud-fog-rail__btn.is-active {
+  color: color-mix(in srgb, var(--parchment) 94%, white);
+  background: linear-gradient(180deg, var(--wood-mid), var(--wood-deep));
+  box-shadow: var(--shadow-sm);
+}
+
+.play-shell .hud-fog-rail__group + .hud-fog-rail__group {
+  border-top-color: color-mix(in srgb, var(--text-secondary) 28%, transparent);
+}
+
+.play-shell .map-table {
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 30%, transparent);
+  background: var(--surface-0);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3);
+}
+
+:root[data-theme="tavern"] .play-shell .map-table {
+  padding: calc(var(--frame-outer) + 2px);
+  border: 6px solid var(--wood-deep);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 42%),
+    url("/theme/wood-plank.webp");
+  background-size: auto, 260px 260px;
+  box-shadow: var(--shadow-lg);
+}
+
+:root[data-theme="arcane"] .play-shell .map-table {
+  background:
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 45%),
+    var(--surface-0);
+  border-color: color-mix(in srgb, var(--text-secondary) 22%, transparent);
+}
+
+:root[data-theme="arcane"] .play-shell .map-table::before {
+  display: none;
+}
+
+:root[data-theme="tavern"] .play-shell .map-table::before {
+  inset: var(--space-2);
+  border: 2px solid color-mix(in srgb, var(--wood-deep) 70%, black);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.play-shell .canvas-host {
+  background-color: var(--surface-0);
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--surface-0) 35%, transparent), color-mix(in srgb, var(--surface-0) 35%, transparent)),
+    url("/theme/wood-plank.webp");
+  background-size: auto, 520px 520px;
+  background-blend-mode: multiply, normal;
+}
+
+:root[data-theme="arcane"] .play-shell .canvas-host {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--surface-0) 55%, transparent), color-mix(in srgb, var(--surface-0) 55%, transparent)),
+    url("/theme/stone.webp");
+  background-size: auto, 560px 560px;
+}
+
+.play-shell .play-stage__empty {
+  background: var(--surface-1);
+  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 30%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+:root[data-theme="tavern"] .play-shell .play-stage__empty {
+  background: color-mix(in srgb, var(--surface-1) 92%, white);
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--wood-deep) 35%, transparent);
+}
+
+.play-shell .turn-card {
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 28%, transparent);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  transition:
+    transform var(--motion-turn),
+    opacity var(--motion-turn),
+    filter var(--motion-turn),
+    box-shadow var(--motion-fast);
+}
+
+:root[data-theme="tavern"] .play-shell .turn-card {
+  background: color-mix(in srgb, var(--surface-1) 70%, white);
+  border-color: color-mix(in srgb, var(--wood-deep) 28%, transparent);
+  color: var(--ink);
+}
+
+.play-shell .turn-card--active {
+  outline: none;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-2));
+  box-shadow: var(--accent-glow);
+  padding: var(--space-2);
+}
+
+:root[data-theme="tavern"] .play-shell .turn-card--active {
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-1));
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.play-shell .turn-card__placeholder {
+  background: linear-gradient(160deg, var(--wood-mid), var(--surface-0));
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+}
+
+.play-shell .turn-card__init {
+  background: color-mix(in srgb, var(--surface-0) 82%, black);
+  color: var(--text-primary);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+}
+
+.play-shell .turn-card__name {
+  font-size: var(--text-sm);
+  color: var(--heading);
+}
+
+.play-shell .turn-card__ac {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.play-shell .turn-carousel__manual {
+  border-top-color: color-mix(in srgb, var(--text-secondary) 25%, transparent);
+}
+
+.play-shell .dice-toast {
+  padding: var(--space-3) var(--space-4);
+}
+
+.play-shell .dice-toast__total {
+  font-size: var(--text-lg);
+}
+
+.play-shell .hud-dice__history li,
+.play-shell .session-strip__events {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.play-shell .hud-bottom__bar {
+  gap: var(--space-2);
+}
+
+.play-shell .hud-bottom__next {
+  box-shadow: var(--accent-glow);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+:root[data-theme="arcane"] .play-shell .hud-bottom__next {
+  background: var(--accent);
+  color: var(--surface-0);
+}

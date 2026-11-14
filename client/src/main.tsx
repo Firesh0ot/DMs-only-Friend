@@ -9,6 +9,7 @@ import { App } from "./App";
 import "./theme/tokens.css";
 import "./theme/bootstrap";
 import "./styles.css";
+import "./theme/play.css";
 
 const root = document.getElementById("root");
 if (!root) {
