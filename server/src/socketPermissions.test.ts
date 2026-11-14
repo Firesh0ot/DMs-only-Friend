@@ -265,6 +265,21 @@ describe("socket permission negatives", () => {
     screen.emit(ClientEvents.ScreenCommand, { type: "open-calibration" });
     await expect(denied).resolves.toBe("GM only");
 
+    const carouselPromise = new Promise<{ screenCarousel: { xNorm: number; yNorm: number } }>(
+      (resolve) => {
+        gm.once(ServerEvents.SettingsUpdated, (settings) => resolve(settings));
+      },
+    );
+    screen.emit(ClientEvents.ScreenCarouselSet, { xNorm: 0.2, yNorm: 0.3 });
+    await expect(carouselPromise).resolves.toMatchObject({
+      screenCarousel: { xNorm: 0.2, yNorm: 0.3 },
+    });
+    expect(rooms.getSettings(room.id).screenCarousel).toEqual({ xNorm: 0.2, yNorm: 0.3 });
+
+    const playerDenied = nextError(player);
+    player.emit(ClientEvents.ScreenCarouselSet, { xNorm: 0.9, yNorm: 0.9 });
+    await expect(playerDenied).resolves.toBe("GM or screen only");
+
     gm.close();
     screen.close();
     player.close();

@@ -7,3 +7,4 @@ export * from "./wallCollision.js";
 export * from "./wallHeal.js";
 export * from "./losVisibility.js";
 export * from "./exploredFog.js";
+export * from "./screenCarousel.js";

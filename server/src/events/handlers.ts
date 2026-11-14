@@ -23,6 +23,7 @@ import {
   moveBlockedByWalls,
   movementBlockerSegments,
   RoomJoinPayloadSchema,
+  ScreenCarouselSetPayloadSchema,
   ScreenCommandPayloadSchema,
   ServerEvents,
   SettingsSetPayloadSchema,
@@ -934,6 +935,25 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Settings update failed";
         socket.emit(ServerEvents.Error, { message });
+      }
+    });
+
+    socket.on(ClientEvents.ScreenCarouselSet, (payload) => {
+      const session = rooms.getSession(socket.id);
+      if (!session) {
+        emitError(socket, new Error("Not joined"));
+        return;
+      }
+      if (session.role !== "gm" && session.role !== "screen") {
+        emitError(socket, new Error("GM or screen only"));
+        return;
+      }
+      try {
+        const data = ScreenCarouselSetPayloadSchema.parse(payload);
+        const settings = rooms.setSettings(session.roomId, { screenCarousel: data });
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.SettingsUpdated, settings);
+      } catch (error) {
+        emitError(socket, error);
       }
     });
 

@@ -140,6 +140,8 @@ function migrate(db: Db): void {
   ensureColumn(db, "rooms", "gm_invite_hash", "TEXT");
   ensureColumn(db, "rooms", "screen_hp_quarters", "INT NOT NULL DEFAULT 0");
   ensureColumn(db, "rooms", "physical_cell_cm", "REAL");
+  ensureColumn(db, "rooms", "screen_carousel_x", "REAL NOT NULL DEFAULT 0.5");
+  ensureColumn(db, "rooms", "screen_carousel_y", "REAL NOT NULL DEFAULT 0.88");
   ensureColumn(db, "rooms", "gm_claimed", "INT NOT NULL DEFAULT 1");
   ensureColumn(db, "map_fog", "los_enabled", "INT DEFAULT NULL");
   ensureColumn(db, "map_fog", "explored_cells", "TEXT NOT NULL DEFAULT ''");

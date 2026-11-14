@@ -173,7 +173,11 @@ describe("event schemas", () => {
       tokens: [],
       characters: [],
       visibility: { showPcs: true, showNpcs: true },
-      settings: { screenHpQuarters: false, physicalCellCm: null },
+      settings: {
+        screenHpQuarters: false,
+        physicalCellCm: null,
+        screenCarousel: { xNorm: 0.5, yNorm: 0.88 },
+      },
       camera: null,
       initiative: { order: [], activeIndex: 0, round: 0 },
       eventLog: [],
@@ -188,6 +192,7 @@ describe("event schemas", () => {
     expect(snapshot.visibility.showPcs).toBe(true);
     expect(snapshot.settings.screenHpQuarters).toBe(false);
     expect(snapshot.settings.physicalCellCm).toBeNull();
+    expect(snapshot.settings.screenCarousel).toEqual({ xNorm: 0.5, yNorm: 0.88 });
     expect(snapshot.characterId).toBeNull();
     expect(snapshot.spawnPoints).toEqual([]);
     expect(snapshot.movement).toBeNull();
