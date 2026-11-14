@@ -1610,78 +1610,6 @@ button.hud-panel__collapse:focus-visible {
   z-index: 1;
 }
 
-.initiative-rail__round {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 0.5rem;
-  color: var(--heading);
-}
-
-.initiative-rail__round strong {
-  font-size: 1.4rem;
-  font-family: var(--font-display);
-}
-
-.initiative-rail__turn {
-  margin: 0 0 0.85rem;
-  font-size: 0.95rem;
-  color: var(--ink-soft);
-}
-
-.initiative-rail__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.65rem;
-}
-
-.tcg-card {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.45rem;
-  border-radius: 8px;
-  background: rgba(255, 248, 230, 0.4);
-  border: 1px solid rgba(60, 40, 20, 0.28);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-
-.tcg-card__art,
-.tcg-card__placeholder {
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  border-radius: 6px;
-  object-fit: cover;
-  background: linear-gradient(160deg, var(--wood), var(--wood-deep));
-}
-
-.tcg-card__placeholder {
-  display: grid;
-  place-items: center;
-  font-family: var(--font-display);
-  font-size: 2rem;
-  color: var(--chrome-text);
-}
-
-.tcg-card__meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.35rem;
-  font-size: 0.85rem;
-}
-
-.tcg-card__name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.initiative-rail__list li.is-active .tcg-card {
-  outline: 2px solid var(--signal);
-  background: rgba(232, 160, 69, 0.28);
-}
-
 @media (max-width: 800px) {
   .play-stage--with-rail {
     grid-template-columns: 1fr;
@@ -1689,12 +1617,6 @@ button.hud-panel__collapse:focus-visible {
 
   .initiative-rail {
     max-height: none;
-  }
-
-  .initiative-rail__list {
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(96px, 120px);
-    overflow-x: auto;
   }
 
   .play-hud {
@@ -2145,35 +2067,6 @@ textarea {
   min-width: 0;
 }
 
-.initiative-rail__active-turn {
-  display: grid;
-  grid-template-columns: 44px 1fr;
-  gap: 0.45rem;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.initiative-rail__active-art,
-.initiative-rail__active-placeholder {
-  width: 44px;
-  height: 58px;
-  object-fit: cover;
-  border-radius: 4px;
-  border: 1px solid rgba(60, 40, 20, 0.35);
-  background: linear-gradient(160deg, var(--wood), var(--wood-deep));
-}
-
-.initiative-rail__active-placeholder {
-  display: grid;
-  place-items: center;
-  color: var(--chrome-text);
-  font-family: var(--font-display);
-}
-
-.initiative-rail__active-turn .initiative-rail__turn {
-  margin: 0;
-}
-
 button,
 .character-card__portrait-upload,
 .check-row {
@@ -2284,18 +2177,6 @@ button,
 
 .init-active-card__hp {
   margin-top: 0.35rem;
-}
-
-.tcg-card__stats {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex: 0 0 auto;
-}
-
-.tcg-card__init {
-  font-variant-numeric: tabular-nums;
-  opacity: 0.85;
 }
 
 html[data-lantern="off"] .hp-chip {

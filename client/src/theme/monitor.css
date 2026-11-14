@@ -46,36 +46,6 @@
   display: none;
 }
 
-.initiative-rail__round,
-.initiative-rail__turn {
-  font-size: var(--text-md);
-  color: var(--heading);
-}
-
-.initiative-rail__round strong {
-  font-size: var(--text-lg);
-  color: var(--accent);
-}
-
-.tcg-card {
-  border-radius: var(--radius-sm);
-  border: 1px solid color-mix(in srgb, var(--text-secondary) 30%, transparent);
-  background: var(--surface-2);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
-}
-
-:root[data-theme="tavern"] .tcg-card {
-  background: color-mix(in srgb, var(--surface-1) 72%, white);
-  border-color: color-mix(in srgb, var(--wood-deep) 28%, transparent);
-  color: var(--ink);
-}
-
-.initiative-rail__list li.is-active .tcg-card {
-  border-color: var(--accent);
-  box-shadow: var(--accent-glow);
-}
-
 .map-table--screen-fs {
   background: var(--surface-0);
 }
