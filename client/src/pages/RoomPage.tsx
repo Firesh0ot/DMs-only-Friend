@@ -430,6 +430,7 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                 <MapCanvas
                   map={snapshot.map}
                   tokens={tokens}
+                  characters={snapshot.characters}
                   camera={snapshot.camera}
                   role={role}
                   characterId={snapshot.characterId}

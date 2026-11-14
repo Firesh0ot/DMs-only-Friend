@@ -24,7 +24,7 @@ Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (
 Kompaktes **Game-HUD** um die Karte (keine schwebenden Inseln):
 
 - **Links — Dice** — Ausdrücke wie `2d6+3` (oder Quick-Chips), Server-Würfel, letzte Summen. Ergebnisse landen im Session-Log.
-- **Links — Initiative** — Runde, aktiver Charakter, **Next**, Reihenfolge setzen (aufklappen), ±1 TP und Bedingungen am Aktiven. **PCs / NPCs anzeigen** steuert die Sichtbarkeit auf dem Brett. Entfernte Tokens/Charaktere fallen aus der Reihenfolge.
+- **Links — Initiative** — Runde, aktiver Charakter, **Next**, Reihenfolge setzen (aufklappen), ±1 TP und Bedingungen am Aktiven. **PCs / NPCs anzeigen** steuert die Sichtbarkeit auf dem Brett. Entfernte Tokens/Charaktere fallen aus der Reihenfolge. Bei **0 TP** verlassen Kämpfer die Initiative, bleiben aber auf der Karte als dunkleres Token mit Kreuz; TP wieder über 0 hebt sie nicht automatisch zurück — Reihenfolge bei Bedarf neu setzen.
 - **Rechts — Fog** — kompakte vertikale Icon-Leiste (Pinsel / Rechteck, Größe −/+, Reveal/Hide, Cover/Clear-Augen, LoS-Strahlen; Tür-Icons falls vorhanden). Tür auch per Klick auf der Karte bei Tool **aus** (Hand). Fog für dich durchscheinend, für Screen/Spieler deckend.
 - **Untere Leiste** — Kampf **Start** / **Ende** und Timer; **Next turn**; **Log** (standardmäßig eingeklappt); **More** für kompakten Kartenwechsel. Karten-Upload/Raster und NPC-Roster bleiben in **Settings**.
 

@@ -791,7 +791,8 @@ export function registerSocketHandlers(
           hpMax: data.hpMax,
           ac: data.ac,
         });
-        const initiative = rooms.refreshInitiativePortraits(session.roomId);
+        const portraits = rooms.refreshInitiativePortraits(session.roomId);
+        const initiative = rooms.pruneZeroHpInitiative(session.roomId) ?? portraits;
         emitCharactersUpdated(io, rooms, session.roomId);
         io.to(roomChannel(session.roomId)).emit(
           ServerEvents.TokensSynced,
@@ -851,7 +852,11 @@ export function registerSocketHandlers(
           hpMax: data.hpMax,
           delta: data.delta,
         });
+        const initiative = rooms.pruneZeroHpInitiative(session.roomId);
         emitCharactersUpdated(io, rooms, session.roomId);
+        if (initiative) {
+          io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+        }
       } catch (error) {
         emitError(socket, error);
       }
