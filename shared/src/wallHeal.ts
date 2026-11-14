@@ -59,10 +59,9 @@ export function healWallsAroundPortals(
   walls: WallPolyline[],
   portals: Array<Pick<PortalState, "bounds" | "freestanding">>,
 ): WallPolyline[] {
-  const wallIntervals = wallPolylinesToIntervals(walls);
-  if (wallIntervals.length === 0) {
-    return walls.map((polyline) => polyline.map((point) => ({ x: point.x, y: point.y })));
-  }
+  const healed: WallPolyline[] = walls.map((polyline) =>
+    polyline.map((point) => ({ x: point.x, y: point.y })),
+  );
 
   const portalIntervals = portals
     .filter((portal) => portal.freestanding !== true)
@@ -70,17 +69,27 @@ export function healWallsAroundPortals(
     .filter((interval): interval is LineInterval => interval !== null);
 
   if (portalIntervals.length === 0) {
-    return walls.map((polyline) => polyline.map((point) => ({ x: point.x, y: point.y })));
+    return healed;
+  }
+
+  fillGapsOnExistingWallLines(healed, portalIntervals);
+  synthesizeWallsForOrphanPortals(healed, portalIntervals);
+  return healed;
+}
+
+function fillGapsOnExistingWallLines(
+  healed: WallPolyline[],
+  portalIntervals: LineInterval[],
+): void {
+  const wallIntervals = wallPolylinesToIntervals(healed);
+  if (wallIntervals.length === 0) {
+    return;
   }
 
   const lineKeys = new Set<string>();
   for (const interval of [...wallIntervals, ...portalIntervals]) {
     lineKeys.add(lineKey(interval.axis, interval.line));
   }
-
-  const healed: WallPolyline[] = walls.map((polyline) =>
-    polyline.map((point) => ({ x: point.x, y: point.y })),
-  );
 
   for (const key of lineKeys) {
     const [axisRaw, lineRaw] = key.split(":");
@@ -101,27 +110,121 @@ export function healWallsAroundPortals(
       continue;
     }
 
-    const covered = mergeIntervals([
-      ...wallsOnLine.map((interval) => normalizeInterval(interval.start, interval.end)),
-      ...portalsOnLine.map((interval) => normalizeInterval(interval.start, interval.end)),
-    ]);
-    if (covered.length === 0) {
+    appendGapFills(healed, axis, wallLine, wallsOnLine, portalsOnLine);
+  }
+}
+
+function synthesizeWallsForOrphanPortals(
+  healed: WallPolyline[],
+  portalIntervals: LineInterval[],
+): void {
+  const wallIntervals = wallPolylinesToIntervals(healed);
+  if (wallIntervals.length === 0) {
+    return;
+  }
+
+  const portalsByLine = new Map<string, LineInterval[]>();
+  for (const portal of portalIntervals) {
+    const wallsOnLine = wallIntervals.filter(
+      (interval) =>
+        interval.axis === portal.axis && nearlyEqual(interval.line, portal.line, LINE_SNAP),
+    );
+    if (wallsOnLine.length > 0) {
       continue;
     }
+    const key = lineKey(portal.axis, portal.line);
+    const group = portalsByLine.get(key) ?? [];
+    group.push(portal);
+    portalsByLine.set(key, group);
+  }
 
-    const spanStart = Math.min(...covered.map((interval) => interval.start));
-    const spanEnd = Math.max(...covered.map((interval) => interval.end));
-    const gaps = subtractIntervals([{ start: spanStart, end: spanEnd }], covered);
-
+  for (const [, portalsOnLine] of portalsByLine) {
+    const axis = portalsOnLine[0]!.axis;
+    const portalLine = average(portalsOnLine.map((interval) => interval.line));
+    const span = inferPortalWallSpan(axis, portalLine, portalsOnLine, wallIntervals);
+    if (!span) {
+      continue;
+    }
+    const portalCover = mergeIntervals(
+      portalsOnLine.map((interval) => normalizeInterval(interval.start, interval.end)),
+    );
+    const gaps = subtractIntervals([{ start: span.start, end: span.end }], portalCover);
     for (const gap of gaps) {
       if (gap.end - gap.start <= INTERVAL_EPS) {
         continue;
       }
-      healed.push(intervalToPolyline(axis, wallLine, gap.start, gap.end));
+      healed.push(intervalToPolyline(axis, portalLine, gap.start, gap.end));
     }
   }
+}
 
-  return healed;
+function inferPortalWallSpan(
+  axis: Axis,
+  portalLine: number,
+  portalsOnLine: LineInterval[],
+  wallIntervals: LineInterval[],
+): { start: number; end: number } | null {
+  const portalStart = Math.min(...portalsOnLine.map((interval) => interval.start));
+  const portalEnd = Math.max(...portalsOnLine.map((interval) => interval.end));
+  const portalCenter = (portalStart + portalEnd) / 2;
+  const perpAxis: Axis = axis === "x" ? "y" : "x";
+
+  const brackets: number[] = [];
+  for (const wall of wallIntervals) {
+    if (wall.axis !== perpAxis) {
+      continue;
+    }
+    if (portalLine < wall.start - LINE_SNAP || portalLine > wall.end + LINE_SNAP) {
+      continue;
+    }
+    brackets.push(wall.line);
+  }
+  if (brackets.length === 0) {
+    return null;
+  }
+
+  const lowSide = brackets.filter((value) => value <= portalCenter + LINE_SNAP);
+  const highSide = brackets.filter((value) => value >= portalCenter - LINE_SNAP);
+  if (lowSide.length === 0 || highSide.length === 0) {
+    return null;
+  }
+
+  const start = Math.max(...lowSide);
+  const end = Math.min(...highSide);
+  if (end - start <= INTERVAL_EPS) {
+    return null;
+  }
+  if (portalStart < start - LINE_SNAP || portalEnd > end + LINE_SNAP) {
+    return null;
+  }
+  return { start, end };
+}
+
+function appendGapFills(
+  healed: WallPolyline[],
+  axis: Axis,
+  wallLine: number,
+  wallsOnLine: LineInterval[],
+  portalsOnLine: LineInterval[],
+): void {
+  const covered = mergeIntervals([
+    ...wallsOnLine.map((interval) => normalizeInterval(interval.start, interval.end)),
+    ...portalsOnLine.map((interval) => normalizeInterval(interval.start, interval.end)),
+  ]);
+  if (covered.length === 0) {
+    return;
+  }
+
+  const spanStart = Math.min(...covered.map((interval) => interval.start));
+  const spanEnd = Math.max(...covered.map((interval) => interval.end));
+  const gaps = subtractIntervals([{ start: spanStart, end: spanEnd }], covered);
+
+  for (const gap of gaps) {
+    if (gap.end - gap.start <= INTERVAL_EPS) {
+      continue;
+    }
+    healed.push(intervalToPolyline(axis, wallLine, gap.start, gap.end));
+  }
 }
 
 function wallPolylinesToIntervals(walls: WallPolyline[]): LineInterval[] {

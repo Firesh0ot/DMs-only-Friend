@@ -123,4 +123,78 @@ describe("healWallsAroundPortals", () => {
     ];
     expect(healWallsAroundPortals(walls, portals)).toHaveLength(2);
   });
+
+  it("synthesizes partition walls for non-freestanding portals between perpendicular walls", () => {
+    const walls = [
+      [
+        { x: 37, y: 9 },
+        { x: 37, y: 30 },
+      ],
+      [
+        { x: 41, y: 9 },
+        { x: 41, y: 30 },
+      ],
+      [
+        { x: 37, y: 9 },
+        { x: 41, y: 9 },
+      ],
+      [
+        { x: 37, y: 30 },
+        { x: 41, y: 30 },
+      ],
+    ];
+    const portals = [
+      {
+        freestanding: false,
+        bounds: [
+          { x: 37.33, y: 24.22 },
+          { x: 38.33, y: 24.22 },
+        ] as [{ x: number; y: number }, { x: number; y: number }],
+      },
+    ];
+
+    const healed = healWallsAroundPortals(walls, portals);
+    const horizontal = healed.filter(
+      (polyline) =>
+        polyline.length === 2 &&
+        polyline[0] &&
+        polyline[1] &&
+        Math.abs(polyline[0].y - 24.22) < 1e-6 &&
+        Math.abs(polyline[1].y - 24.22) < 1e-6,
+    );
+
+    expect(
+      horizontal.some(
+        (polyline) =>
+          Math.min(polyline[0]!.x, polyline[1]!.x) <= 37 + 1e-6 &&
+          Math.max(polyline[0]!.x, polyline[1]!.x) >= 37.33 - 1e-6,
+      ),
+    ).toBe(true);
+    expect(
+      horizontal.some(
+        (polyline) =>
+          Math.min(polyline[0]!.x, polyline[1]!.x) <= 38.33 + 1e-6 &&
+          Math.max(polyline[0]!.x, polyline[1]!.x) >= 41 - 1e-6,
+      ),
+    ).toBe(true);
+  });
+
+  it("does not invent walls when a portal has no perpendicular brackets", () => {
+    const walls = [
+      [
+        { x: 0, y: 0 },
+        { x: 0, y: 1 },
+      ],
+    ];
+    const portals = [
+      {
+        freestanding: false,
+        bounds: [
+          { x: 10, y: 10 },
+          { x: 11, y: 10 },
+        ] as [{ x: number; y: number }, { x: number; y: number }],
+      },
+    ];
+    expect(healWallsAroundPortals(walls, portals)).toHaveLength(1);
+  });
 });

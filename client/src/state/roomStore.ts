@@ -2,6 +2,8 @@ import {
   ClientEvents,
   ServerEvents,
   clampMoveToBudget,
+  mapGridBounds,
+  movementBlockerSegments,
   type BattleState,
   type CameraState,
   type CharacterState,
@@ -261,12 +263,20 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       movement.remainingCells !== null &&
       movement.budgetCells !== null
     ) {
+      const map =
+        snapshot.maps.find((entry) => entry.id === current.mapId) ??
+        snapshot.map ??
+        null;
+      const blockers = map ? movementBlockerSegments(map.walls, map.portals) : [];
+      const bounds = map ? mapGridBounds(map) : null;
       next = clampMoveToBudget({
         from: { x: current.x, y: current.y },
         to: next,
         remainingCells: movement.remainingCells,
         turnStart: movement.turnStart,
         budgetCells: movement.budgetCells,
+        blockers,
+        bounds,
       });
     }
     set({

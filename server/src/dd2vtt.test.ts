@@ -41,6 +41,16 @@ describe("parseDd2vtt", () => {
     expect(parsed.lights).toEqual([]);
     expect(parsed.imageExt).toBe(".png");
     expect(parsed.mapSizeCells).toEqual({ x: 50, y: 36 });
+    expect(
+      parsed.walls.some(
+        (polyline) =>
+          polyline.length === 2 &&
+          polyline[0] &&
+          polyline[1] &&
+          Math.abs(polyline[0].y - 24.22222222222222) < 1e-6 &&
+          Math.abs(polyline[1].y - 24.22222222222222) < 1e-6,
+      ),
+    ).toBe(true);
   });
 
   it("merges objects_line_of_sight into walls and heals portal gaps", () => {

@@ -66,3 +66,4 @@ What becomes easier, harder, or out of scope.
 | [0025](0025-turn-carousel-hud.md) | Turn carousel HUD, system-agnostic turn model, dual initiative paths | accepted |
 | [0026](0026-procedural-bsp-dd2vtt.md) | Procedural BSP dungeon to dd2vtt | accepted |
 | [0027](0027-webm-map-packages.md) | WebM animated map backgrounds and map packages | accepted |
+| [0028](0028-uvtt-walls-and-path-movement.md) | UVTT wall geometry limits and path-based movement range | accepted |
