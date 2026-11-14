@@ -2,28 +2,39 @@
 
 Normally DMs have no friends. But this web app doesn't judge good throws.
 
-**DMs-only-Friend** ist eine selbstgehostbare Web-App für Tabletop-Rollenspiele (D&D und andere Systeme). Sie zeigt Karten auf einem separaten Bildschirm (TV/Tablet als Spielbrett), synchron zur GM-Ansicht, und erleichtert dem Spieleleiter die Arbeit: Initiative-Tracker, Würfel, Fog of War, Monster-Quick-Stats.
+**DMs-only-Friend** is a self-hostable web app for tabletop RPGs (D&D and others). It shows the battle map on a separate screen (TV/tablet as the table), stays in sync with the GM view, and helps the GM run the session: initiative, dice, fog of war, monster quick-stats.
 
-## Status
+![Landing](docs/screenshots/landing.png)
 
-Phase 1–3 table core is on main: rooms (PIN + single-use GM invite), multi-map Settings / Play HUD, tokens, initiative / HP / conditions, manual + LoS fog, doors/portals, soft `.dd2vtt` lights, WebM map packages ([ADR 0027](docs/decisions/0027-webm-map-packages.md)), session log, dice, tavern theme, Docker/GHCR deploy (`ghcr.io/firesh0ot/dms-only-friend`, host port **8042**). Phases 4–6 slices (physical screen, spawn/movement, BSP generate) are also on main; Phase 6 stylization and Phase 7 MCP remain later. Specs: [docs/phase-1.md](docs/phase-1.md), [ADR 0015](docs/decisions/0015-docker-ghcr-packaging.md). Playing: [EN](docs/playing/en/README.md) · [DE](docs/playing/de/README.md). Developing: [docs/developing/README.md](docs/developing/README.md).
+## Features
 
-## Documentation
+| Area | What you get |
+|---|---|
+| **Table core** | Rooms with PIN + single-use GM invite; multi-map Settings + Play HUD; tokens; dice |
+| **Combat** | Initiative carousel, HP / conditions, 0 HP leaves initiative with dead token look |
+| **Fog & map** | Manual fog + LoS from walls; doors/portals; soft `.dd2vtt` lights; WebM map packages |
+| **Screen** | Player/TV view with fan initiative carousel; camera follows the GM |
+| **Prep** | Character roster, portraits, SRD 5.1 monster import (CC-BY-4.0), spawn placement |
+| **Deploy** | Docker / GHCR image, default host port **8042** |
 
-- **Playing** — GM + remote player how-to: [EN](docs/playing/en/README.md) · [DE](docs/playing/de/README.md)
-- **Developing** — setup, Docker/GHCR deploy, monorepo, architecture pointers: [docs/developing/README.md](docs/developing/README.md)
-- **Decisions** — ADR index: [docs/decisions/README.md](docs/decisions/README.md)
+Themes: **Arcane** (dark, default) and **Tavern** (light), per device.
 
-## Dev
+![GM Play HUD](docs/screenshots/play.png)
+
+![Table / screen fan](docs/screenshots/screen.png)
+
+## Quick start (dev)
+
+Requirements: **Node.js 20+**, npm.
 
 ```bash
 npm install
 npm run dev
 ```
 
-- Client: http://localhost:5173
-- Server: http://localhost:3001
-- Test map fixture: `fixtures/dungeon-map-for-testing.png`
+- Client: http://localhost:5173  
+- Server: http://localhost:3001  
+- Test map: `fixtures/dungeon-map-for-testing.png`
 
 ```bash
 npm run lint
@@ -31,58 +42,50 @@ npm run test
 npm run build
 ```
 
-## Deploy (Docker / GHCR)
+## Quick start (Docker)
 
-Image: `ghcr.io/firesh0ot/dms-only-friend` (GitHub Actions publishes on `main` / `v*` — [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml)). Full notes: [Developing — Docker / table deploy](docs/developing/README.md#docker--table-deploy).
+Full guide: **[docs/docker-setup.md](docs/docker-setup.md)** (compose, `PUBLIC_ORIGIN`, WebSocket reverse proxy). ADR: [0015](docs/decisions/0015-docker-ghcr-packaging.md).
 
 ```bash
-cp .env.example .env   # edit PUBLIC_ORIGIN (and optional Traefik vars)
+cp .env.example .env   # set PUBLIC_ORIGIN
 docker compose pull && docker compose up -d
 ```
 
-LAN example without a `.env` file:
+- Image: `ghcr.io/firesh0ot/dms-only-friend`
+- Default: host **8042** → container **3001**
+- Data: named volume `dms-data` (SQLite + uploads)
+- Behind a reverse proxy: set `PUBLIC_ORIGIN=https://your.fqdn` and enable WebSocket upgrades — otherwise join hangs on **Joining room…**
 
-```bash
-export PUBLIC_ORIGIN=http://192.168.1.10:8042
-docker compose pull && docker compose up -d
-```
+## Status
 
-- Default publish: host **8042** → container **3001** (`PORT` overrides the host side).
-- Set `PUBLIC_ORIGIN` to the URL browsers actually open (scheme + host + port, no trailing slash) so GM invite / room links from the API are correct.
-- Behind an existing reverse proxy: put the public HTTPS origin in `.env` (e.g. `PUBLIC_ORIGIN=https://vtt.example.com`). TLS and FQDN stay on the proxy — this compose file does **not** ship Caddy or Traefik as a service.
-- Optional Traefik: `TRAEFIK_ENABLE=true` and `FQDN=vtt.example.com` enable Docker labels (`traefik.enable`, Host rule, `websecure`, service port **3001**). Defaults leave Traefik off so plain compose still works.
-- **WebSockets required:** Socket.IO needs HTTP `Upgrade` / WebSockets through the proxy. If the browser hangs on **Joining room…**, the proxy is almost certainly blocking upgrades — see [Developing — reverse proxy / WebSockets](docs/developing/README.md#websockets-required-joining-room).
-- Data (SQLite + uploads) lives in the `dms-data` volume.
+Phases 1–6 table slices are on main (rooms, maps, fog/LoS, physical screen calibration, spawn/movement budget, BSP generate). Phase 6 image stylization and Phase 7 MCP remain later.
 
-## Kernentscheidungen
+Specs: [phase-1](docs/phase-1.md) · [phase-4](docs/phase-4-offline-screen.md) · [phase-5](docs/phase-5-online-movement.md) · [phase-6](docs/phase-6-procedural-dungeon.md) · [SRD library](docs/srd-monster-library.md) · [design rework](docs/design-rework.md)
 
-- **Web-App** (React + TypeScript, PixiJS/WebGL für die Karten-Canvas), kein Electron.
-- **Backend**: Node.js + TypeScript, Socket.IO (WebSocket-Sync), Server = Single Source of Truth.
-- **Persistenz**: SQLite, Dateien auf Disk. Self-Hosting via Docker/GHCR (`ghcr.io/firesh0ot/dms-only-friend`).
-- **Auth**: Raum-Codes (kein Account-Zwang). GM erstellt Raum → Spieler/Screen joinen per Code/Link.
-- **Karten-Import**: Universal VTT (`.dd2vtt`) als Standardformat → unterstützt Dungeon Map Builder, Dungeon Scrawl, Dungeondraft, Dungeon Alchemist. Fallback: PNG/JPG (manuelles Grid), animiertes WebM als Hintergrund-Layer.
-- **KI-Maps (Roadmap Phase 6)**: prozedurales Layout (BSP/WFC) mit dd2vtt-kompatiblen Daten, optionale Bild-Stilisierung (Stable Diffusion/ControlNet, grid-genau) als Hintergrund-Layer.
-- **MCP-Server (Roadmap Phase 7)**: separater Node-Service, exponiert GM-Aktionen als MCP-Tools.
+![Settings](docs/screenshots/settings.png)
 
-## Rollen
+## Documentation
 
-| Rolle | Sicht |
+- **Playing** — GM + remote players: [EN](docs/playing/en/README.md) · [DE](docs/playing/de/README.md)
+- **Developing** — monorepo, Prep/Play architecture: [docs/developing/README.md](docs/developing/README.md)
+- **Docker / table deploy** — [docs/docker-setup.md](docs/docker-setup.md)
+- **Decisions** — [docs/decisions/README.md](docs/decisions/README.md)
+
+Screenshots under `docs/screenshots/` are app UI captures (no third-party art).
+
+## Roles
+
+| Role | View |
 |---|---|
-| **GM** | Settings (Karten, Roster, Links) + Play-Inseln (Map, Initiative, NPCs) |
-| **Player-Screen** | Karte + TCG-Initiative-Leiste, Kamera folgt dem GM |
-| **Spieler (remote)** | Wie Player-Screen + eigener Token |
+| **GM** | Settings (maps, roster, links) + Play HUD (map, initiative, fog, spawn, dice) |
+| **Player-Screen** | Map + fan initiative; camera follows GM |
+| **Player (remote)** | Like screen + own token |
 
-## Roadmap
+## Architecture (short)
 
-- **Phase 1 – Tisch-Kern:** Raum-System, statische Karte (PNG) + Grid, Tokens draggen, WebSocket-Sync, Player-Screen via Link, einfache Würfel. *Ziel: eine echte Session spielbar.*
-- **Phase 2 – DM-Werkzeuge:** Initiative-Tracker (persistente Rundenreihenfolge, Next-Turn, HP-Tracking), Monster-Quickstats, manuelle Fog-of-War-Ebene, Bedingungen auf Tokens.
-- **Phase 3 – Map-Integration:** `.dd2vtt`-Importer (PNG, Grid, Wände, Türen, Lichter), Map-Paket-Manifest (dd2vtt + optionales animiertes WebM), automatischer Line-of-Sight-Fog, PNG-Fallback mit Grid-Einstellung.
-- **Phase 2-Erweiterung – SRD-Monster-Bibliothek:** On-Demand-Import von SRD-5e-Monstern (CC-BY-4.0) als NPCs, mit Cache und Offline-Fallback. → [docs/srd-monster-library.md](docs/srd-monster-library.md)
-- **Phase-2-Erweiterung – Turn-Carousel-HUD & Zug-Logik:** Magic-Karten-artiges Initiative-Carousel (Mitte: aktive Karte mit Bedienung, Seiten: Nachbarn mit Name/HP), Initiative online gewürfelt oder offline eingegeben, Zug mit Move/Aktion/Bonus. → [docs/play-hud-initiative.md](docs/play-hud-initiative.md)
-- **Design-Rework:** Tokens-first-Neugestaltung mit zwei Themes als Dark/Light-Modus (Hell = Verfeinerte Taverne, Dunkel = Arkaner Modus), Screen-für-Screen: Landing → DM-Play → Settings → Tisch-Monitor. → [docs/design-rework.md](docs/design-rework.md)
-- **Phase 4 – Offline-Spielerfahrung:** Physische Rastergrösse auf dem Tisch-Monitor (Kalibrierung per Zoll+Auflösung oder Lineal, Zoom-Lock im Screen-Modus). → [docs/phase-4-offline-screen.md](docs/phase-4-offline-screen.md)
-- **Phase 5 – Online-Spielerfahrung:** Spawn-Bereiche pro Karte und Bewegungsradius bei aktiver Initiative (server-erzwungenes Bewegungsbudget). → [docs/phase-5-online-movement.md](docs/phase-5-online-movement.md)
-- **Phase 6 – KI:** prozeduraler Dungeon-Generator mit dd2vtt-Export, danach Bild-Stilisierung als optionaler Layer. → [docs/phase-6-procedural-dungeon.md](docs/phase-6-procedural-dungeon.md)
-- **Phase 7 – MCP & Feinschliff:** MCP-Server (place_token, roll, next_turn, reveal…), Sounds, Makros.
-
-Detaillierte Spezifikationen: [docs/phase-1.md](docs/phase-1.md), [docs/srd-monster-library.md](docs/srd-monster-library.md), [docs/phase-4-offline-screen.md](docs/phase-4-offline-screen.md), [docs/phase-5-online-movement.md](docs/phase-5-online-movement.md), [docs/phase-6-procedural-dungeon.md](docs/phase-6-procedural-dungeon.md)
+- **Web app**: React + TypeScript, PixiJS v8 map canvas — no Electron
+- **Backend**: Node.js + Socket.IO; server is single source of truth
+- **Persistence**: SQLite + uploads on disk
+- **Auth**: room codes (no accounts); GM needs PIN + one-time invite
+- **Maps**: Universal VTT (`.dd2vtt`); PNG/JPG fallback; optional WebM layer
+- **Roadmap leftovers**: Phase 6 stylization, Phase 7 MCP / sounds / macros — see [AGENTS.md](AGENTS.md)
