@@ -1,5 +1,6 @@
 import type { PortalState, WallPolyline } from "./events.js";
 import type { GridPoint } from "./movement.js";
+import { healWallsAroundPortals, snapPortalBoundsToWalls } from "./wallHeal.js";
 
 export type GridSegment = { a: GridPoint; b: GridPoint };
 
@@ -25,13 +26,14 @@ export function wallPolylinesToGridSegments(walls: WallPolyline[]): GridSegment[
 
 export function closedPortalsToGridSegments(
   portals: Array<Pick<PortalState, "bounds" | "closed">>,
+  walls: WallPolyline[] = [],
 ): GridSegment[] {
   const segments: GridSegment[] = [];
   for (const portal of portals) {
     if (!portal.closed) {
       continue;
     }
-    const [a, b] = portal.bounds;
+    const [a, b] = snapPortalBoundsToWalls(portal.bounds, walls);
     if (a.x === b.x && a.y === b.y) {
       continue;
     }
@@ -42,9 +44,19 @@ export function closedPortalsToGridSegments(
 
 export function movementBlockerSegments(
   walls: WallPolyline[],
-  portals: Array<Pick<PortalState, "bounds" | "closed">> = [],
+  portals: Array<Pick<PortalState, "bounds" | "closed"> & { freestanding?: boolean }> = [],
 ): GridSegment[] {
-  return [...wallPolylinesToGridSegments(walls), ...closedPortalsToGridSegments(portals)];
+  const healedWalls = healWallsAroundPortals(
+    walls,
+    portals.map((portal) => ({
+      bounds: portal.bounds,
+      freestanding: portal.freestanding === true,
+    })),
+  );
+  return [
+    ...wallPolylinesToGridSegments(healedWalls),
+    ...closedPortalsToGridSegments(portals, healedWalls),
+  ];
 }
 
 export function cellCenter(point: GridPoint): GridPoint {

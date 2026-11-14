@@ -10,17 +10,18 @@ import {
   type Texture,
 } from "pixi.js";
 import { useEffect, useRef } from "react";
-import type {
-  CameraState,
-  FogPaintMode,
-  FogState,
-  FogStroke,
-  FogStrokeInput,
-  MapState,
-  MovementBudget,
-  Role,
-  SpawnPoint,
-  TokenState,
+import {
+  healWallsAroundPortals,
+  type CameraState,
+  type FogPaintMode,
+  type FogState,
+  type FogStroke,
+  type FogStrokeInput,
+  type MapState,
+  type MovementBudget,
+  type Role,
+  type SpawnPoint,
+  type TokenState,
 } from "@dms/shared";
 import { followGmPanOnly, type ScreenDisplayMode } from "../lib/screenCalibration";
 import { downsamplePoints } from "./fogPoints";
@@ -891,20 +892,18 @@ function drawWallsAndPortals(graphics: Graphics, map: MapState, showOverlay: boo
   if (!showOverlay) {
     return;
   }
-  if (map.walls.length > 0) {
-    graphics.setStrokeStyle({ width: 2, color: 0xd97706, alpha: 0.85 });
-    for (const polyline of map.walls) {
-      const first = polyline[0];
-      if (!first) {
-        continue;
-      }
-      graphics.moveTo(map.offsetX + first.x * map.gridPx, map.offsetY + first.y * map.gridPx);
-      for (let index = 1; index < polyline.length; index += 1) {
-        const point = polyline[index]!;
-        graphics.lineTo(map.offsetX + point.x * map.gridPx, map.offsetY + point.y * map.gridPx);
-      }
+  const walls = healWallsAroundPortals(map.walls, map.portals);
+  for (const polyline of walls) {
+    const first = polyline[0];
+    if (!first || polyline.length < 2) {
+      continue;
     }
-    graphics.stroke();
+    graphics.moveTo(map.offsetX + first.x * map.gridPx, map.offsetY + first.y * map.gridPx);
+    for (let index = 1; index < polyline.length; index += 1) {
+      const point = polyline[index]!;
+      graphics.lineTo(map.offsetX + point.x * map.gridPx, map.offsetY + point.y * map.gridPx);
+    }
+    graphics.stroke({ width: 3, color: 0xb45309, alpha: 0.9, cap: "round", join: "round" });
   }
 
   for (const portal of map.portals) {
@@ -916,14 +915,15 @@ function drawWallsAndPortals(graphics: Graphics, map: MapState, showOverlay: boo
       x: map.offsetX + portal.bounds[1].x * map.gridPx,
       y: map.offsetY + portal.bounds[1].y * map.gridPx,
     };
-    graphics.setStrokeStyle({
-      width: 4,
-      color: portal.closed ? 0xb45309 : 0x4d7c0f,
-      alpha: 0.95,
-    });
     graphics.moveTo(a.x, a.y);
     graphics.lineTo(b.x, b.y);
-    graphics.stroke();
+    graphics.stroke({
+      width: 5,
+      color: portal.closed ? 0xd97706 : 0x4d7c0f,
+      alpha: 0.95,
+      cap: "round",
+      join: "round",
+    });
   }
 }
 

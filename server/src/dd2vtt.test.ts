@@ -43,6 +43,43 @@ describe("parseDd2vtt", () => {
     expect(parsed.mapSizeCells).toEqual({ x: 50, y: 36 });
   });
 
+  it("merges objects_line_of_sight into walls and heals portal gaps", () => {
+    const fixture = path.resolve(process.cwd(), "../fixtures/tiny-map-for-unit-tests.dd2vtt");
+    const base = JSON.parse(fs.readFileSync(fixture, "utf8")) as Record<string, unknown>;
+    const lineOfSight = base.line_of_sight;
+    base.line_of_sight = [
+      [
+        { x: 0, y: 0 },
+        { x: 0, y: 0.25 },
+      ],
+      [
+        { x: 0, y: 0.75 },
+        { x: 0, y: 1 },
+      ],
+    ];
+    base.objects_line_of_sight = lineOfSight;
+    base.portals = [
+      {
+        bounds: [
+          { x: 0, y: 0.25 },
+          { x: 0, y: 0.75 },
+        ],
+        closed: true,
+        freestanding: false,
+      },
+    ];
+    const parsed = parseDd2vtt(JSON.stringify(base));
+    expect(parsed.portals).toHaveLength(1);
+    expect(parsed.walls.length).toBeGreaterThanOrEqual(3);
+    expect(
+      parsed.walls.some(
+        (polyline) =>
+          polyline.length >= 2 &&
+          polyline.some((point) => point.x === 2 || point.y === 0),
+      ),
+    ).toBe(true);
+  });
+
   it("rejects malformed JSON", () => {
     expect(() => parseDd2vtt("{nope")).toThrow(/not valid JSON/);
   });

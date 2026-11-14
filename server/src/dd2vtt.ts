@@ -1,3 +1,4 @@
+import { healWallsAroundPortals, mergeWallPolylines } from "@dms/shared";
 import { z } from "zod";
 
 const PointSchema = z.object({
@@ -29,6 +30,7 @@ const Dd2vttSchema = z.object({
     pixels_per_grid: z.number().positive(),
   }),
   line_of_sight: z.array(z.array(PointSchema)).default([]),
+  objects_line_of_sight: z.array(z.array(PointSchema)).default([]),
   portals: z.array(PortalSchema).default([]),
   lights: z.array(LightSchema).default([]),
   image: z.string().min(1),
@@ -79,9 +81,14 @@ export function parseDd2vtt(raw: string | Buffer): ParsedDd2vtt {
 
   const origin = doc.resolution.map_origin ?? { x: 0, y: 0 };
   const image = decodeEmbeddedImage(doc.image);
-  const walls = doc.line_of_sight
-    .map((polyline) => polyline.map((point) => ({ x: point.x, y: point.y })))
-    .filter((polyline) => polyline.length >= 2);
+  const parsedWalls = mergeWallPolylines(
+    doc.line_of_sight
+      .map((polyline) => polyline.map((point) => ({ x: point.x, y: point.y })))
+      .filter((polyline) => polyline.length >= 2),
+    doc.objects_line_of_sight
+      .map((polyline) => polyline.map((point) => ({ x: point.x, y: point.y })))
+      .filter((polyline) => polyline.length >= 2),
+  );
   const portals = doc.portals
     .map((portal, index) => {
       const a = portal.bounds[0];
@@ -100,6 +107,7 @@ export function parseDd2vtt(raw: string | Buffer): ParsedDd2vtt {
       };
     })
     .filter((portal): portal is ParsedPortal => portal !== null);
+  const walls = healWallsAroundPortals(parsedWalls, portals);
 
   const lights = doc.lights
     .map((light, index) => {
