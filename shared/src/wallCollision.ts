@@ -42,9 +42,14 @@ export function closedPortalsToGridSegments(
   return segments;
 }
 
+export type MovementBlockerOptions = {
+  ignoreClosedPortals?: boolean;
+};
+
 export function movementBlockerSegments(
   walls: WallPolyline[],
   portals: Array<Pick<PortalState, "bounds" | "closed"> & { freestanding?: boolean }> = [],
+  options: MovementBlockerOptions = {},
 ): GridSegment[] {
   const healedWalls = healWallsAroundPortals(
     walls,
@@ -53,10 +58,10 @@ export function movementBlockerSegments(
       freestanding: portal.freestanding === true,
     })),
   );
-  return [
-    ...wallPolylinesToGridSegments(healedWalls),
-    ...closedPortalsToGridSegments(portals, healedWalls),
-  ];
+  const portalBlockers = options.ignoreClosedPortals
+    ? []
+    : closedPortalsToGridSegments(portals, healedWalls);
+  return [...wallPolylinesToGridSegments(healedWalls), ...portalBlockers];
 }
 
 export function cellCenter(point: GridPoint): GridPoint {

@@ -57,6 +57,13 @@ describe("pathCostChebyshev", () => {
     const bounds = { minX: 0, maxX: 10, minY: 0, maxY: 10 };
     expect(pathCostChebyshev({ x: 3, y: 4 }, { x: 7, y: 4 }, blockers, bounds, 6)).toBeNull();
   });
+
+  it("paths through a closed door when ignoreClosedPortals is set", () => {
+    const blockers = movementBlockerSegments(wallWithDoorGap, closedDoorPortals, {
+      ignoreClosedPortals: true,
+    });
+    expect(pathCostChebyshev({ x: 3, y: 4 }, { x: 7, y: 4 }, blockers)).toBe(4);
+  });
 });
 
 describe("reachableCells", () => {

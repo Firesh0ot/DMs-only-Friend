@@ -194,7 +194,12 @@ export function registerSocketHandlers(
         const map = token.mapId
           ? rooms.getMapById(token.mapId)
           : rooms.getActiveMap(session.roomId);
-        const blockers = map ? movementBlockerSegments(map.walls, map.portals) : [];
+        const battleActive = rooms.playerMovementLocked(session.roomId);
+        const blockers = map
+          ? movementBlockerSegments(map.walls, map.portals, {
+              ignoreClosedPortals: !battleActive,
+            })
+          : [];
         const bounds = map ? mapGridBounds(map) : null;
         if (map && blockers.length > 0) {
           if (

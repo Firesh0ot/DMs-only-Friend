@@ -125,3 +125,49 @@ describe("moveBlockedByWalls", () => {
     expect(moveBlockedByWalls({ x: 1, y: 1 }, { x: 1, y: 1 }, wallBetween)).toBe(false);
   });
 });
+
+describe("movementBlockerSegments ignoreClosedPortals", () => {
+  const wallWithDoorGap = [
+    [
+      { x: 5, y: 0 },
+      { x: 5, y: 4 },
+    ],
+    [
+      { x: 5, y: 5 },
+      { x: 5, y: 10 },
+    ],
+  ];
+  const closedDoor = [
+    {
+      bounds: [
+        { x: 5, y: 4 },
+        { x: 5, y: 5 },
+      ] as [{ x: number; y: number }, { x: number; y: number }],
+      closed: true,
+      freestanding: false,
+    },
+  ];
+
+  it("blocks closed doors by default", () => {
+    const blockers = movementBlockerSegments(wallWithDoorGap, closedDoor);
+    expect(moveBlockedByWalls({ x: 4, y: 4 }, { x: 5, y: 4 }, blockers)).toBe(true);
+  });
+
+  it("treats closed doors as open when ignoreClosedPortals is set", () => {
+    const blockers = movementBlockerSegments(wallWithDoorGap, closedDoor, {
+      ignoreClosedPortals: true,
+    });
+    expect(moveBlockedByWalls({ x: 4, y: 4 }, { x: 5, y: 4 }, blockers)).toBe(false);
+  });
+
+  it("still blocks solid walls when ignoreClosedPortals is set", () => {
+    const solidWall = [
+      [
+        { x: 2, y: 0 },
+        { x: 2, y: 4 },
+      ],
+    ];
+    const blockers = movementBlockerSegments(solidWall, [], { ignoreClosedPortals: true });
+    expect(moveBlockedByWalls({ x: 1, y: 1 }, { x: 2, y: 1 }, blockers)).toBe(true);
+  });
+});
