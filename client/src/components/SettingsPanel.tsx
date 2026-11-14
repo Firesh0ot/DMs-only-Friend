@@ -16,6 +16,7 @@ import { parseOptionalInt } from "../lib/hp";
 import { appendMapUploadFormData, resolveMapUploadParts } from "../lib/mapUploadForm";
 import { getSocket } from "../socket/socket";
 import { CopyableLinkField } from "./CopyableLinkField";
+import { ThemeToggle } from "./ThemeToggle";
 
 type Props = {
   code: string;
@@ -721,9 +722,12 @@ export function SettingsPanel({
     <section className="settings-panel panel stack" aria-labelledby={`${baseId}-title`}>
       <div className="settings-panel__header row">
         <h2 id={`${baseId}-title`}>Settings</h2>
-        <button type="button" className="secondary" onClick={onClose}>
-          Back to Play
-        </button>
+        <div className="row settings-panel__header-actions">
+          <ThemeToggle className="theme-toggle--prominent" />
+          <button type="button" className="secondary" onClick={onClose}>
+            Back to Play
+          </button>
+        </div>
       </div>
 
       {message ? (

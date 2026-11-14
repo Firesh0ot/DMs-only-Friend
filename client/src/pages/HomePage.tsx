@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { normalizeRoomCode, roomCodePathSegment } from "@dms/shared";
 import { LanternToggle } from "../components/LanternToggle";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 type CreatedRoom = {
   code: string;
@@ -148,6 +149,7 @@ export function HomePage() {
   return (
     <main className="app-shell">
       <div className="chrome-bar">
+        <ThemeToggle className="theme-toggle--prominent" />
         <LanternToggle />
       </div>
       <p className="muted">Self-hosted tabletop board</p>

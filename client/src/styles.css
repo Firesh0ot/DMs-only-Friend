@@ -1,77 +1,26 @@
 :root {
-  color-scheme: dark;
-  --wood: #6b4226;
-  --wood-deep: #3a2416;
-  --wood-mid: #8b5a35;
-  --parchment: #e8d6ad;
-  --parchment-deep: #d4bc8a;
-  --ink: #1c140e;
-  --ink-soft: rgba(28, 20, 14, 0.72);
-  --lantern: #e8a045;
-  --lantern-glow: rgba(232, 160, 69, 0.45);
-  --iron: #3d3a36;
-  --iron-bright: #6a645c;
-  --smoke: rgba(18, 14, 10, 0.55);
-  --vignette: rgba(12, 8, 5, 0.62);
-  --moss: #5a3a22;
-  --moss-deep: #3a2416;
-  --signal: #c45c26;
-  --panel: var(--parchment);
-  --font-display: "Cinzel", "Palatino Linotype", serif;
-  --font-body: "IBM Plex Sans", "Segoe UI", sans-serif;
-  --frame-outer: 18px;
-  --shadow-plaque:
-    0 1px 0 rgba(255, 230, 180, 0.18) inset,
-    0 -2px 6px rgba(20, 10, 4, 0.35) inset,
-    0 14px 28px rgba(8, 4, 2, 0.45),
-    0 2px 0 rgba(0, 0, 0, 0.35);
-  --shadow-recess:
-    0 0 0 1px rgba(0, 0, 0, 0.55),
-    0 18px 36px rgba(0, 0, 0, 0.55),
-    inset 0 10px 24px rgba(0, 0, 0, 0.45),
-    inset 0 -2px 0 rgba(255, 220, 160, 0.08);
   font-family: var(--font-body);
   color: var(--ink);
   background-color: var(--wood-deep);
 }
 
 html[data-lantern="on"] {
-  --wood: #8a5632;
-  --wood-deep: #432a18;
-  --wood-mid: #a86a3e;
-  --parchment: #f0dfb6;
-  --parchment-deep: #dfc694;
-  --ink: #1a120c;
-  --ink-soft: rgba(26, 18, 12, 0.74);
   --lantern: #f4b95a;
   --lantern-glow: rgba(255, 186, 90, 0.65);
-  --iron: #5a5044;
-  --iron-bright: #8a7e6e;
+  --accent-glow: 0 0 14px rgba(255, 186, 90, 0.65);
   --smoke: rgba(40, 22, 8, 0.12);
   --vignette: rgba(50, 22, 6, 0.32);
-  --signal: #d2691e;
-  --felt: #3a2a18;
   --ambient-warm: radial-gradient(ellipse at 50% -10%, rgba(255, 196, 110, 0.42), transparent 52%),
     radial-gradient(ellipse at 12% 85%, rgba(255, 140, 60, 0.16), transparent 42%),
     radial-gradient(ellipse at 88% 75%, rgba(255, 170, 80, 0.14), transparent 40%);
 }
 
 html[data-lantern="off"] {
-  --wood: #3f3024;
-  --wood-deep: #12100e;
-  --wood-mid: #524032;
-  --parchment: #bba87c;
-  --parchment-deep: #9a875e;
-  --ink: #100c08;
-  --ink-soft: rgba(16, 12, 8, 0.86);
   --lantern: #6e5632;
   --lantern-glow: rgba(90, 70, 40, 0.12);
-  --iron: #22201e;
-  --iron-bright: #484440;
+  --accent-glow: 0 0 8px rgba(90, 70, 40, 0.12);
   --smoke: rgba(6, 8, 10, 0.72);
   --vignette: rgba(2, 2, 4, 0.84);
-  --signal: #a85a28;
-  --felt: #1a1612;
   --ambient-warm: radial-gradient(ellipse at 50% 8%, rgba(70, 65, 50, 0.16), transparent 48%),
     radial-gradient(ellipse at 15% 92%, rgba(25, 35, 40, 0.35), transparent 48%);
 }
@@ -425,7 +374,7 @@ input[type="checkbox"]:checked {
 }
 
 a {
-  color: var(--wood-deep);
+  color: var(--heading);
 }
 
 html[data-lantern="off"] a {
@@ -621,13 +570,27 @@ html[data-lantern="off"] .brand {
   background-color: color-mix(in srgb, var(--parchment) 94%, transparent);
 }
 
+:root[data-theme="arcane"] .panel,
+:root[data-theme="arcane"] .settings-panel,
+:root[data-theme="arcane"] .hud-panel,
+:root[data-theme="arcane"] .hud-fog-rail,
+:root[data-theme="arcane"] .hud-bottom,
+:root[data-theme="arcane"] .session-strip,
+:root[data-theme="arcane"] .initiative-rail,
+:root[data-theme="arcane"] .dice-toast {
+  background-image:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 78%, transparent), color-mix(in srgb, var(--surface-0) 70%, transparent)),
+    url("/theme/parchment.webp");
+  background-blend-mode: multiply, normal;
+}
+
 .panel h2,
 .settings-panel h2,
 .settings-panel h3,
 .hud-panel__header h2 {
   font-family: var(--font-display);
   letter-spacing: 0.03em;
-  color: var(--wood-deep);
+  color: var(--heading);
 }
 
 .settings-panel {
@@ -691,8 +654,76 @@ html[data-lantern="off"] .brand {
 .chrome-bar {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--ink) 35%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 18%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--wood-mid), var(--wood-deep));
+  color: var(--parchment);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.theme-toggle--prominent {
+  min-height: 2.4rem;
+  padding: 0.45rem 0.85rem;
+  font-size: var(--text-md);
+  box-shadow: var(--accent-glow), var(--shadow-sm);
+}
+
+.theme-toggle__label {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.theme-toggle__track {
+  position: relative;
+  width: 2.4rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-0) 75%, black);
+  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.theme-toggle__thumb {
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: var(--accent-glow);
+  transition: transform var(--motion-fast);
+}
+
+.theme-toggle--arcane .theme-toggle__thumb {
+  transform: translateX(1.1rem);
+}
+
+.theme-toggle--tavern .theme-toggle__thumb {
+  transform: translateX(0);
+}
+
+.settings-panel__header-actions {
+  margin-left: auto;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .lantern-toggle {
@@ -993,7 +1024,7 @@ button.hud-fog-rail__btn {
   background:
     linear-gradient(180deg, rgba(255, 248, 230, 0.55), transparent 55%),
     var(--parchment-deep);
-  color: var(--wood-deep);
+  color: var(--heading);
   box-shadow:
     0 1px 0 rgba(255, 240, 200, 0.35) inset,
     0 2px 4px rgba(20, 10, 4, 0.28);
@@ -1096,7 +1127,7 @@ button.hud-fog-rail__btn.is-active {
   display: block;
   font-family: var(--font-display);
   margin-bottom: 0.35rem;
-  color: var(--wood-deep);
+  color: var(--heading);
 }
 
 .session-strip__events {
@@ -1194,7 +1225,7 @@ button.hud-fog-rail__btn.is-active {
 .hud-dice__result strong {
   font-family: var(--font-display);
   font-size: 1.25rem;
-  color: var(--wood-deep);
+  color: var(--heading);
   line-height: 1.1;
 }
 
@@ -1240,7 +1271,7 @@ button.hud-fog-rail__btn.is-active {
 .dice-toast__total {
   font-family: var(--font-display);
   font-size: 1.35rem;
-  color: var(--wood-deep);
+  color: var(--heading);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1350,7 +1381,7 @@ button.hud-panel__collapse {
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: var(--wood-deep);
+  color: var(--heading);
   box-shadow: none;
   text-shadow: none;
   cursor: pointer;
@@ -1419,7 +1450,7 @@ button.hud-panel__collapse:focus-visible {
   background: rgba(60, 40, 20, 0.12);
   font-family: var(--font-display);
   font-size: 1rem;
-  color: var(--wood-deep);
+  color: var(--heading);
 }
 
 .hud-init__active-body {
@@ -1548,7 +1579,7 @@ button.hud-panel__collapse:focus-visible {
   justify-content: space-between;
   align-items: baseline;
   margin-bottom: 0.5rem;
-  color: var(--wood-deep);
+  color: var(--heading);
 }
 
 .initiative-rail__round strong {
@@ -1701,7 +1732,7 @@ button.hud-panel__collapse:focus-visible {
   background: rgba(255, 248, 230, 0.85);
   font: inherit;
   font-weight: 600;
-  color: var(--wood-deep);
+  color: var(--heading);
   cursor: pointer;
 }
 
@@ -1723,7 +1754,7 @@ button.hud-panel__collapse:focus-visible {
   margin: 0.75rem 0 0.25rem;
   font-family: var(--font-display);
   font-size: 0.95rem;
-  color: var(--wood-deep);
+  color: var(--heading);
 }
 
 .settings-status {
@@ -1826,7 +1857,7 @@ button.hud-panel__collapse:focus-visible {
   border-radius: 6px;
   border: 1px solid rgba(90, 60, 30, 0.28);
   background: rgba(232, 160, 69, 0.18);
-  color: var(--wood-deep);
+  color: var(--heading);
   font-weight: 600;
 }
 
@@ -2497,7 +2528,7 @@ html[data-lantern="off"] .calibration-preview-cell {
 
 .turn-carousel__round strong {
   font-size: 1.15rem;
-  color: var(--wood-deep);
+  color: var(--heading);
 }
 
 .turn-carousel__display {
