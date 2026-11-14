@@ -1,4 +1,11 @@
-import type { MapState, PortalState, TokenState, WallPolyline } from "@dms/shared";
+import {
+  healWallsAroundPortals,
+  snapPortalBoundsToWalls,
+  type MapState,
+  type PortalState,
+  type TokenState,
+  type WallPolyline,
+} from "@dms/shared";
 
 export type LosPoint = { x: number; y: number };
 export type LosSegment = { a: LosPoint; b: LosPoint };
@@ -22,6 +29,9 @@ export function wallPolylinesToSegments(
       if (!from || !to) {
         continue;
       }
+      if (from.x === to.x && from.y === to.y) {
+        continue;
+      }
       segments.push({
         a: wallPointToPixel(from, map),
         b: wallPointToPixel(to, map),
@@ -33,16 +43,18 @@ export function wallPolylinesToSegments(
 
 export function closedPortalSegments(
   portals: PortalState[],
-  map: Pick<MapState, "gridPx" | "offsetX" | "offsetY">,
+  map: Pick<MapState, "gridPx" | "offsetX" | "offsetY" | "walls" | "portals">,
 ): LosSegment[] {
+  const wallGuide = healWallsAroundPortals(map.walls, map.portals ?? portals);
   const segments: LosSegment[] = [];
   for (const portal of portals) {
     if (!portal.closed) {
       continue;
     }
+    const bounds = snapPortalBoundsToWalls(portal.bounds, wallGuide);
     segments.push({
-      a: wallPointToPixel(portal.bounds[0], map),
-      b: wallPointToPixel(portal.bounds[1], map),
+      a: wallPointToPixel(bounds[0], map),
+      b: wallPointToPixel(bounds[1], map),
     });
   }
   return segments;
@@ -51,8 +63,9 @@ export function closedPortalSegments(
 export function losBlockingSegments(
   map: Pick<MapState, "walls" | "portals" | "gridPx" | "offsetX" | "offsetY" | "width" | "height">,
 ): LosSegment[] {
+  const healedWalls = healWallsAroundPortals(map.walls, map.portals);
   return [
-    ...wallPolylinesToSegments(map.walls, map),
+    ...wallPolylinesToSegments(healedWalls, map),
     ...closedPortalSegments(map.portals, map),
     ...mapBoundarySegments(map.width, map.height),
   ];
