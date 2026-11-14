@@ -1,6 +1,6 @@
 # Design-Rework: Visuelle Neugestaltung (Spezifikation)
 
-Phase für ein systematisches Design-Rework der gesamten Website. Ansatz: **Design-Tokens zuerst, dann Screen für Screen** – die App bleibt während des gesamten Reworks jederzeit spielbar. Grundlage sind drei ausgearbeitete Design-Varianten, aus denen Oli (Produkt-Owner) eine auswählt.
+Phase für ein systematisches Design-Rework der gesamten Website. Ansatz: **Design-Tokens zuerst, dann Screen für Screen** – die App bleibt während des gesamten Reworks jederzeit spielbar. Entscheidung (Oli): Es werden beide Design-Richtungen umgesetzt – A „Verfeinerte Taverne“ als Hell-Modus und B+C „Arkaner Modus“ als Dunkel-Modus – als benutzbarer Dark/Light-Umschalter. Der frühere „B+C-Split pro Screen“ (Play dunkel, Landing hell) wird damit abgelöst: Das Theme wählt der Nutzer, nicht der Screen.
 
 ## Ziel
 
@@ -18,9 +18,9 @@ Screenshots haben **beide** Rollen:
 
 Screenshots werden **nicht** als pixelgenaue Vorlage für das neue Design benutzt – maßgeblich sind Tokens und Varianten-Spec, nicht der alte Ist-Zustand.
 
-## Die drei Design-Varianten
+## Die zwei Themes (früher: drei Varianten)
 
-Alle Varianten nutzen die bestehende Infrastruktur (Cinzel + IBM Plex Sans sind self-hosted, Lantern-Toggle bleibt als Feature erhalten). Die Entscheidung trifft Oli; bis dahin ist keine Variante umgesetzt.
+Entscheidung: Beide Richtungen werden als umschaltbare Themes gebaut – Dark/Light-Modus. Beide nutzen die bestehende Infrastruktur (Cinzel + IBM Plex Sans self-hosted, Lantern-Toggle bleibt). C wird nicht eigenständig gebaut; seine Präzisions-Prinzipien (Typo-Disziplin, Karten-Bordenlinien, klare Zustandsfarben) fliessen als Handwerk in beide Themes ein.
 
 ### Variante A – „Verfeinerte Taverne" (Evolution)
 
@@ -52,15 +52,16 @@ Helle, moderne Interface-Ästhetik mit Fantasy-Akzenten: Pergament-weiße Fläch
 - **Stärke:** Freundlichster erster Eindruck (Landing!), beste Lesbarkeit, modernster Look für neue Nutzer.
 - **Schwäche:** Am Tisch-Monitor (dunkler Raum) sind helle Flächen ungünstig – der Screen müsste als Ausnahme dunkel bleiben (Dark-Screen-Ausnahme in den Tokens vorsehen).
 
-**Empfehlung (nicht bindend):** Variante B für Play/Screen kombiniert mit der Landing-Freundlichkeit von C wäre ideal – wenn Oli das wünscht, ist das eine vierte Variante „B+C-Split" (Play dunkel, Landing/Settings hell). In den Tokens ist das nur umsetzbar, wenn **von Anfang an** zwei Flächenschemata (`scheme: dark` / `scheme: light`) vorgesehen werden.
+**Umsetzung (entschieden):** Zwei Flächenschemata sind von Anfang an Teil der Tokens – `:root[data-theme="tavern"]` (Hell) und `:root[data-theme="arcane"]` (Dunkel) liefern Werte für dieselben semantischen Tokens. Umschalter: prominent auf der Landing, im Settings, pro Gerät persistiert (localStorage, Key `dms.theme.v1`, Default: `arcane`). Kein Raum-Setting – Theme ist persönlicher Geschmack wie die Screen-Kalibrierung.
 
 ## Design-Tokens (`client/src/theme/tokens.css`)
 
 Neue, einzige Quelle der Wahrheit; `styles.css` wird im Verlauf auf die Tokens umgestellt (bestehende `--wood`- etc. Variablen werden Aliase auf Tokens):
 
 ```css
-/* Beispieldaten für Variante B; final abhängig von Olis Wahl */
-:root {
+/* Semantische Tokens; Werte pro Theme: */
+:root[data-theme="tavern"] { /* Hell-Modus: Variante A */ }
+:root[data-theme="arcane"] { /* Dunkel-Modus: B+C – Beispieldaten unten */
   /* Flächen */
   --surface-0: #141210;        /* App-Hintergrund */
   --surface-1: #1d1a16;        /* Panels */
@@ -89,31 +90,33 @@ Neue, einzige Quelle der Wahrheit; `styles.css` wird im Verlauf auf die Tokens u
   /* Motion */
   --motion-fast: 120ms ease; --motion-turn: 300ms cubic-bezier(.2,.8,.2,1);
 }
+/* –– dasselbe Token-Set in [data-theme="tavern"] mit den A-Werten (Pergament-Flächen, Holz-Töne) –– */
 ```
 
 Regeln: **keine** hex-Farben und px-Werte mehr direkt in Komponenten-Styles; Zustände (hover/active/disabled) werden pro Token definiert, nicht pro Komponente. Der Lantern-Toggle wird auf Token-Ebene implementiert (er moduliert nur `--accent-glow` und Glow-Stufen).
 
 ## Umsetzungsreihenfolge (Screen für Screen)
 
-0. **Varianten-Abnahme:** Oli wählt A/B/C (oder B+C-Split) – erst dann weiter.
+0. **Beide Themes sind entschieden** – keine Varianten-Abnahme mehr nötig.
 1. **Ist-Inventar:** Screenshots aller Screens + `docs/design-inventory.md` (Inkonsistenzen, Leere-/Fehler-/Ladezustände).
-2. **Tokens:** `tokens.css` anlegen, `styles.css`-Variablen zu Aliasen machen, alle Komponenten laufen (noch altes Aussehen, neue Quelle).
-3. **Landing/HomePage + Raum-Erstellen:** erster Screen, weil er den Ton setzt und am wenigsten Logik berührt. Favicon (SVG + ICO aus der Varianten-Silhouette) gleich mit.
+2. **Tokens (beide Schemata):** `tokens.css` mit `data-theme="tavern"` (A-Werte) und `data-theme="arcane"` (B+C-Werte) anlegen; `styles.css`-Variablen werden Aliase; Theme-Umschalter + Persistenz (localStorage) gleich mit. Alle Komponenten laufen zunächst mit altem Aussehen, neuer Quelle.
+3. **Landing/HomePage + Raum-Erstellen:** erster Screen, weil er den Ton setzt und am wenigsten Logik berührt – ab sofort in beiden Themes (Screenshot-Paar pro Theme). Favicon (SVG + ICO aus der Arcane-Silhouette) gleich mit.
 4. **DM-Play:** HUD-Panels, TurnCarousel-Karten, Dice, Fog-Rail, Log – der größte Brocken, in Teil-Schritten (erst Flächen/Typo, dann Komponenten-Detail).
 5. **Settings/Prep:** SettingsPanel, Characters, Kalibrierungs-Assistent, Spawn-Editor.
 6. **Tisch-Monitor/Player-Screen:** zuletzt, inkl. Distanz-Lesbarkeit (größere Typo-Stufen nutzen, Kontrast-Check 3 m).
-7. **Abnahme:** Vorher/Nachher-Screenshot-Paare pro Screen; Inventar-Abgleich; `npm run lint && test && build` grün.
+7. **Abnahme:** Vorher/Nachher-Screenshot-Paare pro Screen in beiden Themes; Inventar-Abgleich; `npm run lint && test && build` grün.
 
 ## Abgrenzung (bewusst NICHT drin)
 
-Keine Layout-Umstrukturierung (HUD-Positionen bleiben wie ADR 0024/0025), keine neuen Features, kein Rebranding (Name/Logo-Text bleibt), keine Illustrationen/Artworks pro Screen (nur Favicon + Moodboard), kein Dark/Light-Toggle für Nutzer im ersten Wurf (falls B+C-Split: Schemata sind an Screens gebunden, nicht umschaltbar).
+Keine Layout-Umstrukturierung (HUD-Positionen bleiben wie ADR 0024/0025), keine neuen Features, kein Rebranding (Name/Logo-Text bleibt), keine Illustrationen/Artworks pro Screen (nur Favicon + Moodboard), Dark/Light-Toggle ist Teil dieser Phase (pro Gerät persistiert, kein Raum-Setting); dafür bewusst kein Theme pro Raum synchronisiert und kein Auto-Theme nach Tageszeit.
 
 ## Abnahmekriterien
 
 1. `docs/design-inventory.md` existiert mit Screenshots aller 5 Screen-Gruppen und gelisteten Inkonsistenzen.
 2. Alle Farben/Spacing/Typo in Komponenten kommen aus Tokens – kein direktes Hex/px in Komponenten-Styles (Lint-Grep als Check).
-3. Pro Screen existiert ein Vorher/Nachher-Screenshot-Paar; alle Inventar-Inkonsistenzen sind geschlossen.
+3. Pro Screen existiert ein Vorher/Nachher-Screenshot-Paar je Theme (hell + dunkel); alle Inventar-Inkonsistenzen sind in beiden Themes geschlossen.
 4. Favicon (`favicon.svg` + ICO/PNG 32px, lesbar bei 16px) ist eingebunden und stammt aus der gewählten Variante.
-5. Lantern-Toggle funktioniert weiterhin und wirkt nur über Tokens.
+5. Lantern-Toggle funktioniert weiterhin und wirkt nur über Glow-Tokens (in beiden Themes).
 6. Tisch-Monitor: Text in 3 m lesbar (Typo-Stufe, Kontrast ≥ 4.5:1 für Fließtext).
-7. `npm run lint && npm run test && npm run build` grün; keine visuellen Regressionen in bestehenden Tests.
+7. Theme-Umschalter: Wechsel ohne Reload, persistiert pro Gerät (localStorage), Default `arcane`; Landing trägt einen prominenten Umschalter.
+8. `npm run lint && npm run test && npm run build` grün; keine visuellen Regressionen in bestehenden Tests.
