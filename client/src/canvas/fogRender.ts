@@ -1,6 +1,10 @@
 import { Sprite, type Application, type Graphics, type RenderTexture } from "pixi.js";
-import type { FogState, FogStroke, MapState, TokenState } from "@dms/shared";
-import { composeFogMask, composeFogMaskWithLos } from "./fogMaskCompose";
+import type { FogState, FogStroke, MapState, Role, TokenState } from "@dms/shared";
+import {
+  applyAudienceExploredFog,
+  composeFogMask,
+  composeFogMaskWithLos,
+} from "./fogMaskCompose";
 import { mapHasLosGeometry, playerVisionPolygons } from "./losVisibility";
 
 export function drawFogStroke(graphics: Graphics, stroke: FogStroke, color: number): void {
@@ -49,6 +53,7 @@ export function renderFogMask(
   map: MapState,
   fog: FogState,
   tokens: TokenState[] = [],
+  role: Role = "gm",
 ): void {
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.floor(map.width));
@@ -62,6 +67,9 @@ export function renderFogMask(
     composeFogMaskWithLos(ctx, canvas.width, canvas.height, fog, polygons);
   } else {
     composeFogMask(ctx, canvas.width, canvas.height, fog);
+  }
+  if (role !== "gm") {
+    applyAudienceExploredFog(ctx, canvas.width, canvas.height, map, fog);
   }
   const sprite = Sprite.from(canvas);
   app.renderer.render({

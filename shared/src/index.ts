@@ -5,3 +5,5 @@ export * from "./movement.js";
 export * from "./pathfinding.js";
 export * from "./wallCollision.js";
 export * from "./wallHeal.js";
+export * from "./losVisibility.js";
+export * from "./exploredFog.js";

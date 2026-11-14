@@ -34,7 +34,7 @@ Kartenwechsel lädt die verknüpften Charaktere und entfernt die übrigen. Token
 
 ## Screen / Player
 
-Kein GM-HUD. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Standardmäßig können PC-TP als genaue Chips erscheinen und **Monster-TP bleiben nur für die GM sichtbar**. Wenn die GM Viertel-TP aktiviert, zeigt die Leiste grobe 25/50/75/100 %-Balken für PCs und NPCs ohne genaue Zahlen. Kompakte Bedingungs-Badges (z. B. PRN, FRI), wenn die GM sie setzt. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Würfelwürfe erscheinen kurz als Toast über der Karte. Standardmässig folgt der Screen dem GM-Pan/Zoom (**fit**). Hat die GM eine physische Zellengrösse gesetzt, kann der Tisch-Screen auf **physical** wechseln (Bestätigung in der Topbar): Zoom sperrt eine Zelle auf diese cm-Grösse nach Gerätekalibrierung (Auto oder Lineal). Pan bleibt unabhängig; GM-Zoom-Follow pausiert. Die Kalibrierung liegt nur in diesem Browser. Unaufgedeckte Bereiche bleiben unter solidem Fog (inkl. Tokens dort).
+Kein GM-HUD. Die Seitenleiste zeigt Runde, Reihenfolge und aktiven Zug. Standardmäßig können PC-TP als genaue Chips erscheinen und **Monster-TP bleiben nur für die GM sichtbar**. Wenn die GM Viertel-TP aktiviert, zeigt die Leiste grobe 25/50/75/100 %-Balken für PCs und NPCs ohne genaue Zahlen. Kompakte Bedingungs-Badges (z. B. PRN, FRI), wenn die GM sie setzt. Ein schmaler Streifen zeigt Kampfdauer und die letzten Events, wenn vorhanden. Würfelwürfe erscheinen kurz als Toast über der Karte. Standardmässig folgt der Screen dem GM-Pan/Zoom (**fit**). Hat die GM eine physische Zellengrösse gesetzt, kann der Tisch-Screen auf **physical** wechseln (Bestätigung in der Topbar): Zoom sperrt eine Zelle auf diese cm-Grösse nach Gerätekalibrierung (Auto oder Lineal). Pan bleibt unabhängig; GM-Zoom-Follow pausiert. Die Kalibrierung liegt nur in diesem Browser. Fog auf dem Screen hat zwei Schichten: nie gesehen bleibt solid schwarz; einmal gesehene Bereiche ohne aktuelle LoS/Reveal wirken grau (wie der GM-Fog); aktuelle Sicht ist klar. PC-Tokens können in erkundeten oder klaren Bereichen sichtbar sein; NPC-Tokens nur bei aktueller Sicht (Bewegung in Schwarz/Grau ohne Aufblitzen).
 
 ## Look & Laterne
 
@@ -69,6 +69,7 @@ Optionale Traefik-Labels (`TRAEFIK_ENABLE` / `FQDN`) hängen an bestehendes Trae
 - TP-Sichtbarkeit-ADR: [../../decisions/0009-hp-screen-visibility.md](../../decisions/0009-hp-screen-visibility.md)
 - Manuelles Fog-ADR: [../../decisions/0010-manual-fog-of-war.md](../../decisions/0010-manual-fog-of-war.md)
 - LoS-Fog-ADR: [../../decisions/0016-los-fog-from-walls.md](../../decisions/0016-los-fog-from-walls.md)
+- Screen-erkundet-Fog-ADR: [../../decisions/0029-screen-explored-fog.md](../../decisions/0029-screen-explored-fog.md)
 - UVTT-Wände + Pfadbewegung-ADR: [../../decisions/0028-uvtt-walls-and-path-movement.md](../../decisions/0028-uvtt-walls-and-path-movement.md)
 - Bedingungen-ADR: [../../decisions/0011-token-conditions.md](../../decisions/0011-token-conditions.md)
 - Raum-/GM-Auth-ADR: [../../decisions/0012-room-identity-gm-auth.md](../../decisions/0012-room-identity-gm-auth.md)

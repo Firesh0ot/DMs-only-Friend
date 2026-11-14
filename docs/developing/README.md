@@ -162,19 +162,19 @@ See [ADR 0027](../decisions/0027-webm-map-packages.md).
 
 ### Manual fog of war
 
-See [ADR 0010](../decisions/0010-manual-fog-of-war.md).
+See [ADR 0010](../decisions/0010-manual-fog-of-war.md). Screen explored layers: [ADR 0029](../decisions/0029-screen-explored-fog.md).
 
-- Table: `map_fog` (`base_covered`, `strokes_json`, `los_enabled`) keyed by `map_id`.
-- Snapshot field: `fog` for the active map (`losEnabled` included).
-- Events: `fog:paint`, `fog:reset`, `fog:setLos` → `fog:updated` (GM only to mutate).
-- Client: PixiJS v8 fog mask above tokens; Fog HUD panel for brush/rect tools and LoS toggle.
+- Table: `map_fog` (`base_covered`, `strokes_json`, `los_enabled`, `explored_cells`) keyed by `map_id`.
+- Snapshot field: `fog` for the active map (`losEnabled`, `exploredCells` included).
+- Events: `fog:paint`, `fog:reset`, `fog:setLos` → `fog:updated` (GM only to mutate). Explored grows on reveal / LoS vision (token moves, portal toggles).
+- Client: PixiJS v8 fog mask; Fog HUD panel for brush/rect tools and LoS toggle. Screen/player: black unseen, grey explored, clear current; NPCs hidden unless currently visible.
 
 ### Automatic LoS fog
 
 See [ADR 0016](../decisions/0016-los-fog-from-walls.md).
 
 - Vision from PC tokens against `maps.walls_json` plus **closed** portals from `maps.portals_json`.
-- Client: `losVisibility.ts` ray cast; composed with manual fog (visible only if both allow).
+- Shared: `losVisibility.ts` ray cast (client fog + server explored growth); composed with manual fog (visible only if both allow).
 - Door toggle: GM `portal:setClosed` → map broadcast; Fog HUD door buttons + click door overlay.
 - Out of scope here: vision radius, replay/video export, dynamic shadow casting. Soft lights: [ADR 0018](../decisions/0018-dd2vtt-lights-overlay.md). WebM layers: [ADR 0027](../decisions/0027-webm-map-packages.md).
 

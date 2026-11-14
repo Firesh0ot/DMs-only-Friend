@@ -38,6 +38,7 @@ describe("manual fog of war", () => {
       baseCovered: true,
       strokes: [],
       losEnabled: false,
+      exploredCells: "",
     });
 
     const painted = store.paintFog(room.id, map.id, {
@@ -129,17 +130,68 @@ describe("manual fog of war", () => {
     });
 
     const cleared = store.resetFog(room.id, map.id, false);
-    expect(cleared).toEqual({
-      mapId: map.id,
-      baseCovered: false,
-      strokes: [],
-      losEnabled: false,
-    });
+    expect(cleared.mapId).toBe(map.id);
+    expect(cleared.baseCovered).toBe(false);
+    expect(cleared.strokes).toEqual([]);
+    expect(cleared.losEnabled).toBe(false);
+    expect(cleared.exploredCells.length).toBeGreaterThan(0);
     expect(store.getFog(map.id).baseCovered).toBe(false);
 
     const covered = store.resetFog(room.id, map.id, true);
     expect(covered.baseCovered).toBe(true);
     expect(covered.strokes).toEqual([]);
+    expect(covered.exploredCells).toBe("");
+  });
+
+  it("grows explored cells from reveal paints and LoS vision", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+    const map = store.addMap(room.id, {
+      name: "Sight",
+      filename: "sight.png",
+      width: 280,
+      height: 140,
+      gridPx: 70,
+      walls: [
+        [
+          { x: 0, y: 0 },
+          { x: 4, y: 0 },
+          { x: 4, y: 2 },
+          { x: 0, y: 2 },
+          { x: 0, y: 0 },
+        ],
+        [
+          { x: 2, y: 0 },
+          { x: 2, y: 2 },
+        ],
+      ],
+    });
+    store.createToken({
+      roomId: room.id,
+      label: "Hero",
+      x: 0.5,
+      y: 0.5,
+      isPlayer: true,
+      mapId: map.id,
+    });
+
+    const painted = store.paintFog(room.id, map.id, {
+      kind: "rect",
+      mode: "reveal",
+      x: 0,
+      y: 0,
+      w: 70,
+      h: 70,
+    });
+    expect(painted.exploredCells.length).toBeGreaterThan(0);
+
+    store.setFogLos(room.id, map.id, true);
+    const afterLos = store.getFog(map.id);
+    expect(afterLos.exploredCells.length).toBeGreaterThan(0);
+
+    store.moveToken(store.listAllTokensOnActiveMap(room.id)[0]!.id, 0.8, 0.8);
+    const grown = store.growExploredFromVision(room.id);
+    expect(grown === null || grown.exploredCells.length > 0).toBe(true);
   });
 
   it("toggles LoS fog and preserves it across manual reset", () => {

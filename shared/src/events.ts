@@ -344,6 +344,7 @@ export const FogStateSchema = z.object({
   baseCovered: z.boolean(),
   strokes: z.array(FogStrokeSchema),
   losEnabled: z.boolean().default(false),
+  exploredCells: z.string().default(""),
 });
 export type FogState = z.infer<typeof FogStateSchema>;
 

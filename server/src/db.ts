@@ -121,7 +121,8 @@ function migrate(db: Db): void {
       map_id TEXT PRIMARY KEY REFERENCES maps(id) ON DELETE CASCADE,
       base_covered INT NOT NULL DEFAULT 1,
       strokes_json TEXT NOT NULL DEFAULT '[]',
-      los_enabled INT NOT NULL DEFAULT 0
+      los_enabled INT NOT NULL DEFAULT 0,
+      explored_cells TEXT NOT NULL DEFAULT ''
     );
   `);
 
@@ -141,6 +142,7 @@ function migrate(db: Db): void {
   ensureColumn(db, "rooms", "physical_cell_cm", "REAL");
   ensureColumn(db, "rooms", "gm_claimed", "INT NOT NULL DEFAULT 1");
   ensureColumn(db, "map_fog", "los_enabled", "INT NOT NULL DEFAULT 0");
+  ensureColumn(db, "map_fog", "explored_cells", "TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, "characters", "speed_cells", "INT NOT NULL DEFAULT 6");
   ensureColumn(db, "characters", "initiative_bonus", "INT NOT NULL DEFAULT 0");
   ensureColumn(db, "room_initiative", "turn_start_x", "REAL");
