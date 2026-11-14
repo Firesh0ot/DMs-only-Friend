@@ -32,7 +32,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
 const app = createHttpApp({ rooms, uploadsDir, io, publicOrigin, clientDist });
 httpServer.on("request", app);
 
-registerSocketHandlers(io, rooms);
+registerSocketHandlers(io, rooms, { uploadsDir });
 
 httpServer.listen(port, host, () => {
   console.log(`DMs-only-Friend server listening on http://${host}:${port}`);

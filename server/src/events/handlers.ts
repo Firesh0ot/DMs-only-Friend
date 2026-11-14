@@ -43,11 +43,15 @@ import {
   type ServerToClientEvents,
   type SessionEvent,
 } from "@dms/shared";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Server, Socket } from "socket.io";
 import { roomChannel, type RoomStore, type Session } from "../rooms.js";
 import {
+  ensureSrdPortrait,
   formatStatblockNotes,
   listCachedMonsters,
+  resolveImportImage,
   resolveNormalizedMonster,
   rollMonsterHp,
   searchMonsterIndex,
@@ -58,7 +62,21 @@ import {
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents>;
 
-export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
+const defaultUploadsDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../uploads",
+);
+
+export type RegisterSocketHandlersOptions = {
+  uploadsDir?: string;
+};
+
+export function registerSocketHandlers(
+  io: AppServer,
+  rooms: RoomStore,
+  options: RegisterSocketHandlersOptions = {},
+): void {
+  const uploadsDir = options.uploadsDir ?? defaultUploadsDir;
   io.on("connection", (socket: AppSocket) => {
     socket.on(ClientEvents.RoomJoin, (payload, callback) => {
       try {
@@ -1184,6 +1202,9 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         const data = MonsterImportPayloadSchema.parse(payload);
         const resolved = await resolveNormalizedMonster(rooms.db, data.monsterIndex);
         const monster = resolved.monster;
+        const portrait = await ensureSrdPortrait(data.monsterIndex, resolved.imagePath, {
+          uploadsDir,
+        });
         let hpMax = monster.hpMax;
         let hpCurrent = monster.hpMax;
         if (data.rollHp) {
@@ -1202,7 +1223,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           hpCurrent,
           hpMax,
           ac: monster.ac,
-          image: null,
+          image: resolveImportImage(null, portrait.url),
         });
         if (active && (data.x !== undefined || data.y !== undefined)) {
           rooms.setCharacterMapPosition(
