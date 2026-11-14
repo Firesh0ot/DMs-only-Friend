@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ClientEvents,
+  DEFAULT_SCREEN_CAROUSEL,
   roomCodePathSegment,
   type CameraState,
   type FogPaintMode,
@@ -15,6 +16,7 @@ import { PlayHud } from "../components/PlayHud";
 import { ScreenDisplayControls } from "../components/ScreenDisplayControls";
 import { SessionStrip } from "../components/SessionStrip";
 import { SettingsPanel } from "../components/SettingsPanel";
+import { ScreenFanCarousel } from "../components/turn/ScreenFanCarousel";
 import { TurnCarousel } from "../components/turn/TurnCarousel";
 import {
   initialScreenCalibration,
@@ -27,6 +29,24 @@ import {
 } from "../lib/screenCalibration";
 import { getSocket } from "../socket/socket";
 import { useRoomStore } from "../state/roomStore";
+
+const SCREEN_FULLSCREEN_KEY = "dms-screen-fullscreen";
+
+function loadScreenFullscreen(): boolean {
+  try {
+    return localStorage.getItem(SCREEN_FULLSCREEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveScreenFullscreen(value: boolean): void {
+  try {
+    localStorage.setItem(SCREEN_FULLSCREEN_KEY, value ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+}
 
 type Props = {
   code: string;
@@ -68,6 +88,9 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
     role === "screen" ? initialScreenCalibration() : null,
   );
   const [physicalCamera] = useState(() => (role === "screen" ? loadPhysicalCamera() : null));
+  const [screenFullscreen, setScreenFullscreen] = useState(
+    () => role === "screen" && loadScreenFullscreen(),
+  );
 
   const tokens = useMemo(() => {
     if (!snapshot) {
@@ -173,6 +196,26 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
     return () => window.clearTimeout(timer);
   }, [lastMovementReject, clearMovementReject]);
 
+  useEffect(() => {
+    if (role !== "screen" || !screenFullscreen) {
+      return;
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setScreenFullscreen(false);
+        saveScreenFullscreen(false);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [role, screenFullscreen]);
+
+  function toggleScreenFullscreen(next?: boolean) {
+    const value = next ?? !screenFullscreen;
+    setScreenFullscreen(value);
+    saveScreenFullscreen(value);
+  }
+
   function onCameraChange(camera: CameraState) {
     if (role !== "gm") {
       return;
@@ -199,8 +242,11 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
   }
 
   const isGm = role === "gm";
+  const isScreen = role === "screen";
   const showSettings = isGm && gmMode === "settings";
   const showPlayChrome = isGm && gmMode === "play";
+  const screenFs = isScreen && screenFullscreen;
+  const carouselPlacement = snapshot?.settings.screenCarousel ?? DEFAULT_SCREEN_CAROUSEL;
 
   if (isGm && !pinReady) {
     return (
@@ -246,55 +292,69 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
   }
 
   return (
-    <main className={isGm || role === "screen" || role === "player" ? "play-shell" : "app-shell"}>
-      <header className="play-topbar">
-        <div>
-          <p className="muted">
-            {connected ? "Connected" : "Connecting…"} · {role}
-            {snapshot?.playerName ? ` · ${snapshot.playerName}` : ""}
-            {isGm && fogTool !== "off" ? " · Fog tool" : ""}
-            {isGm && spawnTool ? " · Spawn tool" : ""}
-          </p>
-          <h1 className="brand brand--compact">Room {code}</h1>
-        </div>
-        <div className="row">
-          <LanternToggle />
-          {role === "screen" && snapshot ? (
-            <ScreenDisplayControls
-              settings={snapshot.settings}
-              mode={screenMode}
-              calibration={screenCalibration}
-              onModeChange={setScreenMode}
-              onCalibrationChange={setScreenCalibration}
-            />
-          ) : null}
-          {isGm ? (
-            <>
-              <button
-                className={gmMode === "play" ? "is-active" : "secondary"}
-                onClick={() => setGmMode("play")}
-              >
-                Play
-              </button>
-              <button
-                className={gmMode === "settings" ? "is-active" : "secondary"}
-                onClick={() => {
-                  setFogTool("off");
-                  setGmMode("settings");
-                }}
-              >
-                Settings
-              </button>
-            </>
-          ) : (
-            <a href="#/">Home</a>
-          )}
-        </div>
-      </header>
+    <main
+      className={[
+        isGm || isScreen || role === "player" ? "play-shell" : "app-shell",
+        screenFs ? "play-shell--screen-fs" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {!screenFs ? (
+        <header className="play-topbar">
+          <div>
+            <p className="muted">
+              {connected ? "Connected" : "Connecting…"} · {role}
+              {snapshot?.playerName ? ` · ${snapshot.playerName}` : ""}
+              {isGm && fogTool !== "off" ? " · Fog tool" : ""}
+              {isGm && spawnTool ? " · Spawn tool" : ""}
+            </p>
+            <h1 className="brand brand--compact">Room {code}</h1>
+          </div>
+          <div className="row">
+            <LanternToggle />
+            {isScreen && snapshot ? (
+              <>
+                <ScreenDisplayControls
+                  settings={snapshot.settings}
+                  mode={screenMode}
+                  calibration={screenCalibration}
+                  onModeChange={setScreenMode}
+                  onCalibrationChange={setScreenCalibration}
+                />
+                <button type="button" className="secondary" onClick={() => toggleScreenFullscreen(true)}>
+                  Fullscreen
+                </button>
+              </>
+            ) : null}
+            {isGm ? (
+              <>
+                <button
+                  className={gmMode === "play" ? "is-active" : "secondary"}
+                  onClick={() => setGmMode("play")}
+                >
+                  Play
+                </button>
+                <button
+                  className={gmMode === "settings" ? "is-active" : "secondary"}
+                  onClick={() => {
+                    setFogTool("off");
+                    setGmMode("settings");
+                  }}
+                >
+                  Settings
+                </button>
+              </>
+            ) : (
+              <a href="#/">Home</a>
+            )}
+          </div>
+        </header>
+      ) : null}
 
-      {joining ? <p className="lede">Joining room…</p> : null}
-      {error ? <p className="error">{error}</p> : null}
-      {lastMovementReject ? (
+      {joining && !screenFs ? <p className="lede">Joining room…</p> : null}
+      {error && !screenFs ? <p className="error">{error}</p> : null}
+      {lastMovementReject && !screenFs ? (
         <p className="error" role="status">
           Movement blocked: {lastMovementReject.reason}
         </p>
@@ -313,8 +373,16 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
       ) : null}
 
       {snapshot && !showSettings ? (
-        <div className={`play-stage ${role !== "gm" ? "play-stage--with-rail" : ""}`}>
-          {role !== "gm" ? (
+        <div
+          className={[
+            "play-stage",
+            role !== "gm" && !screenFs ? "play-stage--with-rail" : "",
+            screenFs ? "play-stage--screen-fs" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {role !== "gm" && !screenFs ? (
             <div className="play-stage__side stack">
               <aside className="initiative-rail turn-carousel-rail" aria-label="Initiative">
                 <TurnCarousel
@@ -334,7 +402,7 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
             {!snapshot.map ? (
               <p className="lede play-stage__empty">Waiting for the GM to upload a map…</p>
             ) : null}
-            <div className="map-table">
+            <div className={`map-table ${screenFs ? "map-table--screen-fs" : ""}`}>
               <div className="map-table__well">
                 <MapCanvas
                   map={snapshot.map}
@@ -347,13 +415,13 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                   fogTool={isGm ? fogTool : "off"}
                   fogPaintMode={fogPaintMode}
                   fogBrushRadius={fogBrushRadius}
-                  screenDisplayMode={role === "screen" ? screenMode : "fit"}
+                  screenDisplayMode={isScreen ? screenMode : "fit"}
                   lockedZoom={lockedZoom}
-                  initialPhysicalCamera={role === "screen" ? physicalCamera : null}
+                  initialPhysicalCamera={isScreen ? physicalCamera : null}
                   onTokenMove={onTokenMove}
                   onCameraChange={onCameraChange}
                   onPhysicalCameraChange={
-                    role === "screen" ? (camera) => savePhysicalCamera(camera) : undefined
+                    isScreen ? (camera) => savePhysicalCamera(camera) : undefined
                   }
                   onFogPaint={onFogPaint}
                   onPortalToggle={isGm ? onPortalToggle : undefined}
@@ -402,7 +470,31 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
               />
             ) : null}
 
-            {role !== "gm" ? <DiceToast lastDice={lastDice} /> : null}
+            {screenFs ? (
+              <>
+                <ScreenFanCarousel
+                  role={role}
+                  initiative={snapshot.initiative}
+                  tokens={tokens}
+                  characters={snapshot.characters}
+                  placement={carouselPlacement}
+                  draggable
+                />
+                <div className="screen-fs-controls">
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => toggleScreenFullscreen(false)}
+                  >
+                    Exit fullscreen
+                  </button>
+                  <span className="muted screen-fs-controls__hint">Esc</span>
+                </div>
+              </>
+            ) : null}
+
+            {role !== "gm" && !screenFs ? <DiceToast lastDice={lastDice} /> : null}
+            {screenFs ? <DiceToast lastDice={lastDice} /> : null}
           </div>
         </div>
       ) : null}

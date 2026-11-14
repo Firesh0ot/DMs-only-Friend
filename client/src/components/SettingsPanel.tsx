@@ -3,12 +3,14 @@ import {
   ClientEvents,
   PHYSICAL_CELL_CM_MAX,
   PHYSICAL_CELL_CM_MIN,
+  SCREEN_CAROUSEL_PRESETS,
   roomCodePathSegment,
   type CharacterKind,
   type CharacterState,
   type MapState,
   type MonsterSearchResult,
   type RoomSettings,
+  type ScreenCarouselPlacement,
 } from "@dms/shared";
 import { parseOptionalInt } from "../lib/hp";
 import { appendMapUploadFormData, resolveMapUploadParts } from "../lib/mapUploadForm";
@@ -351,6 +353,10 @@ export function SettingsPanel({
 
   function setScreenHpQuarters(enabled: boolean) {
     getSocket().emit(ClientEvents.SettingsSet, { screenHpQuarters: enabled });
+  }
+
+  function setScreenCarousel(placement: ScreenCarouselPlacement) {
+    getSocket().emit(ClientEvents.ScreenCarouselSet, placement);
   }
 
   function savePhysicalCellCm(): void {
@@ -1151,6 +1157,42 @@ export function SettingsPanel({
             {settings.physicalCellCm === null
               ? "off"
               : `${settings.physicalCellCm.toFixed(1)} cm`}
+          </p>
+        </fieldset>
+
+        <fieldset className="settings-fieldset stack">
+          <legend>Fullscreen initiative carousel</legend>
+          <p className="muted">
+            Edge placement for the Screen fullscreen fan. Cards face toward the screen center so
+            players around the table can read them. Screens can also drag the Place handle.
+          </p>
+          <div className="row" role="group" aria-label="Carousel edge">
+            {(
+              [
+                ["south", "South"],
+                ["north", "North"],
+                ["west", "West"],
+                ["east", "East"],
+              ] as const
+            ).map(([key, label]) => {
+              const preset = SCREEN_CAROUSEL_PRESETS[key];
+              const active =
+                Math.abs(settings.screenCarousel.xNorm - preset.xNorm) < 0.02 &&
+                Math.abs(settings.screenCarousel.yNorm - preset.yNorm) < 0.02;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={active ? "is-active" : "secondary"}
+                  onClick={() => setScreenCarousel(preset)}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="muted mono">
+            {settings.screenCarousel.xNorm.toFixed(2)}, {settings.screenCarousel.yNorm.toFixed(2)}
           </p>
         </fieldset>
       </section>

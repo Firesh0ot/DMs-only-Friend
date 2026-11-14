@@ -55,6 +55,8 @@ type RoomRow = {
   gm_invite_hash: string | null;
   screen_hp_quarters: number;
   physical_cell_cm: number | null;
+  screen_carousel_x: number;
+  screen_carousel_y: number;
   gm_claimed: number;
 };
 type MapRow = {
@@ -404,6 +406,10 @@ export class RoomStore {
     return {
       screenHpQuarters: room ? room.screen_hp_quarters === 1 : false,
       physicalCellCm: room?.physical_cell_cm ?? null,
+      screenCarousel: {
+        xNorm: room?.screen_carousel_x ?? 0.5,
+        yNorm: room?.screen_carousel_y ?? 0.88,
+      },
     };
   }
 
@@ -413,10 +419,19 @@ export class RoomStore {
       screenHpQuarters: input.screenHpQuarters ?? current.screenHpQuarters,
       physicalCellCm:
         input.physicalCellCm !== undefined ? input.physicalCellCm : current.physicalCellCm,
+      screenCarousel: input.screenCarousel ?? current.screenCarousel,
     };
     this.db
-      .prepare("UPDATE rooms SET screen_hp_quarters = ?, physical_cell_cm = ? WHERE id = ?")
-      .run(next.screenHpQuarters ? 1 : 0, next.physicalCellCm, roomId);
+      .prepare(
+        "UPDATE rooms SET screen_hp_quarters = ?, physical_cell_cm = ?, screen_carousel_x = ?, screen_carousel_y = ? WHERE id = ?",
+      )
+      .run(
+        next.screenHpQuarters ? 1 : 0,
+        next.physicalCellCm,
+        next.screenCarousel.xNorm,
+        next.screenCarousel.yNorm,
+        roomId,
+      );
     return next;
   }
 

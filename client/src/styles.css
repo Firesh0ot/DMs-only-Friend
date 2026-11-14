@@ -450,6 +450,13 @@ html[data-lantern="off"] a {
   gap: 0.75rem;
 }
 
+.play-shell--screen-fs {
+  grid-template-rows: 1fr;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
 .play-topbar {
   display: flex;
   justify-content: space-between;
@@ -2707,4 +2714,251 @@ html[data-lantern="off"] .calibration-preview-cell {
   .turn-carousel__stage {
     grid-template-columns: 0.45fr 1fr 0.45fr;
   }
+}
+
+.play-stage--screen-fs {
+  grid-template-columns: 1fr;
+  gap: 0;
+  min-height: 100vh;
+  height: 100vh;
+}
+
+.play-stage--screen-fs .play-stage__map {
+  min-height: 100vh;
+  height: 100vh;
+}
+
+.map-table--screen-fs {
+  height: 100vh;
+  min-height: 100vh;
+  padding: 0;
+  border-radius: 0;
+  border-width: 0;
+  box-shadow: none;
+  background: var(--felt, #2a2218);
+}
+
+.map-table--screen-fs::before {
+  display: none;
+}
+
+.map-table--screen-fs .map-table__well {
+  border-radius: 0;
+  height: 100%;
+}
+
+.screen-fs-controls {
+  position: absolute;
+  z-index: 30;
+  top: 0.65rem;
+  right: 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.35rem;
+  border-radius: 8px;
+  background: rgba(42, 26, 16, 0.72);
+  border: 1px solid rgba(180, 140, 80, 0.35);
+  backdrop-filter: blur(4px);
+}
+
+.screen-fs-controls__hint {
+  font-size: 0.72rem;
+  color: #f3e6c8;
+  padding-right: 0.25rem;
+}
+
+.screen-fan {
+  --fan-x: 50%;
+  --fan-y: 88%;
+  --fan-facing: 0deg;
+  position: absolute;
+  z-index: 25;
+  left: var(--fan-x);
+  top: var(--fan-y);
+  width: 14rem;
+  height: 11rem;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.screen-fan.is-dragging {
+  opacity: 0.92;
+}
+
+.screen-fan__orient {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform: rotate(var(--fan-facing));
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+.screen-fan__handle {
+  pointer-events: auto;
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  top: 0.15rem;
+  transform: translateX(-50%);
+  min-height: 1.45rem;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.72rem;
+  cursor: grab;
+  touch-action: none;
+  background: rgba(42, 26, 16, 0.88);
+  color: #f3e6c8;
+  border: 1px solid rgba(180, 140, 80, 0.45);
+  border-radius: 999px;
+}
+
+.screen-fan.is-dragging .screen-fan__handle {
+  cursor: grabbing;
+}
+
+.screen-fan__round {
+  position: absolute;
+  z-index: 18;
+  left: 50%;
+  top: 1.7rem;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(42, 26, 16, 0.78);
+  color: #f3e6c8;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+}
+
+.screen-fan__round strong {
+  color: var(--signal, #e8a045);
+}
+
+.screen-fan__idle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: 8px;
+  background: rgba(236, 217, 173, 0.92);
+  border: 1px solid rgba(60, 40, 20, 0.28);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.screen-fan__stage {
+  position: absolute;
+  inset: 0;
+}
+
+.screen-fan__card {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 4.6rem;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.28rem;
+  border-radius: 8px;
+  border: 1px solid rgba(60, 40, 20, 0.35);
+  background:
+    linear-gradient(165deg, rgba(255, 248, 230, 0.94), rgba(232, 210, 160, 0.9));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.28) inset,
+    0 10px 18px rgba(0, 0, 0, 0.35);
+  transform-origin: 50% 110%;
+  transition:
+    transform 280ms ease,
+    opacity 280ms ease,
+    filter 280ms ease;
+  opacity: 0.82;
+  filter: saturate(0.9);
+}
+
+.screen-fan__card.is-active {
+  width: 5.4rem;
+  opacity: 1;
+  filter: none;
+  outline: 2px solid var(--signal, #e8a045);
+  background:
+    linear-gradient(165deg, rgba(255, 236, 190, 0.98), rgba(232, 160, 69, 0.28));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 14px 24px rgba(0, 0, 0, 0.42);
+}
+
+.screen-fan__portrait {
+  position: relative;
+  overflow: hidden;
+  border-radius: 5px;
+}
+
+.screen-fan__portrait img,
+.screen-fan__placeholder {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  display: block;
+  background: linear-gradient(160deg, #6b4226, #2a1a10);
+}
+
+.screen-fan__placeholder {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: #f3e2c0;
+}
+
+.screen-fan__init {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.15rem;
+  min-width: 1.2rem;
+  padding: 0.05rem 0.2rem;
+  border-radius: 999px;
+  background: rgba(42, 26, 16, 0.82);
+  color: #f3e2c0;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.screen-fan__body {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+  padding: 0.05rem 0.1rem 0.1rem;
+}
+
+.screen-fan__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  font-family: var(--font-display);
+  color: var(--ink, #2a1a10);
+  text-align: center;
+}
+
+.screen-fan__stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.screen-fan__card:not(.is-active) .screen-fan__body {
+  padding: 0;
+}
+
+.screen-fan__card:not(.is-active) .screen-fan__name {
+  font-size: 0.64rem;
 }

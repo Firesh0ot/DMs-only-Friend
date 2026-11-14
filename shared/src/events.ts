@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DEFAULT_SCREEN_CAROUSEL } from "./screenCarousel.js";
+
 export const RoleSchema = z.enum(["gm", "screen", "player"]);
 export type Role = z.infer<typeof RoleSchema>;
 
@@ -124,9 +126,15 @@ export const VisibilityStateSchema = z.object({
 });
 export type VisibilityState = z.infer<typeof VisibilityStateSchema>;
 
+export const ScreenCarouselPlacementSchema = z.object({
+  xNorm: z.number().min(0).max(1),
+  yNorm: z.number().min(0).max(1),
+});
+
 export const RoomSettingsSchema = z.object({
   screenHpQuarters: z.boolean(),
   physicalCellCm: z.number().nullable(),
+  screenCarousel: ScreenCarouselPlacementSchema.default(DEFAULT_SCREEN_CAROUSEL),
 });
 export type RoomSettings = z.infer<typeof RoomSettingsSchema>;
 
@@ -394,8 +402,12 @@ export const SettingsSetPayloadSchema = z.object({
     .max(PHYSICAL_CELL_CM_MAX)
     .nullable()
     .optional(),
+  screenCarousel: ScreenCarouselPlacementSchema.optional(),
 });
 export type SettingsSetPayload = z.infer<typeof SettingsSetPayloadSchema>;
+
+export const ScreenCarouselSetPayloadSchema = ScreenCarouselPlacementSchema;
+export type ScreenCarouselSetPayload = z.infer<typeof ScreenCarouselSetPayloadSchema>;
 
 export const ScreenCommandPayloadSchema = z.object({
   type: z.literal("open-calibration"),
@@ -692,6 +704,7 @@ export const ClientEvents = {
   SpawnApply: "spawn:apply",
   VisibilitySet: "visibility:set",
   SettingsSet: "settings:set",
+  ScreenCarouselSet: "screen:carouselSet",
   ScreenCommand: "screen:command",
   GmMintInvite: "gm:mintInvite",
   GmChangePin: "gm:changePin",
@@ -771,6 +784,7 @@ export type ClientToServerEvents = {
   [ClientEvents.SpawnApply]: (payload: SpawnApplyPayload) => void;
   [ClientEvents.VisibilitySet]: (payload: VisibilitySetPayload) => void;
   [ClientEvents.SettingsSet]: (payload: SettingsSetPayload) => void;
+  [ClientEvents.ScreenCarouselSet]: (payload: ScreenCarouselSetPayload) => void;
   [ClientEvents.ScreenCommand]: (payload: ScreenCommandPayload) => void;
   [ClientEvents.GmMintInvite]: (
     callback?: (result: GmMintInviteResult) => void,

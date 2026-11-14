@@ -69,3 +69,4 @@ What becomes easier, harder, or out of scope.
 | [0028](0028-uvtt-walls-and-path-movement.md) | UVTT wall geometry limits and path-based movement range | accepted |
 | [0029](0029-screen-explored-fog.md) | Screen explored fog (black/grey/clear) and hidden NPCs | accepted |
 | [0030](0030-screen-fog-defaults.md) | Screen fog defaults: empty explored, LoS Active | accepted |
+| [0031](0031-screen-carousel-facing-center.md) | Screen fullscreen fan carousel; facing toward screen center | accepted |

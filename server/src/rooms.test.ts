@@ -41,7 +41,11 @@ describe("RoomStore", () => {
     expect(snapshot.maps).toEqual([]);
     expect(snapshot.characters).toEqual([]);
     expect(snapshot.visibility).toEqual({ showPcs: true, showNpcs: true });
-    expect(snapshot.settings).toEqual({ screenHpQuarters: false, physicalCellCm: null });
+    expect(snapshot.settings).toEqual({
+      screenHpQuarters: false,
+      physicalCellCm: null,
+      screenCarousel: { xNorm: 0.5, yNorm: 0.88 },
+    });
     expect(snapshot.tokens).toEqual([]);
     expect(snapshot.eventLog).toEqual([]);
     expect(snapshot.battle).toBeNull();
@@ -55,6 +59,17 @@ describe("RoomStore", () => {
     expect(updated.physicalCellCm).toBe(3);
     expect(store.getSettings(room.id).physicalCellCm).toBe(3);
     expect(store.setSettings(room.id, { physicalCellCm: null }).physicalCellCm).toBeNull();
+  });
+
+  it("persists screenCarousel placement via settings", () => {
+    const store = createStore();
+    const { room } = store.createRoom({ name: "Table", code: "CAR1", pin: "4242" });
+    expect(store.getSettings(room.id).screenCarousel).toEqual({ xNorm: 0.5, yNorm: 0.88 });
+    const updated = store.setSettings(room.id, {
+      screenCarousel: { xNorm: 0.12, yNorm: 0.5 },
+    });
+    expect(updated.screenCarousel).toEqual({ xNorm: 0.12, yNorm: 0.5 });
+    expect(store.getSettings(room.id).screenCarousel).toEqual({ xNorm: 0.12, yNorm: 0.5 });
   });
 
   it("accepts Unicode room codes and keeps uniqueness after normalization", () => {
