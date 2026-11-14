@@ -894,7 +894,7 @@ html[data-lantern-fx="light"] .lantern-toggle__flame {
   border-radius: 4px;
   overflow: hidden;
   box-shadow: var(--shadow-recess);
-  background: var(--felt, #2a2218);
+  background: transparent;
 }
 
 html[data-lantern="off"] .map-table {
@@ -911,22 +911,28 @@ html[data-lantern="off"] .map-table {
   border-radius: 0;
   overflow: hidden;
   border: 0;
-  background:
-    radial-gradient(ellipse at center, rgba(70, 52, 32, 0.35), transparent 70%),
-    repeating-linear-gradient(
-      90deg,
-      rgba(0, 0, 0, 0.12) 0,
-      rgba(0, 0, 0, 0.12) 1px,
-      transparent 1px,
-      transparent 28px
-    ),
-    var(--felt, #2a2218);
+  background-color: var(--wood-deep);
+  background-image:
+    linear-gradient(rgba(20, 12, 6, 0.14), rgba(20, 12, 6, 0.14)),
+    url("/theme/wood-plank.webp");
+  background-size: auto, 520px 520px;
+  background-attachment: fixed;
+  background-blend-mode: multiply, normal;
+}
+
+html[data-lantern="off"] .canvas-host {
+  background-image:
+    linear-gradient(rgba(6, 8, 10, 0.42), rgba(6, 8, 10, 0.42)),
+    url("/theme/wood-dark.webp");
+  background-size: auto, 480px 480px;
+  background-blend-mode: multiply, normal;
 }
 
 .canvas-host canvas {
   display: block;
   width: 100%;
   height: 100%;
+  background: transparent;
 }
 
 .canvas-host--fog-tool,

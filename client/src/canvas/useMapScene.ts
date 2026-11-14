@@ -137,6 +137,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
 
     void (async () => {
       await app.init({
+        background: 0x000000,
         backgroundAlpha: 0,
         antialias: true,
         resizeTo: host,
