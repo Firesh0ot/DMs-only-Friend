@@ -5,8 +5,8 @@
   --surface-1: #1d1a16;
   --surface-2: #26221d;
   --text-primary: #e8dcc3;
-  --text-secondary: #a89878;
-  --text-disabled: #5c5548;
+  --text-secondary: #cbb892;
+  --text-disabled: #7a7264;
   --heading: var(--text-primary);
   --accent: #e8a045;
   --accent-glow: 0 0 12px rgba(232, 160, 69, 0.35);
