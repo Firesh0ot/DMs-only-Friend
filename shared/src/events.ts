@@ -476,7 +476,7 @@ export const CharacterUpsertPayloadSchema = z.object({
   name: z.string().min(1).max(64),
   kind: CharacterKindSchema,
   image: z.string().nullable().optional(),
-  notes: z.string().max(500).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
   sizeCells: z.number().positive().optional(),
   speedCells: z.number().int().positive().max(50).optional(),
   initiativeBonus: z.number().int().min(-10).max(30).optional(),
@@ -486,6 +486,78 @@ export const CharacterUpsertPayloadSchema = z.object({
   ac: z.number().int().min(0).max(99).nullable().optional(),
 });
 export type CharacterUpsertPayload = z.infer<typeof CharacterUpsertPayloadSchema>;
+
+export const MonsterSearchPayloadSchema = z.object({
+  query: z.string().max(64),
+});
+export type MonsterSearchPayload = z.infer<typeof MonsterSearchPayloadSchema>;
+
+export const MonsterSearchResultSchema = z.object({
+  index: z.string().min(1),
+  name: z.string().min(1),
+  cr: z.string(),
+  type: z.string(),
+  size: z.string(),
+});
+export type MonsterSearchResult = z.infer<typeof MonsterSearchResultSchema>;
+
+export const MonsterSearchResponseSchema = z.discriminatedUnion("ok", [
+  z.object({
+    ok: z.literal(true),
+    results: z.array(MonsterSearchResultSchema).max(25),
+    source: z.enum(["index", "cache"]),
+  }),
+  z.object({
+    ok: z.literal(false),
+    error: z.string().min(1),
+  }),
+]);
+export type MonsterSearchResponse = z.infer<typeof MonsterSearchResponseSchema>;
+
+export const MonsterImportPayloadSchema = z.object({
+  monsterIndex: z.string().min(1).max(128),
+  x: z.number().optional(),
+  y: z.number().optional(),
+  rollHp: z.boolean().optional(),
+});
+export type MonsterImportPayload = z.infer<typeof MonsterImportPayloadSchema>;
+
+export const MonsterImportResponseSchema = z.discriminatedUnion("ok", [
+  z.object({
+    ok: z.literal(true),
+    character: CharacterStateSchema,
+    token: TokenStateSchema.nullable(),
+  }),
+  z.object({
+    ok: z.literal(false),
+    error: z.string().min(1),
+  }),
+]);
+export type MonsterImportResponse = z.infer<typeof MonsterImportResponseSchema>;
+
+export const MonsterCacheListResponseSchema = z.discriminatedUnion("ok", [
+  z.object({
+    ok: z.literal(true),
+    monsters: z.array(
+      z.object({
+        index: z.string().min(1),
+        name: z.string().min(1),
+        cr: z.string(),
+      }),
+    ),
+  }),
+  z.object({
+    ok: z.literal(false),
+    error: z.string().min(1),
+  }),
+]);
+export type MonsterCacheListResponse = z.infer<typeof MonsterCacheListResponseSchema>;
+
+export const MonsterImportedPayloadSchema = z.object({
+  character: CharacterStateSchema,
+  token: TokenStateSchema.nullable(),
+});
+export type MonsterImportedPayload = z.infer<typeof MonsterImportedPayloadSchema>;
 
 export const CharacterSetSpeedPayloadSchema = z.object({
   characterId: z.string().min(1),
@@ -628,6 +700,9 @@ export const ClientEvents = {
   FogReset: "fog:reset",
   FogSetLos: "fog:setLos",
   PortalSetClosed: "portal:setClosed",
+  MonsterSearch: "monster:search",
+  MonsterImport: "monster:import",
+  MonsterCacheList: "monster:cache:list",
 } as const;
 
 export const ServerEvents = {
@@ -651,6 +726,7 @@ export const ServerEvents = {
   SpawnUpdated: "spawn:updated",
   MovementUpdated: "movement:updated",
   MovementRejected: "movement:rejected",
+  MonsterImported: "monster:imported",
   Error: "error",
 } as const;
 
@@ -708,6 +784,17 @@ export type ClientToServerEvents = {
   [ClientEvents.FogReset]: (payload: FogResetPayload) => void;
   [ClientEvents.FogSetLos]: (payload: FogSetLosPayload) => void;
   [ClientEvents.PortalSetClosed]: (payload: PortalSetClosedPayload) => void;
+  [ClientEvents.MonsterSearch]: (
+    payload: MonsterSearchPayload,
+    callback?: (result: MonsterSearchResponse) => void,
+  ) => void;
+  [ClientEvents.MonsterImport]: (
+    payload: MonsterImportPayload,
+    callback?: (result: MonsterImportResponse) => void,
+  ) => void;
+  [ClientEvents.MonsterCacheList]: (
+    callback?: (result: MonsterCacheListResponse) => void,
+  ) => void;
 };
 
 export type ServerToClientEvents = {
@@ -731,5 +818,6 @@ export type ServerToClientEvents = {
   [ServerEvents.SpawnUpdated]: (payload: SpawnUpdatedPayload) => void;
   [ServerEvents.MovementUpdated]: (payload: MovementUpdatedPayload) => void;
   [ServerEvents.MovementRejected]: (payload: MovementRejectedPayload) => void;
+  [ServerEvents.MonsterImported]: (payload: MonsterImportedPayload) => void;
   [ServerEvents.Error]: (payload: { message: string }) => void;
 };

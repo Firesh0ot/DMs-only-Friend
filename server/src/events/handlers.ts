@@ -18,6 +18,8 @@ import {
   MapRemovePayloadSchema,
   MapUpdateGridPayloadSchema,
   mapGridBounds,
+  MonsterImportPayloadSchema,
+  MonsterSearchPayloadSchema,
   moveBlockedByWalls,
   movementBlockerSegments,
   RoomJoinPayloadSchema,
@@ -42,6 +44,15 @@ import {
 } from "@dms/shared";
 import type { Server, Socket } from "socket.io";
 import { roomChannel, type RoomStore, type Session } from "../rooms.js";
+import {
+  formatStatblockNotes,
+  listCachedMonsters,
+  resolveNormalizedMonster,
+  rollMonsterHp,
+  searchMonsterIndex,
+  sizeToCells,
+  speedToCells,
+} from "../srdMonster.js";
 
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -1116,6 +1127,95 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
         }
       } catch (error) {
         emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.MonsterSearch, (payload, callback) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        callback?.({ ok: false, error: "GM only" });
+        return;
+      }
+      try {
+        const data = MonsterSearchPayloadSchema.parse(payload);
+        const results = searchMonsterIndex(data.query);
+        callback?.({ ok: true, results, source: "index" });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Search failed";
+        callback?.({ ok: false, error: message });
+      }
+    });
+
+    socket.on(ClientEvents.MonsterImport, async (payload, callback) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        callback?.({ ok: false, error: "GM only" });
+        return;
+      }
+      try {
+        const data = MonsterImportPayloadSchema.parse(payload);
+        const resolved = await resolveNormalizedMonster(rooms.db, data.monsterIndex);
+        const monster = resolved.monster;
+        let hpMax = monster.hpMax;
+        let hpCurrent = monster.hpMax;
+        if (data.rollHp) {
+          hpCurrent = rollMonsterHp(monster.hitDice);
+          hpMax = Math.max(hpMax, hpCurrent);
+        }
+        const active = rooms.getActiveMap(session.roomId);
+        const character = rooms.upsertCharacter({
+          roomId: session.roomId,
+          name: monster.name,
+          kind: "npc",
+          notes: formatStatblockNotes(monster),
+          sizeCells: sizeToCells(monster.size),
+          speedCells: speedToCells(monster.speed),
+          mapIds: active ? [active.id] : [],
+          hpCurrent,
+          hpMax,
+          ac: monster.ac,
+          image: null,
+        });
+        if (active && (data.x !== undefined || data.y !== undefined)) {
+          rooms.setCharacterMapPosition(
+            character.id,
+            active.id,
+            data.x ?? 1,
+            data.y ?? 1,
+          );
+        }
+        const token =
+          rooms
+            .listAllTokensOnActiveMap(session.roomId)
+            .find((entry) => entry.characterId === character.id) ?? null;
+        emitCharactersUpdated(io, rooms, session.roomId);
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.TokensSynced,
+          rooms.listVisibleTokens(session.roomId),
+        );
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.MonsterImported, {
+          character,
+          token,
+        });
+        callback?.({ ok: true, character, token });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Import failed";
+        callback?.({ ok: false, error: message });
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.MonsterCacheList, (callback) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        callback?.({ ok: false, error: "GM only" });
+        return;
+      }
+      try {
+        callback?.({ ok: true, monsters: listCachedMonsters(rooms.db) });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Cache list failed";
+        callback?.({ ok: false, error: message });
       }
     });
 

@@ -198,9 +198,25 @@ See [ADR 0005](../decisions/0005-tavern-theme-lantern.md) and [ADR 0019](../deci
 
 Non-negotiables (see AGENTS.md): server is single source of truth; WebSocket events validated then broadcast to `room:{id}`; PixiJS v8; TypeScript `strict`.
 
+## SRD monster offline dataset
+
+Search uses the committed index (`server/src/data/srd-monster-index.json`). Rebuild after API catalog changes:
+
+```bash
+npm run srd:build-index
+```
+
+For full offline **import** when dnd5eapi.co is unreachable (LAN prep without internet), download the full SRD statblocks once on a machine with network:
+
+```bash
+npm run srd:fetch-full
+```
+
+That writes `server/src/data/srd-monsters-full.json` (~15 MB, gitignored). The server uses it automatically as a fallback when the API fails. Keep the file on the host (or bake it into a private image) for table-day offline imports. Attribution (CC-BY-4.0) is shown in Settings.
+
 ## Related manuals
 
-- [SRD-Monster-Bibliothek](../srd-monster-library.md) (geplant): enthält `scripts/fetch-srd-full.ts` zum einmaligen Download des Voll-Datensatzes für Offline-LAN.
+- [SRD-Monster-Bibliothek](../srd-monster-library.md): on-demand SRD import via `monster:search` / `monster:import`, local index + `srd_cache`, optional `scripts/fetch-srd-full.ts` for offline-LAN.
 
 - Playing (EN): [../playing/en/README.md](../playing/en/README.md)
 - Playing (DE): [../playing/de/README.md](../playing/de/README.md)

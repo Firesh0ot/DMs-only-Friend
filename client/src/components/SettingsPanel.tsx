@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   ClientEvents,
   PHYSICAL_CELL_CM_MAX,
@@ -7,6 +7,7 @@ import {
   type CharacterKind,
   type CharacterState,
   type MapState,
+  type MonsterSearchResult,
   type RoomSettings,
 } from "@dms/shared";
 import { parseOptionalInt } from "../lib/hp";
@@ -34,15 +35,20 @@ type DraftCharacter = {
   mapIds: string[];
 };
 
-const emptyDraft = (): DraftCharacter => ({
+type CharacterPrepMode = "pc" | "npc" | "srd";
+
+const emptyDraft = (kind: CharacterKind = "pc"): DraftCharacter => ({
   name: "",
-  kind: "pc",
+  kind,
   notes: "",
   hpCurrent: "",
   hpMax: "",
   ac: "",
   mapIds: [],
 });
+
+const SRD_ATTRIBUTION =
+  "D&D 5e SRD 5.1, © Wizards of the Coast, lizenziert unter Creative Commons Attribution 4.0 (CC-BY-4.0). Daten über dnd5eapi.co.";
 
 function scrollToSettingsSection(sectionId: string): void {
   const target = document.getElementById(sectionId);
@@ -68,7 +74,8 @@ export function SettingsPanel({
   const [generateSeed, setGenerateSeed] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [draft, setDraft] = useState<DraftCharacter>(emptyDraft);
+  const [draft, setDraft] = useState<DraftCharacter>(emptyDraft("pc"));
+  const [prepMode, setPrepMode] = useState<CharacterPrepMode>("pc");
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
   const [editingStats, setEditingStats] = useState<
     Record<
@@ -84,12 +91,63 @@ export function SettingsPanel({
   const [physicalCellCmDraft, setPhysicalCellCmDraft] = useState(
     settings.physicalCellCm === null ? "" : String(settings.physicalCellCm),
   );
+  const [srdQuery, setSrdQuery] = useState("");
+  const [srdResults, setSrdResults] = useState<MonsterSearchResult[]>([]);
+  const [srdSource, setSrdSource] = useState<"index" | "cache" | null>(null);
+  const [srdCacheCount, setSrdCacheCount] = useState(0);
+  const [srdBusy, setSrdBusy] = useState(false);
+  const [srdRollHp, setSrdRollHp] = useState(false);
+  const [srdError, setSrdError] = useState<string | null>(null);
 
   useEffect(() => {
     setPhysicalCellCmDraft(
       settings.physicalCellCm === null ? "" : String(settings.physicalCellCm),
     );
   }, [settings.physicalCellCm]);
+
+  const srdSearchGen = useRef(0);
+
+  useEffect(() => {
+    if (prepMode !== "srd") {
+      return;
+    }
+    const query = srdQuery;
+    const handle = window.setTimeout(() => {
+      const gen = ++srdSearchGen.current;
+      if (!query.trim()) {
+        setSrdResults([]);
+        setSrdSource(null);
+        setSrdError(null);
+        return;
+      }
+      getSocket().emit(ClientEvents.MonsterSearch, { query }, (result) => {
+        if (gen !== srdSearchGen.current) {
+          return;
+        }
+        if (!result.ok) {
+          setSrdResults([]);
+          setSrdSource(null);
+          setSrdError(result.error);
+          return;
+        }
+        setSrdResults(result.results);
+        setSrdSource(result.source);
+        setSrdError(null);
+      });
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [prepMode, srdQuery]);
+
+  useEffect(() => {
+    if (prepMode !== "srd") {
+      return;
+    }
+    getSocket().emit(ClientEvents.MonsterCacheList, (result) => {
+      if (result.ok) {
+        setSrdCacheCount(result.monsters.length);
+      }
+    });
+  }, [prepMode]);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const links = useMemo(() => {
@@ -330,6 +388,15 @@ export function SettingsPanel({
     getSocket().emit(ClientEvents.MapActivate, { mapId });
   }
 
+  function selectPrepMode(mode: CharacterPrepMode) {
+    setPrepMode(mode);
+    if (mode === "pc" || mode === "npc") {
+      setDraft((current) => ({ ...current, kind: mode }));
+    }
+    setSrdError(null);
+    scrollToSettingsSection("settings-characters-prep");
+  }
+
   function addCharacter() {
     const name = draft.name.trim();
     if (!name) {
@@ -353,11 +420,34 @@ export function SettingsPanel({
         hpMax,
         ac,
       });
-      setDraft(emptyDraft());
+      setDraft(emptyDraft(draft.kind));
       setMessage(`Added ${draft.kind.toUpperCase()} ${name}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Invalid stats");
     }
+  }
+
+  function importSrdMonster(monsterIndex: string, name: string) {
+    setSrdBusy(true);
+    setSrdError(null);
+    getSocket().emit(
+      ClientEvents.MonsterImport,
+      { monsterIndex, rollHp: srdRollHp },
+      (result) => {
+        setSrdBusy(false);
+        if (!result.ok) {
+          setSrdError(result.error);
+          setMessage(result.error);
+          return;
+        }
+        setMessage(`Imported NPC ${name}`);
+        getSocket().emit(ClientEvents.MonsterCacheList, (cacheResult) => {
+          if (cacheResult.ok) {
+            setSrdCacheCount(cacheResult.monsters.length);
+          }
+        });
+      },
+    );
   }
 
   function saveCharacter(character: CharacterState, patch: Partial<CharacterState>) {
@@ -564,7 +654,7 @@ export function SettingsPanel({
             <textarea
               id={notesId}
               rows={2}
-              maxLength={500}
+              maxLength={2000}
               value={notesValue}
               placeholder="Short stats / traits"
               onChange={(event) =>
@@ -767,139 +857,225 @@ export function SettingsPanel({
       <section className="settings-section stack" aria-labelledby="settings-characters">
         <h3 id="settings-characters">Characters</h3>
         <p className="muted">
-          Add PCs and NPCs with display names, HP/AC, short notes, and portraits for the initiative
-          rail.
+          Prep the roster here: add PCs, manual NPCs, or import SRD monsters. Portraits feed the
+          initiative rail.
         </p>
 
-        <fieldset className="settings-fieldset stack">
-          <legend>Add character</legend>
-          <label className="stack" htmlFor={`${baseId}-new-name`}>
-            <span className="muted">Display name</span>
-            <input
-              id={`${baseId}-new-name`}
-              value={draft.name}
-              onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-              placeholder="Aria"
-              autoComplete="off"
-            />
-          </label>
-          <label className="stack" htmlFor={`${baseId}-new-kind`}>
-            <span className="muted">Type</span>
-            <select
-              id={`${baseId}-new-kind`}
-              value={draft.kind}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  kind: event.target.value as CharacterKind,
-                }))
-              }
-            >
-              <option value="pc">PC</option>
-              <option value="npc">NPC</option>
-            </select>
-          </label>
-          <div className="character-stats-row">
-            <label className="stack" htmlFor={`${baseId}-new-hp`}>
-              <span className="muted">HP</span>
-              <input
-                id={`${baseId}-new-hp`}
-                inputMode="numeric"
-                value={draft.hpCurrent}
-                placeholder="cur"
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, hpCurrent: event.target.value }))
-                }
-              />
-            </label>
-            <label className="stack" htmlFor={`${baseId}-new-hp-max`}>
-              <span className="muted">Max</span>
-              <input
-                id={`${baseId}-new-hp-max`}
-                inputMode="numeric"
-                value={draft.hpMax}
-                placeholder="max"
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, hpMax: event.target.value }))
-                }
-              />
-            </label>
-            <label className="stack" htmlFor={`${baseId}-new-ac`}>
-              <span className="muted">AC</span>
-              <input
-                id={`${baseId}-new-ac`}
-                inputMode="numeric"
-                value={draft.ac}
-                placeholder="–"
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, ac: event.target.value }))
-                }
-              />
-            </label>
-          </div>
-          <label className="stack" htmlFor={`${baseId}-new-notes`}>
-            <span className="muted">Stat notes (optional)</span>
-            <textarea
-              id={`${baseId}-new-notes`}
-              rows={2}
-              maxLength={500}
-              value={draft.notes}
-              placeholder="Short stats / traits"
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, notes: event.target.value }))
-              }
-            />
-          </label>
-          {maps.length > 0 ? (
-            <fieldset className="settings-fieldset">
-              <legend className="muted">Link to maps</legend>
-              <div className="row">
-                {maps.map((map) => {
-                  const checkboxId = `${baseId}-new-map-${map.id}`;
-                  return (
-                    <label key={map.id} className="check-row" htmlFor={checkboxId}>
-                      <input
-                        id={checkboxId}
-                        type="checkbox"
-                        checked={draft.mapIds.includes(map.id)}
-                        onChange={() =>
-                          setDraft((current) => ({
-                            ...current,
-                            mapIds: current.mapIds.includes(map.id)
-                              ? current.mapIds.filter((id) => id !== map.id)
-                              : [...current.mapIds, map.id],
-                          }))
-                        }
-                      />
-                      <span>{map.name}</span>
-                    </label>
-                  );
-                })}
+        <div className="settings-action-bar" role="group" aria-label="Character prep actions">
+          <button
+            type="button"
+            className={prepMode === "pc" ? "is-active" : "secondary"}
+            onClick={() => selectPrepMode("pc")}
+          >
+            Add PC
+          </button>
+          <button
+            type="button"
+            className={prepMode === "npc" ? "is-active" : "secondary"}
+            onClick={() => selectPrepMode("npc")}
+          >
+            Add NPC
+          </button>
+          <button
+            type="button"
+            className={prepMode === "srd" ? "is-active" : "secondary"}
+            onClick={() => selectPrepMode("srd")}
+          >
+            SRD search / import
+          </button>
+        </div>
+
+        <div id="settings-characters-prep" className="settings-characters-prep">
+          {prepMode === "pc" || prepMode === "npc" ? (
+            <fieldset className="settings-fieldset stack">
+              <legend>{prepMode === "pc" ? "Add PC" : "Add NPC (manual)"}</legend>
+              <label className="stack" htmlFor={`${baseId}-new-name`}>
+                <span className="muted">Display name</span>
+                <input
+                  id={`${baseId}-new-name`}
+                  value={draft.name}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, name: event.target.value }))
+                  }
+                  placeholder={prepMode === "pc" ? "Aria" : "Guard captain"}
+                  autoComplete="off"
+                />
+              </label>
+              <div className="character-stats-row">
+                <label className="stack" htmlFor={`${baseId}-new-hp`}>
+                  <span className="muted">HP</span>
+                  <input
+                    id={`${baseId}-new-hp`}
+                    inputMode="numeric"
+                    value={draft.hpCurrent}
+                    placeholder="cur"
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, hpCurrent: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="stack" htmlFor={`${baseId}-new-hp-max`}>
+                  <span className="muted">Max</span>
+                  <input
+                    id={`${baseId}-new-hp-max`}
+                    inputMode="numeric"
+                    value={draft.hpMax}
+                    placeholder="max"
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, hpMax: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="stack" htmlFor={`${baseId}-new-ac`}>
+                  <span className="muted">AC</span>
+                  <input
+                    id={`${baseId}-new-ac`}
+                    inputMode="numeric"
+                    value={draft.ac}
+                    placeholder="–"
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, ac: event.target.value }))
+                    }
+                  />
+                </label>
               </div>
+              <label className="stack" htmlFor={`${baseId}-new-notes`}>
+                <span className="muted">Stat notes (optional, max 2000)</span>
+                <textarea
+                  id={`${baseId}-new-notes`}
+                  rows={3}
+                  maxLength={2000}
+                  value={draft.notes}
+                  placeholder="Short stats / traits"
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, notes: event.target.value }))
+                  }
+                />
+              </label>
+              {maps.length > 0 ? (
+                <fieldset className="settings-fieldset">
+                  <legend className="muted">Link to maps</legend>
+                  <div className="row settings-map-checks">
+                    {maps.map((map) => {
+                      const checkboxId = `${baseId}-new-map-${map.id}`;
+                      return (
+                        <label key={map.id} className="check-row" htmlFor={checkboxId}>
+                          <input
+                            id={checkboxId}
+                            type="checkbox"
+                            checked={draft.mapIds.includes(map.id)}
+                            onChange={() =>
+                              setDraft((current) => ({
+                                ...current,
+                                mapIds: current.mapIds.includes(map.id)
+                                  ? current.mapIds.filter((id) => id !== map.id)
+                                  : [...current.mapIds, map.id],
+                              }))
+                            }
+                          />
+                          <span>{map.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              ) : (
+                <p className="muted">Upload a map before linking characters.</p>
+              )}
+              <button type="button" onClick={addCharacter}>
+                {prepMode === "pc" ? "Add PC" : "Add NPC"}
+              </button>
             </fieldset>
           ) : (
-            <p className="muted">Upload a map before linking characters.</p>
-          )}
-          <button type="button" onClick={addCharacter}>
-            Add {draft.kind.toUpperCase()}
-          </button>
-        </fieldset>
-
-        <div className="settings-roster stack">
-          <h4 className="settings-subhead">Player characters</h4>
-          {pcs.length === 0 ? (
-            <p className="muted">No PCs yet.</p>
-          ) : (
-            <ul className="character-list">{pcs.map(renderCharacterCard)}</ul>
-          )}
-
-          <h4 className="settings-subhead">NPCs</h4>
-          {npcs.length === 0 ? (
-            <p className="muted">No NPCs yet.</p>
-          ) : (
-            <ul className="character-list">{npcs.map(renderCharacterCard)}</ul>
+            <fieldset className="settings-fieldset stack">
+              <legend>SRD monster search</legend>
+              <p className="muted">
+                Search the local SRD index, then import as an NPC. First import of each monster needs
+                the API (or a full offline dataset); after that the table stays LAN-friendly from
+                cache.
+              </p>
+              <label className="stack" htmlFor={`${baseId}-srd-query`}>
+                <span className="muted">Search by name</span>
+                <input
+                  id={`${baseId}-srd-query`}
+                  value={srdQuery}
+                  onChange={(event) => setSrdQuery(event.target.value)}
+                  placeholder="Goblin, wolf, adult red…"
+                  autoComplete="off"
+                />
+              </label>
+              <label className="check-row" htmlFor={`${baseId}-srd-roll-hp`}>
+                <input
+                  id={`${baseId}-srd-roll-hp`}
+                  type="checkbox"
+                  checked={srdRollHp}
+                  onChange={(event) => setSrdRollHp(event.target.checked)}
+                />
+                <span>Roll hit dice for HP on import</span>
+              </label>
+              {srdSource === "cache" || srdError ? (
+                <p className="settings-offline-badge" role="status">
+                  Offline: {srdCacheCount} monster{srdCacheCount === 1 ? "" : "s"} from cache
+                  available
+                </p>
+              ) : null}
+              {srdError ? (
+                <p className="error" role="alert">
+                  {srdError}
+                </p>
+              ) : null}
+              <ul className="srd-result-list">
+                {srdResults.length === 0 ? (
+                  <li className="muted">
+                    {srdQuery.trim() ? "No matches in the SRD index." : "Type to search the SRD index."}
+                  </li>
+                ) : (
+                  srdResults.map((entry) => (
+                    <li key={entry.index} className="srd-result-row">
+                      <div className="stack" style={{ flex: 1, gap: "0.2rem" }}>
+                        <strong>{entry.name}</strong>
+                        <span className="muted">
+                          CR {entry.cr} · {entry.size} {entry.type}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={srdBusy}
+                        onClick={() => importSrdMonster(entry.index, entry.name)}
+                      >
+                        Import
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </fieldset>
           )}
         </div>
+
+        <div className="settings-roster settings-roster--wide">
+          <div className="stack">
+            <h4 className="settings-subhead">Player characters</h4>
+            {pcs.length === 0 ? (
+              <p className="muted">No PCs yet.</p>
+            ) : (
+              <ul className="character-list">{pcs.map(renderCharacterCard)}</ul>
+            )}
+          </div>
+          <div className="stack">
+            <h4 className="settings-subhead">NPCs</h4>
+            {npcs.length === 0 ? (
+              <p className="muted">No NPCs yet.</p>
+            ) : (
+              <ul className="character-list">{npcs.map(renderCharacterCard)}</ul>
+            )}
+          </div>
+        </div>
+
+        <aside className="settings-attribution" aria-label="SRD attribution">
+          <h4 className="settings-subhead">Attribution</h4>
+          <p>{SRD_ATTRIBUTION}</p>
+        </aside>
       </section>
 
       <section className="settings-section stack" aria-labelledby="settings-screen">

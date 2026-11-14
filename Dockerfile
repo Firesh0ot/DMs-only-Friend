@@ -60,6 +60,7 @@ COPY --from=build /app/shared/dist ./shared/dist
 COPY --from=prod-deps /app/server/package.json ./server/package.json
 COPY --from=prod-deps /app/server/node_modules ./server/node_modules
 COPY --from=build /app/server/dist ./server/dist
+COPY --from=build /app/server/src/data ./server/dist/data
 COPY --from=build /app/client/dist ./client/dist
 
 RUN mkdir -p /data/uploads \
