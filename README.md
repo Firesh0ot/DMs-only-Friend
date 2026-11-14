@@ -77,10 +77,11 @@ docker compose pull && docker compose up -d
 - **Phase 1 – Tisch-Kern:** Raum-System, statische Karte (PNG) + Grid, Tokens draggen, WebSocket-Sync, Player-Screen via Link, einfache Würfel. *Ziel: eine echte Session spielbar.*
 - **Phase 2 – DM-Werkzeuge:** Initiative-Tracker (persistente Rundenreihenfolge, Next-Turn, HP-Tracking), Monster-Quickstats, manuelle Fog-of-War-Ebene, Bedingungen auf Tokens.
 - **Phase 3 – Map-Integration:** `.dd2vtt`-Importer (PNG, Grid, Wände, Türen, Lichter), Map-Paket-Manifest (dd2vtt + optionales animiertes WebM), automatischer Line-of-Sight-Fog, PNG-Fallback mit Grid-Einstellung.
+- **Phase 2-Erweiterung – SRD-Monster-Bibliothek:** On-Demand-Import von SRD-5e-Monstern (CC-BY-4.0) als NPCs, mit Cache und Offline-Fallback. → [docs/srd-monster-library.md](docs/srd-monster-library.md)
 - **Phase-2-Erweiterung – Turn-Carousel-HUD & Zug-Logik:** Magic-Karten-artiges Initiative-Carousel (Mitte: aktive Karte mit Bedienung, Seiten: Nachbarn mit Name/HP), Initiative online gewürfelt oder offline eingegeben, Zug mit Move/Aktion/Bonus. → [docs/play-hud-initiative.md](docs/play-hud-initiative.md)
 - **Phase 4 – Offline-Spielerfahrung:** Physische Rastergrösse auf dem Tisch-Monitor (Kalibrierung per Zoll+Auflösung oder Lineal, Zoom-Lock im Screen-Modus). → [docs/phase-4-offline-screen.md](docs/phase-4-offline-screen.md)
 - **Phase 5 – Online-Spielerfahrung:** Spawn-Bereiche pro Karte und Bewegungsradius bei aktiver Initiative (server-erzwungenes Bewegungsbudget). → [docs/phase-5-online-movement.md](docs/phase-5-online-movement.md)
 - **Phase 6 – KI:** prozeduraler Dungeon-Generator mit dd2vtt-Export, danach Bild-Stilisierung als optionaler Layer. → [docs/phase-6-procedural-dungeon.md](docs/phase-6-procedural-dungeon.md)
 - **Phase 7 – MCP & Feinschliff:** MCP-Server (place_token, roll, next_turn, reveal…), Sounds, Makros.
 
-Detaillierte Spezifikationen: [docs/phase-1.md](docs/phase-1.md), [docs/phase-4-offline-screen.md](docs/phase-4-offline-screen.md), [docs/phase-5-online-movement.md](docs/phase-5-online-movement.md), [docs/phase-6-procedural-dungeon.md](docs/phase-6-procedural-dungeon.md)
+Detaillierte Spezifikationen: [docs/phase-1.md](docs/phase-1.md), [docs/srd-monster-library.md](docs/srd-monster-library.md), [docs/phase-4-offline-screen.md](docs/phase-4-offline-screen.md), [docs/phase-5-online-movement.md](docs/phase-5-online-movement.md), [docs/phase-6-procedural-dungeon.md](docs/phase-6-procedural-dungeon.md)

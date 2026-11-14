@@ -191,5 +191,7 @@ Non-negotiables (see AGENTS.md): server is single source of truth; WebSocket eve
 
 ## Related manuals
 
+- [SRD-Monster-Bibliothek](../srd-monster-library.md) (geplant): enthält `scripts/fetch-srd-full.ts` zum einmaligen Download des Voll-Datensatzes für Offline-LAN.
+
 - Playing (EN): [../playing/en/README.md](../playing/en/README.md)
 - Playing (DE): [../playing/de/README.md](../playing/de/README.md)

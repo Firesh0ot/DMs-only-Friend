@@ -16,6 +16,7 @@ Dieses Dokument ist der verbindliche Kontext für alle Coding-Agenten (Cursor et
 - **Auth**: Selbst gewählte Raum-Codes, kein Account-Zwang. GM braucht PIN + einmaligen Invite-Link (danach PIN zum Rejoin). Rollen: `gm`, `screen` (Player-Screen), `player` (remote).
 - **Berechtigungen**: Nur `gm` darf `map:*`, HTTP-Uploads und `token:create/remove`. Spieler dürfen nur ihren eigenen Token bewegen.
 - **Karten-Import**: Universal VTT (`.dd2vtt`) als Standardformat (unterstützt Dungeon Map Builder, Dungeon Scrawl, Dungeondraft, Dungeon Alchemist). Fallback: PNG/JPG mit manuellem Grid; animiertes WebM als optionaler Hintergrund-Layer. Kein Einbetten externer Editoren.
+- **Monster-Daten:** ausschliesslich SRD 5.1 (CC-BY-4.0) via dnd5eapi.co, serverseitig, on-demand + Cache. Kein WotC-Produktinhalt (Monster Manual etc.) im Repo oder Code – siehe ADR 0023.
 - **KI-Maps** (Phase 6): prozedurales Layout (BSP/WFC) → dd2vtt-konforme Daten; optionale Bild-Stilisierung (Stable Diffusion/ControlNet, grid-genau) als Hintergrund-Layer.
 - **MCP-Server** (Phase 7): separater Node-Service, spricht die Backend-API an, exponiert Tools wie `place_token`, `roll`, `next_turn`, `reveal_area`.
 
@@ -32,6 +33,7 @@ Dieses Dokument ist der verbindliche Kontext für alle Coding-Agenten (Cursor et
 
 1. **Phase 1 – Tisch-Kern:** Raum-System, statische Karte (PNG) + Grid, Tokens draggen, WebSocket-Sync, Player-Screen via Link, einfache Würfel. → [docs/phase-1.md](docs/phase-1.md)
 2. **Phase 2 – DM-Werkzeuge:** Initiative-Tracker (persistente Rundenreihenfolge, Next-Turn, HP-Tracking), Monster-Quickstats, manuelle Fog-of-War-Ebene (Pinsel/Rechtecke), Bedingungen auf Tokens (prone, frightened, …).
+   - **E3. SRD-Monster-Bibliothek** (Phase-2-Erweiterung): nur SRD 5.1 (CC-BY-4.0) via dnd5eapi.co; serverseitiger On-Demand-Fetch, einmal pro Monster, Cache in `srd_cache`, importierte Monster sind normale `characters`. Attribution in Settings Pflicht. → [docs/srd-monster-library.md](docs/srd-monster-library.md)
    - **E4. Turn-Carousel-HUD & Zug-Logik** (Phase-2-Erweiterung, baut auf Phase 5 auf, ADR 0025 – proposed): ein geteiltes `TurnCarousel`-Component; ersetzt die linke Initiative-Sektion des Play-HUD (ADR 0024) und die Spieler/Screen-TCG-Rail; Initiative server-gewürfelt (`initiative:roll`) oder offline manuell (`initiative:set`); Zug-Flags `actionUsed`/`bonusUsed` system-agnostisch. → [docs/play-hud-initiative.md](docs/play-hud-initiative.md)
 3. **Phase 3 – Map-Integration:** `.dd2vtt`-Importer (PNG, Grid, Wände, Türen, Lichter), Map-Paket-Manifest (JSON: referenziert dd2vtt + optionales animiertes WebM), automatischer Line-of-Sight-Fog aus Wanddaten, PNG-Fallback mit Grid-Einstellung.
 4. **Phase 4 – Offline-Spielerfahrung:** Physische Rastergrösse auf dem Tisch-Monitor. Kalibrierung: Auto aus Zoll+Auflösung, exakt per Lineal-Methode; Zoom-Lock im `physical` Screen-Modus; Kalibrierung gerätelokal in localStorage, Zielgrösse als Raum-Setting. → [docs/phase-4-offline-screen.md](docs/phase-4-offline-screen.md)
