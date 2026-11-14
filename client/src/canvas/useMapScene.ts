@@ -808,8 +808,9 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     if (
       movement?.active &&
       movement.tokenId &&
-      movement.remainingCells !== null &&
-      movement.remainingCells >= 0
+      movement.turnStart &&
+      movement.budgetCells !== null &&
+      movement.budgetCells >= 0
     ) {
       const token = propsRef.current.tokens.find((entry) => entry.id === movement.tokenId);
       if (token) {
@@ -819,8 +820,8 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
             propsRef.current.characterId &&
             token.characterId === propsRef.current.characterId);
         if (show) {
-          const center = cellToPixel(token.x, token.y, map);
-          const radiusPx = (movement.remainingCells + 0.5) * map.gridPx;
+          const center = cellToPixel(movement.turnStart.x, movement.turnStart.y, map);
+          const radiusPx = (movement.budgetCells + 0.5) * map.gridPx;
           graphics.rect(
             center.x - radiusPx,
             center.y - radiusPx,
@@ -829,11 +830,8 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
           );
           graphics.stroke({ width: 2, color: 0x60a5fa, alpha: 0.85 });
           graphics.fill({ color: 0x3b82f6, alpha: 0.12 });
-          if (movement.turnStart) {
-            const start = cellToPixel(movement.turnStart.x, movement.turnStart.y, map);
-            graphics.circle(start.x, start.y, Math.max(4, map.gridPx * 0.15));
-            graphics.fill({ color: 0xfbbf24, alpha: 0.9 });
-          }
+          graphics.circle(center.x, center.y, Math.max(4, map.gridPx * 0.15));
+          graphics.fill({ color: 0xfbbf24, alpha: 0.9 });
         }
       }
     }

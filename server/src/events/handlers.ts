@@ -17,6 +17,8 @@ import {
   MapActivatePayloadSchema,
   MapRemovePayloadSchema,
   MapUpdateGridPayloadSchema,
+  moveBlockedByWalls,
+  movementBlockerSegments,
   RoomJoinPayloadSchema,
   ScreenCommandPayloadSchema,
   ServerEvents,
@@ -155,6 +157,22 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
           return;
         }
 
+        const map = token.mapId
+          ? rooms.getMapById(token.mapId)
+          : rooms.getActiveMap(session.roomId);
+        if (map) {
+          const blockers = movementBlockerSegments(map.walls, map.portals);
+          if (
+            moveBlockedByWalls({ x: token.x, y: token.y }, { x: data.x, y: data.y }, blockers)
+          ) {
+            socket.emit(ServerEvents.MovementRejected, {
+              tokenId: token.id,
+              reason: "Blocked by wall",
+            });
+            return;
+          }
+        }
+
         let movement = rooms.getMovementBudget(session.roomId);
         if (session.role === "player" && rooms.playerMovementLocked(session.roomId)) {
           const initiative = rooms.getInitiative(session.roomId);
@@ -181,6 +199,8 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
             from: { x: token.x, y: token.y },
             to: { x: data.x, y: data.y },
             remainingCells: movement.remainingCells,
+            turnStart: movement.turnStart,
+            budgetCells: movement.budgetCells ?? movement.remainingCells,
           });
           if (!result.ok) {
             socket.emit(ServerEvents.MovementRejected, {
@@ -193,6 +213,7 @@ export function registerSocketHandlers(io: AppServer, rooms: RoomStore): void {
             tokenId: token.id,
             turnStart: movement.turnStart,
             remainingCells: result.remainingCells,
+            budgetCells: movement.budgetCells ?? movement.remainingCells,
             active: true,
           });
         }

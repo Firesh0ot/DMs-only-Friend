@@ -244,6 +244,7 @@ export const MovementBudgetSchema = z.object({
   tokenId: z.string().nullable(),
   turnStart: TurnStartSchema.nullable(),
   remainingCells: z.number().int().nonnegative().nullable(),
+  budgetCells: z.number().int().nonnegative().nullable().default(null),
   active: z.boolean(),
 });
 export type MovementBudget = z.infer<typeof MovementBudgetSchema>;

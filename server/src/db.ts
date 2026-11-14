@@ -145,6 +145,7 @@ function migrate(db: Db): void {
   ensureColumn(db, "room_initiative", "turn_start_x", "REAL");
   ensureColumn(db, "room_initiative", "turn_start_y", "REAL");
   ensureColumn(db, "room_initiative", "remaining_cells", "INT");
+  ensureColumn(db, "room_initiative", "budget_cells", "INT");
   ensureColumn(db, "room_initiative", "active_token_id", "TEXT");
 
   db.exec(`

@@ -8,6 +8,8 @@ export type ApplyMoveInput = {
   from: GridPoint;
   to: GridPoint;
   remainingCells: number;
+  turnStart?: GridPoint | null;
+  budgetCells?: number | null;
 };
 
 export type ApplyMoveResult =
@@ -18,6 +20,19 @@ export function applyMove(input: ApplyMoveInput): ApplyMoveResult {
   const distance = chebyshev(input.from, input.to);
   if (distance <= 0) {
     return { ok: true, distance: 0, remainingCells: input.remainingCells };
+  }
+  if (
+    input.turnStart &&
+    input.budgetCells !== null &&
+    input.budgetCells !== undefined &&
+    chebyshev(input.turnStart, input.to) > input.budgetCells
+  ) {
+    return {
+      ok: false,
+      reason: `Outside movement range (${input.budgetCells} from turn start)`,
+      distance,
+      remainingCells: input.remainingCells,
+    };
   }
   if (distance > input.remainingCells) {
     return {
@@ -32,6 +47,28 @@ export function applyMove(input: ApplyMoveInput): ApplyMoveResult {
     distance,
     remainingCells: input.remainingCells - distance,
   };
+}
+
+export function clampToChebyshevRange(
+  point: GridPoint,
+  origin: GridPoint,
+  radius: number,
+): GridPoint {
+  return {
+    x: Math.min(origin.x + radius, Math.max(origin.x - radius, point.x)),
+    y: Math.min(origin.y + radius, Math.max(origin.y - radius, point.y)),
+  };
+}
+
+export function clampMoveToBudget(input: {
+  from: GridPoint;
+  to: GridPoint;
+  remainingCells: number;
+  turnStart: GridPoint;
+  budgetCells: number;
+}): GridPoint {
+  const withinStep = clampToChebyshevRange(input.to, input.from, input.remainingCells);
+  return clampToChebyshevRange(withinStep, input.turnStart, input.budgetCells);
 }
 
 export function assignSpawnPoints<TPoint extends { assignedCharacterId: string | null }>(

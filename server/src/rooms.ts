@@ -102,6 +102,7 @@ type InitiativeRow = {
   turn_start_x: number | null;
   turn_start_y: number | null;
   remaining_cells: number | null;
+  budget_cells: number | null;
   active_token_id: string | null;
 };
 type SpawnPointRow = {
@@ -1218,7 +1219,13 @@ export class RoomStore {
       .prepare("SELECT * FROM room_initiative WHERE room_id = ?")
       .get(roomId) as InitiativeRow | undefined;
     if (!row) {
-      return { tokenId: null, turnStart: null, remainingCells: null, active: false };
+      return {
+        tokenId: null,
+        turnStart: null,
+        remainingCells: null,
+        budgetCells: null,
+        active: false,
+      };
     }
     const turnStart =
       row.turn_start_x === null || row.turn_start_y === null
@@ -1228,6 +1235,7 @@ export class RoomStore {
       tokenId: row.active_token_id,
       turnStart,
       remainingCells: row.remaining_cells,
+      budgetCells: row.budget_cells ?? row.remaining_cells,
       active: row.active_token_id !== null && row.remaining_cells !== null,
     };
   }
@@ -1238,23 +1246,34 @@ export class RoomStore {
       tokenId: string | null;
       turnStart: TurnStart | null;
       remainingCells: number | null;
+      budgetCells?: number | null;
       active: boolean;
     },
   ): MovementBudget {
     const initiative = this.getInitiative(roomId);
     if (!initiative) {
-      return { tokenId: null, turnStart: null, remainingCells: null, active: false };
+      return {
+        tokenId: null,
+        turnStart: null,
+        remainingCells: null,
+        budgetCells: null,
+        active: false,
+      };
     }
+    const budgetCells = budget.active
+      ? (budget.budgetCells ?? budget.remainingCells)
+      : null;
     this.db
       .prepare(
         `UPDATE room_initiative
-         SET turn_start_x = ?, turn_start_y = ?, remaining_cells = ?, active_token_id = ?
+         SET turn_start_x = ?, turn_start_y = ?, remaining_cells = ?, budget_cells = ?, active_token_id = ?
          WHERE room_id = ?`,
       )
       .run(
         budget.turnStart?.x ?? null,
         budget.turnStart?.y ?? null,
         budget.active ? budget.remainingCells : null,
+        budgetCells,
         budget.active ? budget.tokenId : null,
         roomId,
       );
@@ -1266,6 +1285,7 @@ export class RoomStore {
       tokenId: null,
       turnStart: null,
       remainingCells: null,
+      budgetCells: null,
       active: false,
     });
   }
@@ -1283,6 +1303,7 @@ export class RoomStore {
       tokenId,
       turnStart: { x: token.x, y: token.y },
       remainingCells: speed,
+      budgetCells: speed,
       active: true,
     });
   }
