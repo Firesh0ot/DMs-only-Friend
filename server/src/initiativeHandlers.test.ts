@@ -8,6 +8,7 @@ import { Server } from "socket.io";
 import {
   ClientEvents,
   ServerEvents,
+  type BattleState,
   type ClientToServerEvents,
   type InitiativeState,
   type ServerToClientEvents,
@@ -97,6 +98,12 @@ function nextInitiative(socket: TestSocket): Promise<InitiativeState> {
   });
 }
 
+function nextBattle(socket: TestSocket): Promise<BattleState | null> {
+  return new Promise((resolve) => {
+    socket.once(ServerEvents.BattleUpdated, (battle) => resolve(battle));
+  });
+}
+
 function nextError(socket: TestSocket): Promise<string> {
   return new Promise((resolve) => {
     socket.once(ServerEvents.Error, (payload) => resolve(payload.message));
@@ -113,6 +120,10 @@ describe("initiative socket handlers", () => {
     const gm = connect(url);
     await waitConnected(gm);
     await join(gm, { code, role: "gm", pin: "1234", invite: gmInviteToken });
+
+    const started = nextBattle(gm);
+    gm.emit(ClientEvents.BattleStart, { tokenIds: [aria.id, goblin.id] });
+    await started;
 
     const updated = nextInitiative(gm);
     gm.emit(ClientEvents.InitiativeSet, {
@@ -158,10 +169,11 @@ describe("initiative socket handlers", () => {
     await join(gm, { code, role: "gm", pin: "1234", invite: gmInviteToken });
 
     const reset = nextInitiative(gm);
-    gm.emit(ClientEvents.BattleStart);
+    gm.emit(ClientEvents.BattleStart, { tokenIds: [aria.id, goblin.id] });
     const afterStart = await reset;
     expect(afterStart.round).toBe(0);
     expect(rooms.getInitiative(room.id)?.round).toBe(0);
+    expect(rooms.getActiveBattle(room.id)?.combatantTokenIds).toEqual([aria.id, goblin.id]);
 
     const next = nextInitiative(gm);
     gm.emit(ClientEvents.InitiativeNext);
@@ -178,7 +190,7 @@ describe("initiative socket handlers", () => {
     gm.close();
   });
 
-  it("rolls initiative for all tokens on the active map", async () => {
+  it("rolls initiative only for battle combatants", async () => {
     const { url, rooms } = await startServer();
     const { room, code, gmInviteToken } = rooms.createRoom();
     const map = rooms.addMap(room.id, {
@@ -202,20 +214,192 @@ describe("initiative socket handlers", () => {
       mapIds: [map.id],
       initiativeBonus: 2,
     });
+    rooms.upsertCharacter({
+      roomId: room.id,
+      name: "Hidden Guard",
+      kind: "npc",
+      mapIds: [map.id],
+      initiativeBonus: 1,
+    });
     rooms.setActiveMap(room.id, map.id);
-    expect(rooms.listAllTokensOnActiveMap(room.id).length).toBe(2);
+    const tokens = rooms.listAllTokensOnActiveMap(room.id);
+    expect(tokens).toHaveLength(3);
+    const ariaToken = tokens.find((token) => token.characterId === aria.id)!;
+    const goblinToken = tokens.find((token) => token.label === "Goblin")!;
+    const guardToken = tokens.find((token) => token.label === "Hidden Guard")!;
 
     const gm = connect(url);
     await waitConnected(gm);
     await join(gm, { code, role: "gm", pin: "1234", invite: gmInviteToken });
 
+    const started = nextBattle(gm);
+    gm.emit(ClientEvents.BattleStart, { tokenIds: [ariaToken.id, goblinToken.id] });
+    const battle = await started;
+    expect(battle?.combatantTokenIds).toEqual([ariaToken.id, goblinToken.id]);
+
     const updated = nextInitiative(gm);
     gm.emit(ClientEvents.InitiativeRoll);
     const initiative = await updated;
     expect(initiative.order).toHaveLength(2);
+    expect(initiative.order.map((entry) => entry.tokenId).sort()).toEqual(
+      [ariaToken.id, goblinToken.id].sort(),
+    );
+    expect(initiative.order.some((entry) => entry.tokenId === guardToken.id)).toBe(false);
     expect(initiative.activeIndex).toBe(0);
     expect(initiative.order.every((entry) => Number.isFinite(entry.initiative))).toBe(true);
     expect(rooms.getCharacter(aria.id)?.initiativeBonus).toBe(3);
+
+    gm.close();
+  });
+
+  it("adds a combatant mid-fight sorted and preserves the active turn", async () => {
+    const { url, rooms } = await startServer();
+    const { room, code, gmInviteToken } = rooms.createRoom();
+    const map = rooms.addMap(room.id, {
+      name: "Cave",
+      filename: "cave.png",
+      width: 700,
+      height: 700,
+      gridPx: 70,
+    });
+    const aria = rooms.upsertCharacter({
+      roomId: room.id,
+      name: "Aria",
+      kind: "pc",
+      mapIds: [map.id],
+    });
+    const goblin = rooms.upsertCharacter({
+      roomId: room.id,
+      name: "Goblin",
+      kind: "npc",
+      mapIds: [map.id],
+    });
+    const wolf = rooms.upsertCharacter({
+      roomId: room.id,
+      name: "Wolf",
+      kind: "npc",
+      mapIds: [map.id],
+    });
+    rooms.setActiveMap(room.id, map.id);
+    const ariaToken = rooms.listAllTokensOnActiveMap(room.id).find((token) => token.characterId === aria.id)!;
+    const goblinToken = rooms
+      .listAllTokensOnActiveMap(room.id)
+      .find((token) => token.characterId === goblin.id)!;
+    const wolfToken = rooms.listAllTokensOnActiveMap(room.id).find((token) => token.characterId === wolf.id)!;
+
+    const gm = connect(url);
+    await waitConnected(gm);
+    await join(gm, { code, role: "gm", pin: "1234", invite: gmInviteToken });
+
+    const started = nextBattle(gm);
+    gm.emit(ClientEvents.BattleStart, { tokenIds: [ariaToken.id, goblinToken.id] });
+    await started;
+
+    const set = nextInitiative(gm);
+    gm.emit(ClientEvents.InitiativeSet, {
+      order: [
+        { tokenId: ariaToken.id, initiative: 18 },
+        { tokenId: goblinToken.id, initiative: 10 },
+      ],
+    });
+    await set;
+
+    const next = nextInitiative(gm);
+    gm.emit(ClientEvents.InitiativeNext);
+    await next;
+    expect(rooms.getInitiative(room.id)?.order[rooms.getInitiative(room.id)!.activeIndex]?.label).toBe(
+      "Goblin",
+    );
+
+    const added = nextInitiative(gm);
+    gm.emit(ClientEvents.InitiativeAdd, { tokenId: wolfToken.id, initiative: 14 });
+    const afterAdd = await added;
+    expect(afterAdd.order.map((entry) => entry.label)).toEqual(["Aria", "Wolf", "Goblin"]);
+    expect(afterAdd.order[afterAdd.activeIndex]?.label).toBe("Goblin");
+    expect(rooms.getActiveBattle(room.id)?.combatantTokenIds).toContain(wolfToken.id);
+
+    gm.close();
+  });
+
+  it("removes a combatant mid-fight without breaking the active index", async () => {
+    const { url, rooms } = await startServer();
+    const { room, code, gmInviteToken } = rooms.createRoom();
+    const map = rooms.addMap(room.id, {
+      name: "Cave",
+      filename: "cave.png",
+      width: 700,
+      height: 700,
+      gridPx: 70,
+    });
+    const aria = rooms.upsertCharacter({
+      roomId: room.id,
+      name: "Aria",
+      kind: "pc",
+      mapIds: [map.id],
+    });
+    const goblin = rooms.upsertCharacter({
+      roomId: room.id,
+      name: "Goblin",
+      kind: "npc",
+      mapIds: [map.id],
+    });
+    const wolf = rooms.upsertCharacter({
+      roomId: room.id,
+      name: "Wolf",
+      kind: "npc",
+      mapIds: [map.id],
+    });
+    rooms.setActiveMap(room.id, map.id);
+    const ariaToken = rooms.listAllTokensOnActiveMap(room.id).find((token) => token.characterId === aria.id)!;
+    const goblinToken = rooms
+      .listAllTokensOnActiveMap(room.id)
+      .find((token) => token.characterId === goblin.id)!;
+    const wolfToken = rooms.listAllTokensOnActiveMap(room.id).find((token) => token.characterId === wolf.id)!;
+
+    rooms.startBattle(room.id, [ariaToken.id, goblinToken.id, wolfToken.id]);
+    rooms.setInitiative(room.id, {
+      order: [
+        { tokenId: ariaToken.id, label: "Aria", initiative: 18, kind: "pc" },
+        { tokenId: goblinToken.id, label: "Goblin", initiative: 14, kind: "npc" },
+        { tokenId: wolfToken.id, label: "Wolf", initiative: 10, kind: "npc" },
+      ],
+      activeIndex: 1,
+      round: 1,
+    });
+
+    const gm = connect(url);
+    await waitConnected(gm);
+    await join(gm, { code, role: "gm", pin: "1234", invite: gmInviteToken });
+
+    const removed = nextInitiative(gm);
+    gm.emit(ClientEvents.InitiativeRemove, { tokenId: goblinToken.id });
+    const after = await removed;
+    expect(after.order.map((entry) => entry.label)).toEqual(["Aria", "Wolf"]);
+    expect(after.order[after.activeIndex]?.label).toBe("Wolf");
+    expect(rooms.getActiveBattle(room.id)?.combatantTokenIds).not.toContain(goblinToken.id);
+
+    gm.close();
+  });
+
+  it("clears combatant membership on battle:end", async () => {
+    const { url, rooms } = await startServer();
+    const { room, code, gmInviteToken } = rooms.createRoom();
+    const aria = rooms.createToken({ roomId: room.id, label: "Aria", x: 1, y: 1 });
+    rooms.startBattle(room.id, [aria.id]);
+
+    const gm = connect(url);
+    await waitConnected(gm);
+    await join(gm, { code, role: "gm", pin: "1234", invite: gmInviteToken });
+
+    const ended = nextBattle(gm);
+    gm.emit(ClientEvents.BattleEnd);
+    const battle = await ended;
+    expect(battle).toBeNull();
+    expect(rooms.getActiveBattle(room.id)).toBeNull();
+
+    const denied = nextError(gm);
+    gm.emit(ClientEvents.InitiativeRoll);
+    await expect(denied).resolves.toMatch(/No active battle/);
 
     gm.close();
   });
@@ -247,6 +431,7 @@ describe("initiative socket handlers", () => {
     rooms.setActiveMap(room.id, map.id);
     const ariaToken = rooms.listAllTokensOnActiveMap(room.id).find((token) => token.characterId === aria.id)!;
     const boltToken = rooms.listAllTokensOnActiveMap(room.id).find((token) => token.characterId === bolt.id)!;
+    rooms.startBattle(room.id, [ariaToken.id, boltToken.id]);
     rooms.setInitiative(room.id, {
       order: [
         { tokenId: boltToken.id, label: "Bolt", initiative: 12, kind: "pc" },
@@ -319,6 +504,7 @@ describe("initiative socket handlers", () => {
     const goblinToken = rooms
       .listAllTokensOnActiveMap(room.id)
       .find((token) => token.characterId === goblin.id)!;
+    rooms.startBattle(room.id, [ariaToken.id, goblinToken.id]);
     rooms.setInitiative(room.id, {
       order: [
         { tokenId: ariaToken.id, label: "Aria", initiative: 20, kind: "pc" },
@@ -405,6 +591,7 @@ describe("initiative socket handlers", () => {
     const goblinToken = rooms
       .listAllTokensOnActiveMap(room.id)
       .find((token) => token.characterId === goblin.id)!;
+    rooms.startBattle(room.id, [ariaToken.id, goblinToken.id]);
     rooms.setInitiative(room.id, {
       order: [
         { tokenId: ariaToken.id, label: "Aria", initiative: 18 },
@@ -422,6 +609,7 @@ describe("initiative socket handlers", () => {
     gm.emit(ClientEvents.CharacterSetHp, { characterId: goblin.id, hpCurrent: 0 });
     const initiative = await updated;
     expect(initiative.order.map((entry) => entry.label)).toEqual(["Aria"]);
+    expect(rooms.getActiveBattle(room.id)?.combatantTokenIds).toEqual([ariaToken.id]);
     expect(rooms.listAllTokensOnActiveMap(room.id).some((token) => token.id === goblinToken.id)).toBe(
       true,
     );
@@ -431,6 +619,7 @@ describe("initiative socket handlers", () => {
       gm.emit(ClientEvents.CharacterSetHp, { characterId: goblin.id, hpCurrent: 6 });
     });
     expect(rooms.getInitiative(room.id)?.order.map((entry) => entry.label)).toEqual(["Aria"]);
+    expect(rooms.getActiveBattle(room.id)?.combatantTokenIds).toEqual([ariaToken.id]);
 
     gm.close();
   });

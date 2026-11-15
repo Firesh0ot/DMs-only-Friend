@@ -54,8 +54,9 @@ describe("session event log and battle timing", () => {
     const store = createStore();
     const { room } = store.createRoom();
 
-    const started = store.startBattle(room.id);
+    const started = store.startBattle(room.id, []);
     expect(started.battle.endedAt).toBeNull();
+    expect(started.battle.combatantTokenIds).toEqual([]);
     expect(started.event.type).toBe("battle_start");
     expect(started.initiative).toBeNull();
     expect(store.getActiveBattle(room.id)?.id).toBe(started.battle.id);
@@ -66,6 +67,7 @@ describe("session event log and battle timing", () => {
     vi.setSystemTime(new Date("2026-11-11T18:05:30.000Z"));
     const ended = store.endBattle(room.id);
     expect(ended.battle.endedAt).toBe("2026-11-11T18:05:30.000Z");
+    expect(ended.battle.combatantTokenIds).toEqual([]);
     expect(ended.event.type).toBe("battle_end");
     expect(ended.event.summary).toContain("5:30");
     expect(store.getActiveBattle(room.id)).toBeNull();
@@ -82,7 +84,8 @@ describe("session event log and battle timing", () => {
       round: 3,
     });
 
-    const started = store.startBattle(room.id);
+    const started = store.startBattle(room.id, [aria.id]);
+    expect(started.battle.combatantTokenIds).toEqual([aria.id]);
     expect(started.initiative?.round).toBe(0);
     expect(store.getInitiative(room.id)?.round).toBe(0);
     expect(store.getInitiative(room.id)?.activeIndex).toBe(0);

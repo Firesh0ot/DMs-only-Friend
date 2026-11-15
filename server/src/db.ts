@@ -156,6 +156,7 @@ function migrate(db: Db): void {
   ensureColumn(db, "room_initiative", "active_token_id", "TEXT");
   ensureColumn(db, "room_initiative", "action_used", "INT NOT NULL DEFAULT 0");
   ensureColumn(db, "room_initiative", "bonus_used", "INT NOT NULL DEFAULT 0");
+  ensureColumn(db, "battles", "combatants_json", "TEXT NOT NULL DEFAULT '[]'");
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS srd_cache (

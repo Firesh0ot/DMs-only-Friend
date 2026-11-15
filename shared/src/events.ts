@@ -299,6 +299,8 @@ export const SessionEventTypeSchema = z.enum([
   "token_move",
   "initiative_set",
   "initiative_roll",
+  "initiative_add",
+  "initiative_remove",
   "initiative_next",
   "round_advance",
   "visibility_set",
@@ -325,6 +327,7 @@ export const BattleStateSchema = z.object({
   roomId: z.string(),
   startedAt: z.string(),
   endedAt: z.string().nullable(),
+  combatantTokenIds: z.array(z.string()).default([]),
 });
 export type BattleState = z.infer<typeof BattleStateSchema>;
 
@@ -486,6 +489,22 @@ export const InitiativeSetPayloadSchema = z.object({
   ),
 });
 export type InitiativeSetPayload = z.infer<typeof InitiativeSetPayloadSchema>;
+
+export const InitiativeAddPayloadSchema = z.object({
+  tokenId: z.string().min(1),
+  initiative: z.number().optional(),
+});
+export type InitiativeAddPayload = z.infer<typeof InitiativeAddPayloadSchema>;
+
+export const InitiativeRemovePayloadSchema = z.object({
+  tokenId: z.string().min(1),
+});
+export type InitiativeRemovePayload = z.infer<typeof InitiativeRemovePayloadSchema>;
+
+export const BattleStartPayloadSchema = z.object({
+  tokenIds: z.array(z.string().min(1)).default([]),
+});
+export type BattleStartPayload = z.infer<typeof BattleStartPayloadSchema>;
 
 export const TurnFlagPayloadSchema = z.object({
   used: z.boolean(),
@@ -736,6 +755,8 @@ export const ClientEvents = {
   InitiativeSet: "initiative:set",
   InitiativeRoll: "initiative:roll",
   InitiativeRollSelf: "initiative:rollSelf",
+  InitiativeAdd: "initiative:add",
+  InitiativeRemove: "initiative:remove",
   InitiativeNext: "initiative:next",
   TurnAction: "turn:action",
   TurnBonus: "turn:bonus",
@@ -819,6 +840,8 @@ export type ClientToServerEvents = {
   [ClientEvents.InitiativeSet]: (payload: InitiativeSetPayload) => void;
   [ClientEvents.InitiativeRoll]: () => void;
   [ClientEvents.InitiativeRollSelf]: () => void;
+  [ClientEvents.InitiativeAdd]: (payload: InitiativeAddPayload) => void;
+  [ClientEvents.InitiativeRemove]: (payload: InitiativeRemovePayload) => void;
   [ClientEvents.InitiativeNext]: () => void;
   [ClientEvents.TurnAction]: (payload: TurnFlagPayload) => void;
   [ClientEvents.TurnBonus]: (payload: TurnFlagPayload) => void;
@@ -843,7 +866,7 @@ export type ClientToServerEvents = {
     payload: GmChangePinPayload,
     callback?: (result: GmChangePinResult) => void,
   ) => void;
-  [ClientEvents.BattleStart]: () => void;
+  [ClientEvents.BattleStart]: (payload: BattleStartPayload) => void;
   [ClientEvents.BattleEnd]: () => void;
   [ClientEvents.FogPaint]: (payload: FogPaintPayload) => void;
   [ClientEvents.FogReset]: (payload: FogResetPayload) => void;

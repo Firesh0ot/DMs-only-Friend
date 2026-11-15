@@ -406,5 +406,15 @@ describe("event schemas", () => {
       endedAt: null,
     });
     expect(battle.endedAt).toBeNull();
+    expect(battle.combatantTokenIds).toEqual([]);
+    expect(
+      BattleStateSchema.parse({
+        id: "b2",
+        roomId: "r1",
+        startedAt: "2026-11-11T18:00:00.000Z",
+        endedAt: null,
+        combatantTokenIds: ["t1", "t2"],
+      }).combatantTokenIds,
+    ).toEqual(["t1", "t2"]);
   });
 });

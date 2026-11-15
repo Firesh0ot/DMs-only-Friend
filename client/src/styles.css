@@ -1631,10 +1631,68 @@ button.hud-panel__collapse:focus-visible {
   gap: 0.25rem;
 }
 
+.hud-init__roster {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid color-mix(in srgb, var(--text-secondary) 25%, transparent);
+}
+
+.hud-init__roster-list {
+  max-height: 7.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.hud-init__roster-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.hud-init__roster-out {
+  opacity: 0.72;
+}
+
+.hud-init__member-btn {
+  min-width: 1.7rem;
+  padding-inline: 0.35rem;
+}
+
 .hud-init__manual {
   margin-top: 0.1rem;
   padding-top: 0.35rem;
   border-top: 1px solid color-mix(in srgb, var(--text-secondary) 25%, transparent);
+}
+
+.battle-start-picker {
+  gap: 0.75rem;
+}
+
+.battle-start-picker__toolbar,
+.battle-start-picker__actions {
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.battle-start-picker__list {
+  max-height: 16rem;
+  overflow: auto;
+}
+
+.battle-start-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.battle-start-picker__name {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .hud-init__order {
