@@ -196,8 +196,9 @@
   border-top-color: color-mix(in srgb, var(--text-secondary) 25%, transparent);
 }
 
-.play-shell .play-hud__carousel .turn-card {
-  border-radius: var(--radius-sm);
+.play-shell .play-hud__carousel .screen-fan--embedded {
+  width: 14rem;
+  height: 11rem;
 }
 
 .play-shell button.hud-chip,
