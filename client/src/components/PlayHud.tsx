@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import {
   DEFAULT_SCREEN_CAROUSEL,
   type BattleState,
@@ -89,10 +89,26 @@ export function PlayHud({
   movement,
 }: Props) {
   const [prefs, setPrefs] = useState<PlayHudPrefs | null>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
+  const [stripHeightPx, setStripHeightPx] = useState(0);
 
   useEffect(() => {
     setPrefs(loadPlayHudPrefs(roomCode));
   }, [roomCode]);
+
+  useLayoutEffect(() => {
+    const strip = stripRef.current;
+    if (!strip) {
+      return;
+    }
+    const sync = () => {
+      setStripHeightPx(Math.ceil(strip.getBoundingClientRect().height));
+    };
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(strip);
+    return () => observer.disconnect();
+  }, [prefs]);
 
   if (!prefs) {
     return null;
@@ -106,6 +122,10 @@ export function PlayHud({
   function toggle(id: HudSectionId) {
     patch(toggleHudCollapsed(prefs!, id));
   }
+
+  const bottomStyle = {
+    "--hud-bottom-height": stripHeightPx > 0 ? `${stripHeightPx}px` : "4rem",
+  } as CSSProperties;
 
   return (
     <div className="play-hud" aria-label="GM play HUD">
@@ -155,7 +175,7 @@ export function PlayHud({
         />
       </div>
 
-      <div className="play-hud__bottom stack">
+      <div className="play-hud__bottom" style={bottomStyle}>
         <div className="play-hud__carousel" aria-label="Turn order carousel">
           <ScreenFanCarousel
             role="gm"
@@ -168,6 +188,7 @@ export function PlayHud({
           />
         </div>
         <HudBottomStrip
+          ref={stripRef}
           maps={maps}
           activeMap={activeMap}
           events={events}

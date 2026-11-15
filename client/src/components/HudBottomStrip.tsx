@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import {
   ClientEvents,
   type BattleState,
@@ -30,21 +30,24 @@ type Props = {
   onSpawnToolChange: (active: boolean) => void;
 };
 
-export function HudBottomStrip({
-  maps,
-  activeMap,
-  events,
-  battle,
-  tokens,
-  characters,
-  fog,
-  logCollapsed,
-  onToggleLog,
-  canNext,
-  spawnPoints,
-  spawnTool,
-  onSpawnToolChange,
-}: Props) {
+export const HudBottomStrip = forwardRef<HTMLDivElement, Props>(function HudBottomStrip(
+  {
+    maps,
+    activeMap,
+    events,
+    battle,
+    tokens,
+    characters,
+    fog,
+    logCollapsed,
+    onToggleLog,
+    canNext,
+    spawnPoints,
+    spawnTool,
+    onSpawnToolChange,
+  },
+  ref,
+) {
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [moreOpen, setMoreOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -72,7 +75,7 @@ export function HudBottomStrip({
   }
 
   return (
-    <div className="hud-bottom">
+    <div ref={ref} className="hud-bottom">
       <div className="hud-bottom__bar">
         <div className="hud-bottom__group hud-bottom__combat" aria-label="Battle">
           <span className="muted hud-bottom__combat-label">
@@ -100,15 +103,6 @@ export function HudBottomStrip({
         <button type="button" className="hud-chip hud-bottom__next" onClick={nextTurn} disabled={!canNext}>
           Next turn
         </button>
-
-        <HudSpawn
-          mode="actions"
-          mapId={mapId}
-          characters={characters}
-          spawnPoints={spawnPoints}
-          toolActive={spawnTool}
-          onToolChange={onSpawnToolChange}
-        />
 
         <div className="hud-bottom__group">
           <button
@@ -165,7 +159,6 @@ export function HudBottomStrip({
             </div>
           </div>
           <HudSpawn
-            mode="details"
             mapId={mapId}
             characters={characters}
             spawnPoints={spawnPoints}
@@ -178,7 +171,11 @@ export function HudBottomStrip({
         </div>
       ) : null}
 
-      {!moreOpen ? <SpawnStatusHint mapId={mapId} spawnPoints={spawnPoints} toolActive={spawnTool} /> : null}
+      {!moreOpen && spawnTool ? (
+        <p className="muted hud-muted hud-spawn__hint">
+          Spawn tool on — open More to change, or click the map to place.
+        </p>
+      ) : null}
 
       {!logCollapsed ? (
         <ul className="hud-bottom__log event-log">
@@ -210,28 +207,7 @@ export function HudBottomStrip({
       ) : null}
     </div>
   );
-}
-
-function SpawnStatusHint({
-  mapId,
-  spawnPoints,
-  toolActive,
-}: {
-  mapId: string | null;
-  spawnPoints: SpawnPoint[];
-  toolActive: boolean;
-}) {
-  let message: string | null = null;
-  if (toolActive) {
-    message = "Click the map to place a spawn cell.";
-  } else if (mapId && !spawnPoints.some((point) => point.mapId === mapId)) {
-    message = "No spawn points on this map.";
-  }
-  if (!message) {
-    return null;
-  }
-  return <p className="muted hud-muted hud-spawn__hint">{message}</p>;
-}
+});
 
 function formatClock(iso: string): string {
   const date = new Date(iso);

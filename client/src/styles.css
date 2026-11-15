@@ -1457,6 +1457,8 @@ button.hud-fog-rail__btn.is-active {
 .play-hud__bottom {
   grid-area: bottom;
   align-self: end;
+  position: relative;
+  --hud-bottom-height: 4rem;
 }
 
 .play-hud__left > *,
@@ -1802,11 +1804,16 @@ button.hud-panel__collapse:focus-visible {
 }
 
 .play-hud__carousel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--hud-bottom-height) + var(--space-2));
   display: flex;
   justify-content: center;
   pointer-events: none;
   min-width: 0;
   min-height: 11rem;
+  z-index: 0;
 }
 
 .play-hud__carousel > * {
@@ -1820,7 +1827,7 @@ button.hud-panel__collapse:focus-visible {
   width: 14rem;
   height: 11rem;
   transform: none;
-  z-index: 1;
+  z-index: 0;
 }
 
 .screen-fan--embedded .screen-fan__round {
@@ -1841,6 +1848,8 @@ button.hud-panel__collapse:focus-visible {
 }
 
 .hud-bottom {
+  position: relative;
+  z-index: 2;
   padding: 0.4rem 0.55rem 0.5rem;
   overflow: visible;
 }
@@ -1952,8 +1961,8 @@ button.hud-panel__collapse:focus-visible {
 }
 
 .hud-spawn-actions {
-  flex: 1 1 auto;
-  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .hud-spawn__hint {
