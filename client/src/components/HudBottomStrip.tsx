@@ -66,14 +66,14 @@ export function HudBottomStrip({
   return (
     <div className="hud-bottom">
       <div className="hud-bottom__bar">
-        <div className="hud-bottom__group" aria-label="Battle">
-          <span className="muted">
+        <div className="hud-bottom__group hud-bottom__combat" aria-label="Battle">
+          <span className="muted hud-bottom__combat-label">
             {battle && !battle.endedAt ? `Battle ${elapsed}` : "No battle"}
           </span>
           {battle && !battle.endedAt ? (
             <button
               type="button"
-              className="secondary hud-chip"
+              className="hud-chip hud-bottom__combat-btn"
               onClick={() => getSocket().emit(ClientEvents.BattleEnd)}
             >
               End
@@ -81,7 +81,7 @@ export function HudBottomStrip({
           ) : (
             <button
               type="button"
-              className="hud-chip"
+              className="hud-chip hud-bottom__combat-btn"
               onClick={() => getSocket().emit(ClientEvents.BattleStart)}
             >
               Start
@@ -124,24 +124,38 @@ export function HudBottomStrip({
 
       {moreOpen ? (
         <div className="hud-bottom__more">
-          <label className="hud-bottom__map">
-            <span className="muted">Active map</span>
-            <select
-              value={activeMap?.id ?? ""}
-              onChange={(event) => {
-                if (event.target.value) {
-                  activate(event.target.value);
-                }
-              }}
-            >
-              {maps.length === 0 ? <option value="">No maps</option> : null}
-              {maps.map((map) => (
-                <option key={map.id} value={map.id}>
-                  {map.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="hud-bottom__map-card">
+            {activeMap ? (
+              <img
+                className="hud-bottom__map-thumb"
+                src={`/uploads/${activeMap.filename}`}
+                alt=""
+              />
+            ) : (
+              <div className="hud-bottom__map-thumb hud-bottom__map-thumb--empty" aria-hidden="true" />
+            )}
+            <div className="hud-bottom__map-meta">
+              <span className="hud-bottom__map-name">{activeMap?.name ?? "No maps"}</span>
+              <label className="hud-bottom__map">
+                <span className="muted">Active map</span>
+                <select
+                  value={activeMap?.id ?? ""}
+                  onChange={(event) => {
+                    if (event.target.value) {
+                      activate(event.target.value);
+                    }
+                  }}
+                >
+                  {maps.length === 0 ? <option value="">No maps</option> : null}
+                  {maps.map((map) => (
+                    <option key={map.id} value={map.id}>
+                      {map.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
           <HudSpawn
             mode="details"
             mapId={mapId}
@@ -150,7 +164,9 @@ export function HudBottomStrip({
             toolActive={spawnTool}
             onToolChange={onSpawnToolChange}
           />
-          <p className="muted hud-muted">NPC roster and map prep live in Settings.</p>
+          <p className="muted hud-muted hud-bottom__more-note">
+            NPC roster and map prep live in Settings.
+          </p>
         </div>
       ) : null}
 
