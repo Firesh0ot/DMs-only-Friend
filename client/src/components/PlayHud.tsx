@@ -115,7 +115,12 @@ export function PlayHud({
           collapsed={isHudCollapsed(prefs, "dice")}
           onToggleCollapsed={() => toggle("dice")}
         >
-          <HudDice lastDice={lastDice} recent={recentDice} />
+          <HudDice
+            lastDice={lastDice}
+            recent={recentDice}
+            tokens={tokens}
+            characters={characters}
+          />
         </HudPanel>
         <HudPanel
           title="Initiative"

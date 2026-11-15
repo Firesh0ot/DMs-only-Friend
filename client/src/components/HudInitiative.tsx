@@ -69,6 +69,21 @@ export function HudInitiative({
   const exactHp = activeCharacter ? formatHp(activeCharacter) : null;
   const initial = activeEntry?.label.trim().charAt(0).toUpperCase() || "?";
 
+  const downedCharacters = useMemo(() => {
+    const activeId = activeCharacter?.id;
+    return characters.filter((character) => {
+      if (character.id === activeId) {
+        return false;
+      }
+      return (
+        character.deathState === "dying" ||
+        character.deathState === "stable" ||
+        character.deathState === "dead" ||
+        (character.hpCurrent !== null && character.hpCurrent <= 0)
+      );
+    });
+  }, [characters, activeCharacter?.id]);
+
   function setVisibility(patch: Partial<VisibilityState>) {
     getSocket().emit(ClientEvents.VisibilitySet, patch);
   }
@@ -93,12 +108,23 @@ export function HudInitiative({
     getSocket().emit(ClientEvents.CharacterSetHp, { characterId, delta });
   }
 
+  function deathSave(characterId: string, action: "roll" | "stabilize" | "kill" | "success" | "fail") {
+    getSocket().emit(ClientEvents.CharacterDeathSave, { characterId, action });
+  }
+
   function addCombatant(tokenId: string) {
     getSocket().emit(ClientEvents.InitiativeAdd, { tokenId });
   }
 
   function removeCombatant(tokenId: string) {
     getSocket().emit(ClientEvents.InitiativeRemove, { tokenId });
+  }
+
+  function toggleDiscovered(token: TokenState) {
+    getSocket().emit(ClientEvents.TokenSetDiscovered, {
+      tokenId: token.id,
+      discovered: !token.discovered,
+    });
   }
 
   function setOrder() {
@@ -259,6 +285,16 @@ export function HudInitiative({
                   </button>
                 </div>
               ) : null}
+              {activeCharacter &&
+              (activeCharacter.deathState === "dying" ||
+                activeCharacter.deathState === "stable" ||
+                activeCharacter.deathState === "dead" ||
+                (activeCharacter.hpCurrent !== null && activeCharacter.hpCurrent <= 0)) ? (
+                <DeathSaveControls
+                  character={activeCharacter}
+                  onAction={(action) => deathSave(activeCharacter.id, action)}
+                />
+              ) : null}
               {activeCharacter ? (
                 <ConditionToggles
                   characterId={activeCharacter.id}
@@ -271,6 +307,23 @@ export function HudInitiative({
         </div>
       ) : null}
 
+      {downedCharacters.length > 0 ? (
+        <div className="hud-init__downed stack" aria-label="Downed characters">
+          <p className="muted hud-init__downed-title">Downed</p>
+          <ul className="hud-init__roster-list">
+            {downedCharacters.map((character) => (
+              <li key={character.id}>
+                <span className="hud-init__name">{character.name}</span>
+                <DeathSaveControls
+                  character={character}
+                  onAction={(action) => deathSave(character.id, action)}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {battleActive ? (
         <CombatantRoster
           memberTokens={memberTokens}
@@ -278,6 +331,7 @@ export function HudInitiative({
           initiative={initiative}
           onAdd={addCombatant}
           onRemove={removeCombatant}
+          onToggleDiscovered={toggleDiscovered}
         />
       ) : null}
 
@@ -295,18 +349,84 @@ export function HudInitiative({
   );
 }
 
+function DeathSaveControls({
+  character,
+  onAction,
+}: {
+  character: CharacterState;
+  onAction: (action: "roll" | "stabilize" | "kill" | "success" | "fail") => void;
+}) {
+  const dying = character.deathState === "dying";
+  return (
+    <div className="hud-death stack" aria-label={`Death saves for ${character.name}`}>
+      <p className="hud-death__status">
+        <span className="hud-death__state">{character.deathState}</span>
+        <span className="muted">
+          S{character.deathSaveSuccesses}/3 · F{character.deathSaveFailures}/3
+        </span>
+      </p>
+      <div className="row hud-death__actions">
+        <button
+          type="button"
+          className="secondary hud-chip"
+          disabled={!dying}
+          onClick={() => onAction("roll")}
+        >
+          Roll
+        </button>
+        <button
+          type="button"
+          className="secondary hud-chip"
+          disabled={!dying}
+          onClick={() => onAction("success")}
+          title="Mark success"
+        >
+          +S
+        </button>
+        <button
+          type="button"
+          className="secondary hud-chip"
+          disabled={!dying}
+          onClick={() => onAction("fail")}
+          title="Mark failure"
+        >
+          +F
+        </button>
+        <button
+          type="button"
+          className="secondary hud-chip"
+          disabled={character.deathState === "dead" || character.deathState === "stable"}
+          onClick={() => onAction("stabilize")}
+        >
+          Stable
+        </button>
+        <button
+          type="button"
+          className="secondary hud-chip"
+          disabled={character.deathState === "dead"}
+          onClick={() => onAction("kill")}
+        >
+          Dead
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function CombatantRoster({
   memberTokens,
   nonMemberTokens,
   initiative,
   onAdd,
   onRemove,
+  onToggleDiscovered,
 }: {
   memberTokens: TokenState[];
   nonMemberTokens: TokenState[];
   initiative: InitiativeState | null;
   onAdd: (tokenId: string) => void;
   onRemove: (tokenId: string) => void;
+  onToggleDiscovered: (token: TokenState) => void;
 }) {
   const activeId = initiative?.order[initiative.activeIndex]?.tokenId;
   const scoreByToken = useMemo(() => {
@@ -330,6 +450,16 @@ function CombatantRoster({
               </span>
               <button
                 type="button"
+                className={`secondary hud-chip hud-init__member-btn ${token.discovered || token.isPlayer ? "is-active" : ""}`}
+                onClick={() => onToggleDiscovered(token)}
+                aria-pressed={token.discovered || token.isPlayer}
+                title={token.discovered || token.isPlayer ? "Discovered" : "Mark discovered"}
+                disabled={token.isPlayer}
+              >
+                Seen
+              </button>
+              <button
+                type="button"
                 className="secondary hud-chip hud-init__member-btn"
                 onClick={() => onRemove(token.id)}
                 aria-label={`Remove ${token.label} from initiative`}
@@ -343,6 +473,16 @@ function CombatantRoster({
         {nonMemberTokens.map((token) => (
           <li key={token.id} className="hud-init__roster-out">
             <span className="hud-init__name muted">{token.label}</span>
+            <button
+              type="button"
+              className={`secondary hud-chip hud-init__member-btn ${token.discovered || token.isPlayer ? "is-active" : ""}`}
+              onClick={() => onToggleDiscovered(token)}
+              aria-pressed={token.discovered || token.isPlayer}
+              title={token.discovered || token.isPlayer ? "Discovered" : "Mark discovered"}
+              disabled={token.isPlayer}
+            >
+              Seen
+            </button>
             <button
               type="button"
               className="secondary hud-chip hud-init__member-btn"

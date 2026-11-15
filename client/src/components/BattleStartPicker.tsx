@@ -36,7 +36,12 @@ export function BattleStartPicker({
     return tokens.map((token) => {
       const character = token.characterId ? byCharacter.get(token.characterId) : undefined;
       const kind = character?.kind ?? (token.isPlayer ? "pc" : "npc");
-      return { token, kind, bonus: character?.initiativeBonus ?? 0 };
+      return {
+        token,
+        kind,
+        bonus: character?.initiativeBonus ?? 0,
+        discovered: token.discovered || token.isPlayer || kind === "pc",
+      };
     });
   }, [tokens, byCharacter]);
 
@@ -65,7 +70,7 @@ export function BattleStartPicker({
       <div className="screen-modal__card panel stack battle-start-picker">
         <h2 id="battle-start-title">Start battle</h2>
         <p className="muted">
-          Choose combatants. Defaults: all PCs and currently visible NPCs.
+          Choose combatants. Defaults: all PCs and discovered or currently visible NPCs.
         </p>
         <div className="row battle-start-picker__toolbar">
           <button type="button" className="secondary hud-chip" onClick={selectDefaults}>
@@ -86,7 +91,7 @@ export function BattleStartPicker({
           {rows.length === 0 ? (
             <li className="muted">No tokens on the active map</li>
           ) : (
-            rows.map(({ token, kind, bonus }) => {
+            rows.map(({ token, kind, bonus, discovered }) => {
               const inputId = `battle-member-${token.id}`;
               return (
                 <li key={token.id}>
@@ -101,6 +106,7 @@ export function BattleStartPicker({
                       {token.label}
                       <span className="muted">
                         {kind.toUpperCase()}
+                        {discovered ? " · seen" : " · hidden"}
                         {bonus !== 0
                           ? ` ${bonus >= 0 ? `+${bonus}` : String(bonus)}`
                           : ""}

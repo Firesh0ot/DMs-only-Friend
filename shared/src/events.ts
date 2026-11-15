@@ -112,8 +112,12 @@ export const TokenStateSchema = z.object({
   isPlayer: z.boolean(),
   mapId: z.string().nullable(),
   characterId: z.string().nullable(),
+  discovered: z.boolean().default(false),
 });
 export type TokenState = z.infer<typeof TokenStateSchema>;
+
+export const DeathStateSchema = z.enum(["ok", "dying", "stable", "dead"]);
+export type DeathState = z.infer<typeof DeathStateSchema>;
 
 export const CharacterStateSchema = z.object({
   id: z.string(),
@@ -131,6 +135,9 @@ export const CharacterStateSchema = z.object({
   ac: z.number().int().nullable(),
   hpQuarter: z.number().int().min(0).max(4).nullable(),
   conditions: z.array(ConditionIdSchema).default([]),
+  deathState: DeathStateSchema.default("ok"),
+  deathSaveSuccesses: z.number().int().min(0).max(3).default(0),
+  deathSaveFailures: z.number().int().min(0).max(3).default(0),
 });
 export type CharacterState = z.infer<typeof CharacterStateSchema>;
 
@@ -224,11 +231,29 @@ export function hpToQuarter(hpCurrent: number | null, hpMax: number | null): num
 export function isCharacterDead(character: {
   hpCurrent: number | null;
   hpQuarter?: number | null;
+  deathState?: DeathState | null;
 }): boolean {
+  if (character.deathState === "dead") {
+    return true;
+  }
+  if (character.deathState === "dying" || character.deathState === "stable") {
+    return false;
+  }
   if (character.hpCurrent !== null && character.hpCurrent <= 0) {
     return true;
   }
   return character.hpQuarter === 0;
+}
+
+export function isCharacterDowned(character: {
+  hpCurrent: number | null;
+  hpQuarter?: number | null;
+  deathState?: DeathState | null;
+}): boolean {
+  if (character.deathState === "dying" || character.deathState === "stable") {
+    return true;
+  }
+  return isCharacterDead(character);
 }
 
 export const CameraStateSchema = z.object({
@@ -713,6 +738,18 @@ export const CharacterSetConditionsPayloadSchema = z.object({
 });
 export type CharacterSetConditionsPayload = z.infer<typeof CharacterSetConditionsPayloadSchema>;
 
+export const CharacterDeathSavePayloadSchema = z.object({
+  characterId: z.string().min(1),
+  action: z.enum(["roll", "stabilize", "kill", "success", "fail"]),
+});
+export type CharacterDeathSavePayload = z.infer<typeof CharacterDeathSavePayloadSchema>;
+
+export const TokenSetDiscoveredPayloadSchema = z.object({
+  tokenId: z.string().min(1),
+  discovered: z.boolean(),
+});
+export type TokenSetDiscoveredPayload = z.infer<typeof TokenSetDiscoveredPayloadSchema>;
+
 export const VisibilitySetPayloadSchema = z.object({
   showPcs: z.boolean().optional(),
   showNpcs: z.boolean().optional(),
@@ -799,6 +836,7 @@ export const ClientEvents = {
   CharacterRemove: "character:remove",
   CharacterSetHp: "character:setHp",
   CharacterSetConditions: "character:setConditions",
+  CharacterDeathSave: "character:deathSave",
   CharacterSetSpeed: "character:setSpeed",
   SpawnSet: "spawn:set",
   SpawnApply: "spawn:apply",
@@ -817,6 +855,7 @@ export const ClientEvents = {
   WallAddSegment: "wall:addSegment",
   ObstaclePlace: "obstacle:place",
   ObstacleRemove: "obstacle:remove",
+  TokenSetDiscovered: "token:setDiscovered",
   MonsterSearch: "monster:search",
   MonsterImport: "monster:import",
   MonsterCacheList: "monster:cache:list",
@@ -890,7 +929,9 @@ export type ClientToServerEvents = {
   [ClientEvents.CharacterRemove]: (payload: CharacterRemovePayload) => void;
   [ClientEvents.CharacterSetHp]: (payload: CharacterSetHpPayload) => void;
   [ClientEvents.CharacterSetConditions]: (payload: CharacterSetConditionsPayload) => void;
+  [ClientEvents.CharacterDeathSave]: (payload: CharacterDeathSavePayload) => void;
   [ClientEvents.CharacterSetSpeed]: (payload: CharacterSetSpeedPayload) => void;
+  [ClientEvents.TokenSetDiscovered]: (payload: TokenSetDiscoveredPayload) => void;
   [ClientEvents.SpawnSet]: (payload: SpawnSetPayload) => void;
   [ClientEvents.SpawnApply]: (payload: SpawnApplyPayload) => void;
   [ClientEvents.VisibilitySet]: (payload: VisibilitySetPayload) => void;

@@ -1,20 +1,25 @@
 import {
+  applyDeathSaveRoll,
   assignSpawnPoints,
   createEmptyExplored,
+  deathSavesAfterHpChange,
   encodeExploredBits,
   growExploredFromCurrentVisibility,
   growExploredFromStroke,
   healWallsAroundPortals,
   hpToQuarter,
+  markDead,
   normalizeRoomCode,
   parseExploredCells,
   RoomCodeSchema,
+  stabilizeDeathSaves,
   type BattleState,
   type CameraState,
   type CharacterKind,
   type CharacterState,
   type ConditionId,
   ConditionIdSchema,
+  type DeathState,
   type FogState,
   type FogStroke,
   type FogStrokeInput,
@@ -97,6 +102,7 @@ type TokenRow = {
   is_player: number;
   map_id: string | null;
   character_id: string | null;
+  discovered: number;
 };
 type CharacterRow = {
   id: string;
@@ -112,6 +118,9 @@ type CharacterRow = {
   hp_max: number | null;
   ac: number | null;
   conditions_json: string | null;
+  death_state: string | null;
+  death_save_successes: number | null;
+  death_save_failures: number | null;
 };
 type CameraRow = { room_id: string; x: number; y: number; zoom: number };
 type InitiativeRow = {
@@ -738,9 +747,50 @@ export class RoomStore {
       hpCurrent = input.hpCurrent;
     }
     const nextHp = normalizeHp({ hpCurrent, hpMax });
+    const damageWhileDying =
+      input.delta !== undefined &&
+      input.delta < 0 &&
+      (existing.deathState === "dying" ||
+        existing.deathState === "stable" ||
+        (existing.hpCurrent !== null && existing.hpCurrent <= 0))
+        ? Math.abs(input.delta)
+        : 0;
+    const death = deathSavesAfterHpChange(
+      {
+        deathState: existing.deathState,
+        deathSaveSuccesses: existing.deathSaveSuccesses,
+        deathSaveFailures: existing.deathSaveFailures,
+        hpCurrent: existing.hpCurrent,
+      },
+      nextHp.hpCurrent,
+      { damageWhileDying, hpMax: nextHp.hpMax },
+    );
+    let conditions = existing.conditions;
+    if (death.deathState === "dying" || death.deathState === "stable" || death.deathState === "dead") {
+      if (!conditions.includes("unconscious")) {
+        conditions = [...conditions, "unconscious"];
+      }
+    } else if (
+      existing.deathState !== "ok" &&
+      death.deathState === "ok" &&
+      conditions.includes("unconscious")
+    ) {
+      conditions = conditions.filter((id) => id !== "unconscious");
+    }
     this.db
-      .prepare("UPDATE characters SET hp_current = ?, hp_max = ? WHERE id = ?")
-      .run(nextHp.hpCurrent, nextHp.hpMax, characterId);
+      .prepare(
+        `UPDATE characters SET hp_current = ?, hp_max = ?, death_state = ?,
+         death_save_successes = ?, death_save_failures = ?, conditions_json = ? WHERE id = ?`,
+      )
+      .run(
+        nextHp.hpCurrent,
+        nextHp.hpMax,
+        death.deathState,
+        death.deathSaveSuccesses,
+        death.deathSaveFailures,
+        JSON.stringify(normalizeConditions(conditions)),
+        characterId,
+      );
     const character = this.getCharacter(characterId);
     if (!character) {
       throw new Error("Failed to persist HP");
@@ -762,6 +812,112 @@ export class RoomStore {
       throw new Error("Failed to persist conditions");
     }
     return character;
+  }
+
+  applyCharacterDeathSave(
+    characterId: string,
+    action: "roll" | "stabilize" | "kill" | "success" | "fail",
+    random: () => number = Math.random,
+  ): { character: CharacterState; roll?: { expr: string; results: number[]; total: number } } {
+    const existing = this.getCharacter(characterId);
+    if (!existing) {
+      throw new Error("Character not found");
+    }
+    if (action === "stabilize") {
+      return { character: this.persistDeathSaves(characterId, stabilizeDeathSaves(), existing.conditions) };
+    }
+    if (action === "kill") {
+      const conditions = existing.conditions.includes("unconscious")
+        ? existing.conditions
+        : [...existing.conditions, "unconscious" as ConditionId];
+      return { character: this.persistDeathSaves(characterId, markDead(), conditions) };
+    }
+
+    let next = {
+      deathState: existing.deathState,
+      deathSaveSuccesses: existing.deathSaveSuccesses,
+      deathSaveFailures: existing.deathSaveFailures,
+    };
+    let rollResult: { expr: string; results: number[]; total: number } | undefined;
+
+    if (action === "roll") {
+      if (existing.deathState !== "dying") {
+        throw new Error("Character is not dying");
+      }
+      const value = Math.floor(random() * 20) + 1;
+      const resolved = applyDeathSaveRoll(next, value);
+      next = {
+        deathState: resolved.deathState,
+        deathSaveSuccesses: resolved.deathSaveSuccesses,
+        deathSaveFailures: resolved.deathSaveFailures,
+      };
+      rollResult = { expr: "1d20+0", results: [value], total: value };
+      if (resolved.outcome === "critical_success") {
+        const healed = this.setCharacterHp(characterId, { hpCurrent: 1 });
+        return { character: healed, roll: rollResult };
+      }
+    } else if (action === "success" || action === "fail") {
+      if (existing.deathState !== "dying") {
+        throw new Error("Character is not dying");
+      }
+      const faux = action === "success" ? 12 : 5;
+      const resolved = applyDeathSaveRoll(next, faux);
+      next = {
+        deathState: resolved.deathState,
+        deathSaveSuccesses: resolved.deathSaveSuccesses,
+        deathSaveFailures: resolved.deathSaveFailures,
+      };
+    }
+
+    let conditions = existing.conditions;
+    if (next.deathState === "ok") {
+      conditions = conditions.filter((id) => id !== "unconscious");
+    } else if (!conditions.includes("unconscious")) {
+      conditions = [...conditions, "unconscious"];
+    }
+    return {
+      character: this.persistDeathSaves(characterId, next, conditions),
+      roll: rollResult,
+    };
+  }
+
+  private persistDeathSaves(
+    characterId: string,
+    death: { deathState: DeathState; deathSaveSuccesses: number; deathSaveFailures: number },
+    conditions: ConditionId[],
+  ): CharacterState {
+    this.db
+      .prepare(
+        `UPDATE characters SET death_state = ?, death_save_successes = ?, death_save_failures = ?,
+         conditions_json = ? WHERE id = ?`,
+      )
+      .run(
+        death.deathState,
+        death.deathSaveSuccesses,
+        death.deathSaveFailures,
+        JSON.stringify(normalizeConditions(conditions)),
+        characterId,
+      );
+    const character = this.getCharacter(characterId);
+    if (!character) {
+      throw new Error("Failed to persist death saves");
+    }
+    return character;
+  }
+
+  setTokenDiscovered(tokenId: string, discovered: boolean): TokenState {
+    const existing = this.getToken(tokenId);
+    if (!existing) {
+      throw new Error("Token not found");
+    }
+    this.db
+      .prepare("UPDATE tokens SET discovered = ? WHERE id = ?")
+      .run(discovered ? 1 : 0, tokenId);
+    const token = this.getToken(tokenId);
+    if (!token) {
+      throw new Error("Failed to persist discovered");
+    }
+    return token;
   }
 
   setCharacterSpeed(characterId: string, speedCells: number): CharacterState {
@@ -1230,13 +1386,15 @@ export class RoomStore {
     isPlayer?: boolean;
     mapId?: string | null;
     characterId?: string | null;
+    discovered?: boolean;
   }): TokenState {
     const id = makeId();
     const mapId = input.mapId ?? this.getActiveMap(input.roomId)?.id ?? null;
+    const discovered = input.discovered ?? Boolean(input.isPlayer);
     this.db
       .prepare(
-        `INSERT INTO tokens (id, room_id, label, image, x, y, size_cells, is_player, map_id, character_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO tokens (id, room_id, label, image, x, y, size_cells, is_player, map_id, character_id, discovered)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -1249,6 +1407,7 @@ export class RoomStore {
         input.isPlayer ? 1 : 0,
         mapId,
         input.characterId ?? null,
+        discovered ? 1 : 0,
       );
     if (input.characterId && mapId) {
       this.db
@@ -2360,6 +2519,7 @@ function formatDuration(durationMs: number): string {
 }
 
 function toCharacterState(row: CharacterRow, mapIds: string[]): CharacterState {
+  const death = parseDeathRow(row);
   return {
     id: row.id,
     roomId: row.room_id,
@@ -2376,6 +2536,26 @@ function toCharacterState(row: CharacterRow, mapIds: string[]): CharacterState {
     ac: row.ac ?? null,
     hpQuarter: null,
     conditions: parseConditionsJson(row.conditions_json),
+    deathState: death.deathState,
+    deathSaveSuccesses: death.deathSaveSuccesses,
+    deathSaveFailures: death.deathSaveFailures,
+  };
+}
+
+function parseDeathRow(row: CharacterRow): {
+  deathState: DeathState;
+  deathSaveSuccesses: number;
+  deathSaveFailures: number;
+} {
+  const parsed = row.death_state;
+  const deathState: DeathState =
+    parsed === "dying" || parsed === "stable" || parsed === "dead" || parsed === "ok"
+      ? parsed
+      : "ok";
+  return {
+    deathState,
+    deathSaveSuccesses: Math.min(3, Math.max(0, row.death_save_successes ?? 0)),
+    deathSaveFailures: Math.min(3, Math.max(0, row.death_save_failures ?? 0)),
   };
 }
 
@@ -2696,6 +2876,7 @@ function tokenRowToState(row: TokenRow): TokenState {
     isPlayer: row.is_player === 1,
     mapId: row.map_id,
     characterId: row.character_id,
+    discovered: row.discovered === 1 || row.is_player === 1,
   };
 }
 
