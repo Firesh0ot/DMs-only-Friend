@@ -38,7 +38,7 @@ Pro aktivem Zug verwaltet der Server drei Ressourcen-Flags im Initiative-Zustand
 
 Der geshipte Play-HUD (ADR 0024) gliedert sich in: **links** Dice + Initiative, **unten** Battle/Spawn/Log (+ TurnCarousel), **rechts** Fog-Icon-Rail.
 
-- **GM-Play-HUD:** Die **linke Initiative-Insel** ist die volle Kampf-Bedienung für den aktiven Combatant (Runde, PC/NPC, Roll/Set, Portrait, Name, **exakte HP current/max**, Move/Aktion/Bonus, End Turn, ±1, Conditions). Das **`TurnCarousel` sitzt bottom-center** (Screen-Fan-Anmutung), **ohne** HP-Balken und ohne HP-Zahlen. „End Turn“ links und „Next turn“ unten senden dasselbe `initiative:next`.
+- **GM-Play-HUD:** Die **linke Initiative-Insel** ist die volle Kampf-Bedienung für den aktiven Combatant (Runde, PC/NPC, Roll/Set, Portrait, Name, **exakte HP current/max**, Move/Aktion/Bonus, End Turn, ±1, Conditions). Bottom-center sitzt dasselbe **`ScreenFanCarousel`** wie auf dem Player-Screen (Fan-Layout, Facing/Flip-Invert), embedded, **ohne** Place-Handle und **ohne** HP-Balken/-Zahlen. „End Turn“ links und „Next turn“ unten senden dasselbe `initiative:next`.
 - **Spieler-Ansicht:** `TurnCarousel` in der TCG-Rail (mit HP/Bedienung wie Rolle erlaubt).
 - **Player-Screen:** `ScreenFanCarousel` unverändert; Quarter-HP nur wenn Settings-Toggle an.
 

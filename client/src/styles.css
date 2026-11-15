@@ -1670,43 +1670,38 @@ button.hud-panel__collapse:focus-visible {
   justify-content: center;
   pointer-events: none;
   min-width: 0;
+  min-height: 11rem;
 }
 
 .play-hud__carousel > * {
-  pointer-events: auto;
-  width: min(22rem, 100%);
+  pointer-events: none;
 }
 
-.play-hud__carousel .turn-carousel--compact .turn-carousel__stage {
-  min-height: calc(6.8rem * var(--turn-scale));
-  padding: 0.25rem 0.1rem 0.35rem;
+.screen-fan--embedded {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 14rem;
+  height: 11rem;
+  transform: none;
+  z-index: 1;
 }
 
-.play-hud__carousel .turn-card {
-  border-radius: 8px;
-  box-shadow:
-    0 1px 0 color-mix(in srgb, white 28%, transparent) inset,
-    0 8px 16px color-mix(in srgb, black 28%, transparent);
+.screen-fan--embedded .screen-fan__round {
+  top: 0.15rem;
 }
 
-.play-hud__carousel .turn-card--active {
-  padding: 0.28rem;
+.screen-fan--embedded.screen-fan--idle {
+  height: auto;
+  min-height: 2.5rem;
 }
 
-.play-hud__carousel .turn-card__body {
-  padding: 0.1rem 0.12rem 0.15rem;
-}
-
-.play-hud__carousel .turn-card__name {
-  text-align: center;
-  font-size: 0.72rem;
-}
-
-.play-hud__carousel .turn-card--prev .turn-card__portrait img,
-.play-hud__carousel .turn-card--prev .turn-card__placeholder,
-.play-hud__carousel .turn-card--next .turn-card__portrait img,
-.play-hud__carousel .turn-card--next .turn-card__placeholder {
-  max-height: 3.8rem;
+.screen-fan--embedded.screen-fan--idle .screen-fan__idle {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+  margin: 0 auto;
 }
 
 .hud-bottom {

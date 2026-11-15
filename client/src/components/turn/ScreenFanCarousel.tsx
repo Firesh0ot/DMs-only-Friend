@@ -35,6 +35,8 @@ type Props = {
   placement: ScreenCarouselPlacement;
   draggable?: boolean;
   invertFacing?: boolean;
+  showHp?: boolean;
+  embedded?: boolean;
 };
 
 type FanCard = {
@@ -99,6 +101,8 @@ export function ScreenFanCarousel({
   placement,
   draggable = false,
   invertFacing,
+  showHp = true,
+  embedded = false,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -226,6 +230,7 @@ export function ScreenFanCarousel({
 
   const rootClass = [
     "screen-fan",
+    embedded ? "screen-fan--embedded" : "",
     dragging ? "is-dragging" : "",
     !initiative || initiative.order.length === 0 ? "screen-fan--idle" : "",
   ]
@@ -262,10 +267,13 @@ export function ScreenFanCarousel({
             <div className="screen-fan__stage">
               {cards.map((card) => {
                 const initial = card.entry.label.trim().charAt(0).toUpperCase() || "?";
-                const hp = displayHp(card.character, role);
-                const quarter = hpQuarterValue(card.character);
+                const hp = showHp ? displayHp(card.character, role) : null;
+                const quarter = showHp ? hpQuarterValue(card.character) : null;
                 const isActive = card.offset === 0;
                 const style = fanCardTransform(card.offset);
+                const showStats =
+                  isActive &&
+                  (quarter !== null || Boolean(hp) || Boolean(card.character?.conditions.length));
                 return (
                   <article
                     key={card.entry.tokenId}
@@ -290,7 +298,7 @@ export function ScreenFanCarousel({
                     </div>
                     <div className="screen-fan__body">
                       <strong className="screen-fan__name">{card.entry.label}</strong>
-                      {isActive ? (
+                      {showStats ? (
                         <div className="screen-fan__stats">
                           {quarter !== null ? (
                             <span

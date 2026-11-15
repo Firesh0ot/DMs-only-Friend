@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  DEFAULT_SCREEN_CAROUSEL,
   type BattleState,
   type CharacterState,
   type DiceRolled,
@@ -27,7 +28,7 @@ import { HudDice } from "./HudDice";
 import { HudFog } from "./HudFog";
 import { HudInitiative } from "./HudInitiative";
 import { HudPanel } from "./HudPanel";
-import { TurnCarousel } from "./turn/TurnCarousel";
+import { ScreenFanCarousel } from "./turn/ScreenFanCarousel";
 
 type Props = {
   roomCode: string;
@@ -147,16 +148,14 @@ export function PlayHud({
 
       <div className="play-hud__bottom stack">
         <div className="play-hud__carousel" aria-label="Turn order carousel">
-          <TurnCarousel
+          <ScreenFanCarousel
             role="gm"
             initiative={initiative}
             tokens={tokens}
             characters={characters}
-            movement={movement}
-            compact
+            placement={DEFAULT_SCREEN_CAROUSEL}
             showHp={false}
-            showControls={false}
-            showChrome={false}
+            embedded
           />
         </div>
         <HudBottomStrip
