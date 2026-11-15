@@ -430,14 +430,67 @@
   gap: var(--space-2);
 }
 
+.play-shell .hud-bottom__combat-btn,
 .play-shell .hud-bottom__next {
+  min-height: 2.45rem;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 700;
   box-shadow: var(--accent-glow);
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.play-shell .hud-bottom__combat-btn {
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
+  color: var(--text-primary);
+}
+
+.play-shell .hud-bottom__next {
+  background: var(--accent);
+  color: var(--surface-0);
+}
+
+:root[data-theme="tavern"] .play-shell .hud-bottom__combat-btn {
+  color: color-mix(in srgb, var(--parchment) 94%, white);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 28%, transparent), transparent 50%),
+    linear-gradient(180deg, var(--wood-mid), var(--wood-deep));
+  border-color: color-mix(in srgb, var(--wood-deep) 70%, black);
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="tavern"] .play-shell .hud-bottom__next {
+  color: color-mix(in srgb, var(--parchment) 94%, white);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 40%, transparent), transparent 45%),
+    linear-gradient(180deg, var(--wood-mid), var(--wood-deep));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--wood-deep));
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="arcane"] .play-shell .hud-bottom__combat-btn {
+  background: color-mix(in srgb, var(--accent) 28%, var(--surface-2));
+  color: var(--text-primary);
 }
 
 :root[data-theme="arcane"] .play-shell .hud-bottom__next {
   background: var(--accent);
   color: var(--surface-0);
+}
+
+.play-shell .hud-bottom__map-thumb {
+  box-shadow: var(--shadow-sm);
+}
+
+.play-shell .hud-spawn__row {
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  border-color: color-mix(in srgb, var(--text-secondary) 22%, transparent);
+}
+
+:root[data-theme="tavern"] .play-shell .hud-spawn__row {
+  background: color-mix(in srgb, var(--surface-1) 78%, white);
+  border-color: color-mix(in srgb, var(--wood-deep) 24%, transparent);
+  color: var(--ink);
 }
 
 :root[data-theme="arcane"] .play-shell .hud-muted,

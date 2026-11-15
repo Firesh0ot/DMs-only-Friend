@@ -89,10 +89,10 @@ export function HudSpawn({
       {mapPoints.length === 0 ? (
         <p className="muted hud-muted">No spawn points on this map.</p>
       ) : (
-        <ul className="hud-spawn__list stack">
+        <ul className="hud-spawn__list">
           {mapPoints.map((point) => (
-            <li key={point.id} className="row hud-spawn__row">
-              <span>
+            <li key={point.id} className="hud-spawn__row">
+              <span className="hud-spawn__label">
                 {point.label ?? "Spawn"} ({point.x},{point.y})
               </span>
               <select
