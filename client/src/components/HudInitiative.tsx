@@ -1,6 +1,7 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
   ClientEvents,
+  type BattleState,
   type CharacterState,
   type InitiativeState,
   type MovementBudget,
@@ -17,6 +18,7 @@ type Props = {
   characters: CharacterState[];
   initiative: InitiativeState | null;
   visibility: VisibilityState;
+  battle: BattleState | null;
   remainingCells?: number | null;
   movement?: MovementBudget | null;
 };
@@ -26,6 +28,7 @@ export function HudInitiative({
   characters,
   initiative,
   visibility,
+  battle,
   movement = null,
 }: Props) {
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -35,6 +38,20 @@ export function HudInitiative({
   const byCharacter = useMemo(
     () => new Map(characters.map((character) => [character.id, character])),
     [characters],
+  );
+
+  const battleActive = Boolean(battle && !battle.endedAt);
+  const combatantSet = useMemo(
+    () => new Set(battleActive ? (battle?.combatantTokenIds ?? []) : []),
+    [battleActive, battle?.combatantTokenIds],
+  );
+  const memberTokens = useMemo(
+    () => tokens.filter((token) => combatantSet.has(token.id)),
+    [tokens, combatantSet],
+  );
+  const nonMemberTokens = useMemo(
+    () => tokens.filter((token) => !combatantSet.has(token.id)),
+    [tokens, combatantSet],
   );
 
   const activeEntry = initiative?.order[initiative.activeIndex] ?? null;
@@ -76,8 +93,16 @@ export function HudInitiative({
     getSocket().emit(ClientEvents.CharacterSetHp, { characterId, delta });
   }
 
+  function addCombatant(tokenId: string) {
+    getSocket().emit(ClientEvents.InitiativeAdd, { tokenId });
+  }
+
+  function removeCombatant(tokenId: string) {
+    getSocket().emit(ClientEvents.InitiativeRemove, { tokenId });
+  }
+
   function setOrder() {
-    const order = tokens
+    const order = memberTokens
       .map((token) => {
         const existing = initiative?.order.find((entry) => entry.tokenId === token.id);
         const value = draft[token.id] ?? (existing ? String(existing.initiative) : "");
@@ -123,7 +148,14 @@ export function HudInitiative({
             type="button"
             className="secondary hud-chip"
             onClick={rollAll}
-            disabled={tokens.length === 0}
+            disabled={!battleActive || memberTokens.length === 0}
+            title={
+              !battleActive
+                ? "Start a battle to roll initiative"
+                : memberTokens.length === 0
+                  ? "No combatants selected"
+                  : "Roll initiative for combatants"
+            }
           >
             Roll
           </button>
@@ -132,15 +164,20 @@ export function HudInitiative({
             className="secondary hud-chip"
             onClick={() => setOrderOpen((open) => !open)}
             aria-expanded={orderOpen}
+            disabled={!battleActive}
           >
             {orderOpen ? "Hide" : "Set"}
           </button>
         </div>
       </div>
 
-      {!initiative || initiative.order.length === 0 ? (
+      {!battleActive ? (
         orderOpen ? null : (
-          <p className="muted hud-init__idle">Start combat — roll or set initiative</p>
+          <p className="muted hud-init__idle">Start battle to pick combatants, then roll</p>
+        )
+      ) : !initiative || initiative.order.length === 0 ? (
+        orderOpen ? null : (
+          <p className="muted hud-init__idle">Roll or set initiative for combatants</p>
         )
       ) : activeEntry ? (
         <div className="hud-init__active" data-kind={activeEntry.kind ?? "npc"}>
@@ -234,15 +271,92 @@ export function HudInitiative({
         </div>
       ) : null}
 
-      {orderOpen ? (
+      {battleActive ? (
+        <CombatantRoster
+          memberTokens={memberTokens}
+          nonMemberTokens={nonMemberTokens}
+          initiative={initiative}
+          onAdd={addCombatant}
+          onRemove={removeCombatant}
+        />
+      ) : null}
+
+      {orderOpen && battleActive ? (
         <ManualOrder
-          tokens={tokens}
+          tokens={memberTokens}
           characters={characters}
           initiative={initiative}
           draft={draft}
           setDraft={setDraft}
           onSet={setOrder}
         />
+      ) : null}
+    </div>
+  );
+}
+
+function CombatantRoster({
+  memberTokens,
+  nonMemberTokens,
+  initiative,
+  onAdd,
+  onRemove,
+}: {
+  memberTokens: TokenState[];
+  nonMemberTokens: TokenState[];
+  initiative: InitiativeState | null;
+  onAdd: (tokenId: string) => void;
+  onRemove: (tokenId: string) => void;
+}) {
+  const activeId = initiative?.order[initiative.activeIndex]?.tokenId;
+  const scoreByToken = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const entry of initiative?.order ?? []) {
+      map.set(entry.tokenId, entry.initiative);
+    }
+    return map;
+  }, [initiative]);
+
+  return (
+    <div className="hud-init__roster" aria-label="Combatant membership">
+      <ul className="token-list compact hud-init__roster-list">
+        {memberTokens.map((token) => {
+          const score = scoreByToken.get(token.id);
+          return (
+            <li key={token.id} className={activeId === token.id ? "active" : undefined}>
+              <span className="hud-init__name">
+                {token.label}
+                {score !== undefined ? <span className="muted">{score}</span> : null}
+              </span>
+              <button
+                type="button"
+                className="secondary hud-chip hud-init__member-btn"
+                onClick={() => onRemove(token.id)}
+                aria-label={`Remove ${token.label} from initiative`}
+                title="Remove from initiative"
+              >
+                −
+              </button>
+            </li>
+          );
+        })}
+        {nonMemberTokens.map((token) => (
+          <li key={token.id} className="hud-init__roster-out">
+            <span className="hud-init__name muted">{token.label}</span>
+            <button
+              type="button"
+              className="secondary hud-chip hud-init__member-btn"
+              onClick={() => onAdd(token.id)}
+              aria-label={`Add ${token.label} to initiative`}
+              title="Add to initiative"
+            >
+              +
+            </button>
+          </li>
+        ))}
+      </ul>
+      {memberTokens.length === 0 && nonMemberTokens.length === 0 ? (
+        <p className="muted hud-init__idle">No tokens on the active map</p>
       ) : null}
     </div>
   );

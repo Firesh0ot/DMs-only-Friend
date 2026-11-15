@@ -16,6 +16,9 @@ import {
   ObstaclePlacePayloadSchema,
   ObstacleRemovePayloadSchema,
   GmChangePinPayloadSchema,
+  BattleStartPayloadSchema,
+  InitiativeAddPayloadSchema,
+  InitiativeRemovePayloadSchema,
   InitiativeSetPayloadSchema,
   MapActivatePayloadSchema,
   MapRemovePayloadSchema,
@@ -40,9 +43,11 @@ import {
   normalizeRoomCode,
   roomCodePathSegment,
   roll,
+  preserveActiveIndex,
   rollInitiative,
   sortInitiativeEntries,
   type ClientToServerEvents,
+  type InitiativeEntry,
   type ServerToClientEvents,
   type SessionEvent,
 } from "@dms/shared";
@@ -168,6 +173,7 @@ export function registerSocketHandlers(
           tokenId: data.tokenId,
         });
         emitCharactersUpdated(io, rooms, session.roomId);
+        emitActiveBattle(io, rooms, session.roomId);
         if (initiative) {
           io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
         }
@@ -354,6 +360,12 @@ export function registerSocketHandlers(
       }
       try {
         const data = InitiativeSetPayloadSchema.parse(payload);
+        const battle = rooms.getActiveBattle(session.roomId);
+        if (!battle) {
+          emitError(socket, new Error("No active battle"));
+          return;
+        }
+        const memberSet = new Set(battle.combatantTokenIds);
         const tokens = rooms.listAllTokensOnActiveMap(session.roomId);
         const characters = rooms.listCharacters(session.roomId);
         const byToken = new Map(tokens.map((token) => [token.id, token]));
@@ -361,6 +373,9 @@ export function registerSocketHandlers(
         const order = sortInitiativeEntries(
           data.order
             .map((entry) => {
+              if (!memberSet.has(entry.tokenId)) {
+                return null;
+              }
               const token = byToken.get(entry.tokenId);
               if (!token) {
                 return null;
@@ -421,9 +436,17 @@ export function registerSocketHandlers(
         return;
       }
       try {
-        const tokens = rooms.listAllTokensOnActiveMap(session.roomId);
+        const battle = rooms.getActiveBattle(session.roomId);
+        if (!battle) {
+          emitError(socket, new Error("No active battle"));
+          return;
+        }
+        const memberSet = new Set(battle.combatantTokenIds);
+        const tokens = rooms
+          .listAllTokensOnActiveMap(session.roomId)
+          .filter((token) => memberSet.has(token.id));
         if (tokens.length === 0) {
-          emitError(socket, new Error("No tokens on the active map"));
+          emitError(socket, new Error("No combatants in this battle"));
           return;
         }
         const characters = rooms.listCharacters(session.roomId);
@@ -500,6 +523,188 @@ export function registerSocketHandlers(
       }
     });
 
+    socket.on(ClientEvents.InitiativeAdd, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = InitiativeAddPayloadSchema.parse(payload);
+        const battle = rooms.getActiveBattle(session.roomId);
+        if (!battle) {
+          emitError(socket, new Error("No active battle"));
+          return;
+        }
+        const tokens = rooms.listAllTokensOnActiveMap(session.roomId);
+        const token = tokens.find((entry) => entry.id === data.tokenId);
+        if (!token) {
+          emitError(socket, new Error("Token not on the active map"));
+          return;
+        }
+        const characters = rooms.listCharacters(session.roomId);
+        const byCharacter = new Map(characters.map((character) => [character.id, character]));
+        const character = token.characterId ? byCharacter.get(token.characterId) : undefined;
+        const kind = character?.kind ?? (token.isPlayer ? ("pc" as const) : ("npc" as const));
+        const image = character?.image ?? token.image;
+        const bonus = character?.initiativeBonus ?? 0;
+        let nextEntry: InitiativeEntry;
+        let rolledDie: number | null = null;
+        if (data.initiative !== undefined) {
+          nextEntry = {
+            tokenId: token.id,
+            label: token.label,
+            initiative: data.initiative,
+            kind,
+            image,
+          };
+        } else {
+          const rolled = rollInitiative([
+            {
+              tokenId: token.id,
+              label: token.label,
+              kind,
+              image,
+              initiativeBonus: bonus,
+            },
+          ])[0];
+          if (!rolled) {
+            emitError(socket, new Error("Roll failed"));
+            return;
+          }
+          nextEntry = {
+            tokenId: rolled.tokenId,
+            label: rolled.label,
+            initiative: rolled.initiative,
+            kind: rolled.kind,
+            image: rolled.image ?? null,
+          };
+          rolledDie = rolled.die;
+        }
+        const updatedBattle = rooms.addCombatant(session.roomId, token.id);
+        const previous = rooms.getInitiative(session.roomId);
+        const existingOrder = (previous?.order ?? []).filter((entry) => entry.tokenId !== token.id);
+        const withBonus = [
+          ...existingOrder.map((entry) => {
+            const entryToken = tokens.find((candidate) => candidate.id === entry.tokenId);
+            const entryCharacter = entryToken?.characterId
+              ? byCharacter.get(entryToken.characterId)
+              : undefined;
+            return { ...entry, bonus: entryCharacter?.initiativeBonus ?? 0 };
+          }),
+          { ...nextEntry, bonus },
+        ];
+        const order = sortInitiativeEntries(withBonus).map((entry) => ({
+          tokenId: entry.tokenId,
+          label: entry.label,
+          initiative: entry.initiative,
+          kind: entry.kind,
+          image: entry.image,
+        }));
+        const activeTokenId = previous?.order[previous.activeIndex]?.tokenId;
+        const initiative = rooms.setInitiative(session.roomId, {
+          order,
+          activeIndex: preserveActiveIndex(order, activeTokenId, previous?.activeIndex ?? 0),
+          round: previous?.round ?? 0,
+          activeActionUsed: previous?.activeActionUsed ?? false,
+          activeBonusUsed: previous?.activeBonusUsed ?? false,
+        });
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.BattleUpdated, updatedBattle);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+        if (rolledDie !== null) {
+          const expr = bonus >= 0 ? `1d20+${bonus}` : `1d20${bonus}`;
+          emitLog(
+            io,
+            session.roomId,
+            rooms.appendEvent({
+              roomId: session.roomId,
+              type: "dice_roll",
+              summary: `${nextEntry.label}: ${expr} → ${nextEntry.initiative}`,
+              payload: {
+                tokenId: nextEntry.tokenId,
+                label: nextEntry.label,
+                expr,
+                die: rolledDie,
+                bonus,
+                total: nextEntry.initiative,
+                source: "initiative_add",
+              },
+            }),
+          );
+        }
+        emitLog(
+          io,
+          session.roomId,
+          rooms.appendEvent({
+            roomId: session.roomId,
+            type: "initiative_add",
+            summary: `Added ${nextEntry.label} to initiative (${nextEntry.initiative})`,
+            payload: {
+              tokenId: nextEntry.tokenId,
+              initiative: nextEntry.initiative,
+            },
+          }),
+        );
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.InitiativeRemove, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = InitiativeRemovePayloadSchema.parse(payload);
+        const battle = rooms.getActiveBattle(session.roomId);
+        if (!battle) {
+          emitError(socket, new Error("No active battle"));
+          return;
+        }
+        const updatedBattle = rooms.removeCombatants(session.roomId, [data.tokenId]);
+        const previous = rooms.getInitiative(session.roomId);
+        if (!previous) {
+          if (updatedBattle) {
+            io.to(roomChannel(session.roomId)).emit(ServerEvents.BattleUpdated, updatedBattle);
+          }
+          return;
+        }
+        const order = previous.order.filter((entry) => entry.tokenId !== data.tokenId);
+        const activeTokenId = previous.order[previous.activeIndex]?.tokenId;
+        const initiative = rooms.setInitiative(session.roomId, {
+          order,
+          activeIndex: preserveActiveIndex(order, activeTokenId, previous.activeIndex),
+          round: previous.round,
+          activeActionUsed:
+            activeTokenId && order.some((entry) => entry.tokenId === activeTokenId)
+              ? (previous.activeActionUsed ?? false)
+              : false,
+          activeBonusUsed:
+            activeTokenId && order.some((entry) => entry.tokenId === activeTokenId)
+              ? (previous.activeBonusUsed ?? false)
+              : false,
+        });
+        if (updatedBattle) {
+          io.to(roomChannel(session.roomId)).emit(ServerEvents.BattleUpdated, updatedBattle);
+        }
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+        const label =
+          previous.order.find((entry) => entry.tokenId === data.tokenId)?.label ?? data.tokenId;
+        emitLog(
+          io,
+          session.roomId,
+          rooms.appendEvent({
+            roomId: session.roomId,
+            type: "initiative_remove",
+            summary: `Removed ${label} from initiative`,
+            payload: { tokenId: data.tokenId },
+          }),
+        );
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
     socket.on(ClientEvents.InitiativeRollSelf, () => {
       const session = rooms.getSession(socket.id);
       if (!session) {
@@ -516,10 +721,19 @@ export function registerSocketHandlers(
           emitError(socket, new Error("Character not found"));
           return;
         }
+        const battle = rooms.getActiveBattle(session.roomId);
+        if (!battle) {
+          emitError(socket, new Error("No active battle"));
+          return;
+        }
         const tokens = rooms.listAllTokensOnActiveMap(session.roomId);
         const token = tokens.find((entry) => entry.characterId === session.characterId);
         if (!token) {
           emitError(socket, new Error("Kein Token auf der aktiven Karte"));
+          return;
+        }
+        if (!battle.combatantTokenIds.includes(token.id)) {
+          emitError(socket, new Error("Not a combatant in this battle"));
           return;
         }
         const rolled = rollInitiative([
@@ -563,14 +777,9 @@ export function registerSocketHandlers(
           image: entry.image,
         }));
         const activeTokenId = previous?.order[previous.activeIndex]?.tokenId;
-        let activeIndex = 0;
-        if (activeTokenId) {
-          const kept = order.findIndex((entry) => entry.tokenId === activeTokenId);
-          activeIndex = kept >= 0 ? kept : 0;
-        }
         const initiative = rooms.setInitiative(session.roomId, {
           order,
-          activeIndex,
+          activeIndex: preserveActiveIndex(order, activeTokenId, previous?.activeIndex ?? 0),
           round: previous?.round ?? 0,
           activeActionUsed: previous?.activeActionUsed ?? false,
           activeBonusUsed: previous?.activeBonusUsed ?? false,
@@ -802,6 +1011,7 @@ export function registerSocketHandlers(
           ServerEvents.TokensSynced,
           rooms.listVisibleTokens(session.roomId),
         );
+        emitActiveBattle(io, rooms, session.roomId);
         if (initiative) {
           io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
         }
@@ -828,6 +1038,7 @@ export function registerSocketHandlers(
           ServerEvents.TokensSynced,
           rooms.listVisibleTokens(session.roomId),
         );
+        emitActiveBattle(io, rooms, session.roomId);
         if (removed.initiative) {
           io.to(roomChannel(session.roomId)).emit(
             ServerEvents.InitiativeUpdated,
@@ -859,6 +1070,7 @@ export function registerSocketHandlers(
         const initiative = rooms.pruneZeroHpInitiative(session.roomId);
         emitCharactersUpdated(io, rooms, session.roomId);
         if (initiative) {
+          emitActiveBattle(io, rooms, session.roomId);
           io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
         }
       } catch (error) {
@@ -1086,13 +1298,14 @@ export function registerSocketHandlers(
       }
     });
 
-    socket.on(ClientEvents.BattleStart, () => {
+    socket.on(ClientEvents.BattleStart, (payload) => {
       const session = requireGm(socket, rooms);
       if (!session) {
         return;
       }
       try {
-        const { battle, event, initiative } = rooms.startBattle(session.roomId);
+        const data = BattleStartPayloadSchema.parse(payload ?? {});
+        const { battle, event, initiative } = rooms.startBattle(session.roomId, data.tokenIds);
         io.to(roomChannel(session.roomId)).emit(ServerEvents.BattleUpdated, battle);
         if (initiative) {
           io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
@@ -1447,6 +1660,14 @@ function handleTurnFlag(
   } catch (error) {
     emitError(socket, error);
   }
+}
+
+function emitActiveBattle(io: AppServer, rooms: RoomStore, roomId: string): void {
+  const battle = rooms.getActiveBattle(roomId);
+  if (!battle) {
+    return;
+  }
+  io.to(roomChannel(roomId)).emit(ServerEvents.BattleUpdated, battle);
 }
 
 function emitLog(io: AppServer, roomId: string, event: SessionEvent | null): void {

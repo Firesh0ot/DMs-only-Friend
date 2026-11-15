@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { compareInitiativeEntries, rollInitiative, sortInitiativeEntries } from "./initiative.js";
+import {
+  compareInitiativeEntries,
+  preserveActiveIndex,
+  rollInitiative,
+  sortInitiativeEntries,
+} from "./initiative.js";
 
 describe("compareInitiativeEntries", () => {
   it("sorts by initiative desc, then bonus desc, then name asc", () => {
@@ -55,5 +60,34 @@ describe("rollInitiative", () => {
       () => 0.5,
     );
     expect(result[0]).toMatchObject({ die: 11, initiative: 10, bonus: -1 });
+  });
+});
+
+describe("preserveActiveIndex", () => {
+  it("keeps the active combatant when still present", () => {
+    expect(
+      preserveActiveIndex(
+        [{ tokenId: "a" }, { tokenId: "c" }],
+        "c",
+        1,
+      ),
+    ).toBe(1);
+  });
+
+  it("clamps when the active combatant was removed", () => {
+    expect(preserveActiveIndex([{ tokenId: "a" }], "b", 1)).toBe(0);
+    expect(preserveActiveIndex([], "a", 0)).toBe(0);
+  });
+});
+
+describe("BattleState combatants default", () => {
+  it("is covered by initiative helpers used for membership inserts", () => {
+    const order = sortInitiativeEntries([
+      { tokenId: "a", label: "Aria", initiative: 18, bonus: 2 },
+      { tokenId: "b", label: "Goblin", initiative: 12, bonus: 1 },
+      { tokenId: "c", label: "Wolf", initiative: 15, bonus: 0 },
+    ]);
+    expect(order.map((entry) => entry.tokenId)).toEqual(["a", "c", "b"]);
+    expect(preserveActiveIndex(order, "b", 0)).toBe(2);
   });
 });

@@ -132,6 +132,7 @@ type BattleRow = {
   room_id: string;
   started_at: string;
   ended_at: string | null;
+  combatants_json: string | null;
 };
 type SessionEventRow = {
   id: number;
@@ -1134,7 +1135,11 @@ export class RoomStore {
         .prepare("DELETE FROM character_maps WHERE character_id = ? AND map_id = ?")
         .run(token.characterId, token.mapId);
     }
-    return token ? this.pruneStaleInitiative(token.roomId) : null;
+    if (token) {
+      this.removeCombatants(token.roomId, [tokenId]);
+      return this.pruneStaleInitiative(token.roomId);
+    }
+    return null;
   }
 
   getCamera(roomId: string): CameraState | null {
@@ -1181,6 +1186,12 @@ export class RoomStore {
       .all(roomId) as Array<{ id: string }>;
     const existing = new Set(rows.map((row) => row.id));
     const order = current.order.filter((entry) => existing.has(entry.tokenId));
+    const removed = current.order
+      .filter((entry) => !existing.has(entry.tokenId))
+      .map((entry) => entry.tokenId);
+    if (removed.length > 0) {
+      this.removeCombatants(roomId, removed);
+    }
     if (order.length === current.order.length) {
       return null;
     }
@@ -1193,6 +1204,7 @@ export class RoomStore {
       return null;
     }
     const characters = new Map(this.listCharacters(roomId).map((entry) => [entry.id, entry]));
+    const removed: string[] = [];
     const order = current.order.filter((entry) => {
       const token = this.getToken(entry.tokenId);
       if (!token?.characterId) {
@@ -1202,8 +1214,15 @@ export class RoomStore {
       if (!character || character.hpCurrent === null) {
         return true;
       }
-      return character.hpCurrent > 0;
+      if (character.hpCurrent > 0) {
+        return true;
+      }
+      removed.push(entry.tokenId);
+      return false;
     });
+    if (removed.length > 0) {
+      this.removeCombatants(roomId, removed);
+    }
     if (order.length === current.order.length) {
       return null;
     }
@@ -1480,7 +1499,10 @@ export class RoomStore {
     return row ? battleRowToState(row) : null;
   }
 
-  startBattle(roomId: string): {
+  startBattle(
+    roomId: string,
+    tokenIds: string[] = [],
+  ): {
     battle: BattleState;
     event: SessionEvent;
     initiative: InitiativeState | null;
@@ -1488,33 +1510,47 @@ export class RoomStore {
     if (this.getActiveBattle(roomId)) {
       throw new Error("Battle already active");
     }
+    const tokensOnMap = this.listAllTokensOnActiveMap(roomId);
+    const validIds = new Set(tokensOnMap.map((token) => token.id));
+    const combatantTokenIds = uniqueTokenIds(tokenIds.filter((tokenId) => validIds.has(tokenId)));
     const id = makeId();
     const startedAt = new Date().toISOString();
     this.db
-      .prepare("INSERT INTO battles (id, room_id, started_at, ended_at) VALUES (?, ?, ?, NULL)")
-      .run(id, roomId, startedAt);
+      .prepare(
+        "INSERT INTO battles (id, room_id, started_at, ended_at, combatants_json) VALUES (?, ?, ?, NULL, ?)",
+      )
+      .run(id, roomId, startedAt, JSON.stringify(combatantTokenIds));
     const battle = this.getActiveBattle(roomId);
     if (!battle) {
       throw new Error("Failed to start battle");
     }
+    const memberSet = new Set(combatantTokenIds);
     const current = this.getInitiative(roomId);
-    const initiative = current
-      ? this.setInitiative(roomId, {
-          order: current.order,
-          activeIndex: current.activeIndex,
-          round: 0,
-          turnStart: current.turnStart ?? null,
-          remainingCells: current.remainingCells ?? null,
-          activeActionUsed: current.activeActionUsed ?? false,
-          activeBonusUsed: current.activeBonusUsed ?? false,
-          activeMovementRemaining: current.activeMovementRemaining ?? null,
-        })
-      : null;
+    let initiative: InitiativeState | null = null;
+    if (current) {
+      const order = current.order.filter((entry) => memberSet.has(entry.tokenId));
+      const activeEntry = current.order[current.activeIndex];
+      let activeIndex = 0;
+      if (order.length > 0 && activeEntry) {
+        const kept = order.findIndex((entry) => entry.tokenId === activeEntry.tokenId);
+        activeIndex = kept >= 0 ? kept : Math.min(current.activeIndex, order.length - 1);
+      }
+      initiative = this.setInitiative(roomId, {
+        order,
+        activeIndex,
+        round: 0,
+        turnStart: current.turnStart ?? null,
+        remainingCells: current.remainingCells ?? null,
+        activeActionUsed: current.activeActionUsed ?? false,
+        activeBonusUsed: current.activeBonusUsed ?? false,
+        activeMovementRemaining: current.activeMovementRemaining ?? null,
+      });
+    }
     const event = this.appendEvent({
       roomId,
       type: "battle_start",
       summary: "Battle started",
-      payload: { battleId: battle.id },
+      payload: { battleId: battle.id, combatantTokenIds },
       battleId: battle.id,
     });
     return { battle, event, initiative };
@@ -1526,9 +1562,11 @@ export class RoomStore {
       throw new Error("No active battle");
     }
     const endedAt = new Date().toISOString();
-    this.db.prepare("UPDATE battles SET ended_at = ? WHERE id = ?").run(endedAt, active.id);
+    this.db
+      .prepare("UPDATE battles SET ended_at = ?, combatants_json = ? WHERE id = ?")
+      .run(endedAt, "[]", active.id);
     this.clearMovementBudget(roomId);
-    const battle: BattleState = { ...active, endedAt };
+    const battle: BattleState = { ...active, endedAt, combatantTokenIds: [] };
     const durationMs = Date.parse(endedAt) - Date.parse(active.startedAt);
     const event = this.appendEvent({
       roomId,
@@ -1538,6 +1576,50 @@ export class RoomStore {
       battleId: battle.id,
     });
     return { battle, event };
+  }
+
+  setCombatants(roomId: string, tokenIds: string[]): BattleState {
+    const active = this.getActiveBattle(roomId);
+    if (!active) {
+      throw new Error("No active battle");
+    }
+    const tokensOnMap = this.listAllTokensOnActiveMap(roomId);
+    const validIds = new Set(tokensOnMap.map((token) => token.id));
+    const combatantTokenIds = uniqueTokenIds(tokenIds.filter((tokenId) => validIds.has(tokenId)));
+    this.db
+      .prepare("UPDATE battles SET combatants_json = ? WHERE id = ?")
+      .run(JSON.stringify(combatantTokenIds), active.id);
+    const battle = this.getActiveBattle(roomId);
+    if (!battle) {
+      throw new Error("Failed to update combatants");
+    }
+    return battle;
+  }
+
+  addCombatant(roomId: string, tokenId: string): BattleState {
+    const active = this.getActiveBattle(roomId);
+    if (!active) {
+      throw new Error("No active battle");
+    }
+    if (active.combatantTokenIds.includes(tokenId)) {
+      return active;
+    }
+    return this.setCombatants(roomId, [...active.combatantTokenIds, tokenId]);
+  }
+
+  removeCombatants(roomId: string, tokenIds: string[]): BattleState | null {
+    const active = this.getActiveBattle(roomId);
+    if (!active) {
+      return null;
+    }
+    const remove = new Set(tokenIds);
+    if (!active.combatantTokenIds.some((tokenId) => remove.has(tokenId))) {
+      return active;
+    }
+    return this.setCombatants(
+      roomId,
+      active.combatantTokenIds.filter((tokenId) => !remove.has(tokenId)),
+    );
   }
 
   ensureBattleForNextTurn(roomId: string): {
@@ -1550,7 +1632,9 @@ export class RoomStore {
     if (existing) {
       return { battle: existing, started: false, startEvent: null, initiative: null };
     }
-    const { battle, event, initiative } = this.startBattle(roomId);
+    const current = this.getInitiative(roomId);
+    const tokenIds = current?.order.map((entry) => entry.tokenId) ?? [];
+    const { battle, event, initiative } = this.startBattle(roomId, tokenIds);
     return { battle, started: true, startEvent: event, initiative };
   }
 
@@ -2039,7 +2123,36 @@ function battleRowToState(row: BattleRow): BattleState {
     roomId: row.room_id,
     startedAt: row.started_at,
     endedAt: row.ended_at,
+    combatantTokenIds: parseCombatantTokenIds(row.combatants_json),
   };
+}
+
+function parseCombatantTokenIds(raw: string | null | undefined): string[] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return uniqueTokenIds(parsed.filter((entry): entry is string => typeof entry === "string"));
+  } catch {
+    return [];
+  }
+}
+
+function uniqueTokenIds(tokenIds: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const tokenId of tokenIds) {
+    if (seen.has(tokenId)) {
+      continue;
+    }
+    seen.add(tokenId);
+    result.push(tokenId);
+  }
+  return result;
 }
 
 function sessionEventRowToState(row: SessionEventRow): SessionEvent {

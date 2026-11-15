@@ -507,6 +507,7 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                 initiative={snapshot.initiative}
                 events={snapshot.eventLog}
                 battle={snapshot.battle}
+                fog={snapshot.fog}
                 lastDice={lastDice}
                 recentDice={recentDice}
                 hasLosGeometry={

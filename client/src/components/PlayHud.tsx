@@ -5,6 +5,7 @@ import {
   type CharacterState,
   type DiceRolled,
   type FogPaintMode,
+  type FogState,
   type InitiativeState,
   type MapState,
   type MovementBudget,
@@ -40,6 +41,7 @@ type Props = {
   initiative: InitiativeState | null;
   events: SessionEvent[];
   battle: BattleState | null;
+  fog: FogState | null;
   lastDice: DiceRolled | null;
   recentDice: DiceRolled[];
   hasLosGeometry: boolean;
@@ -68,6 +70,7 @@ export function PlayHud({
   initiative,
   events,
   battle,
+  fog,
   lastDice,
   recentDice,
   hasLosGeometry,
@@ -124,6 +127,7 @@ export function PlayHud({
             characters={characters}
             initiative={initiative}
             visibility={visibility}
+            battle={battle}
             remainingCells={movement?.active ? movement.remainingCells : null}
             movement={movement}
           />
@@ -163,10 +167,12 @@ export function PlayHud({
           activeMap={activeMap}
           events={events}
           battle={battle}
+          tokens={tokens}
+          characters={characters}
+          fog={fog}
           logCollapsed={isHudCollapsed(prefs, "log")}
           onToggleLog={() => toggle("log")}
           canNext={Boolean(initiative?.order.length)}
-          characters={characters}
           spawnPoints={spawnPoints}
           spawnTool={spawnTool}
           onSpawnToolChange={(active) => {

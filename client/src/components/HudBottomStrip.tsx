@@ -3,12 +3,15 @@ import {
   ClientEvents,
   type BattleState,
   type CharacterState,
+  type FogState,
   type MapState,
   type SessionEvent,
   type SpawnPoint,
+  type TokenState,
 } from "@dms/shared";
 import { battleElapsedMs, formatDuration } from "../lib/formatDuration";
 import { getSocket } from "../socket/socket";
+import { BattleStartPicker } from "./BattleStartPicker";
 import { HudSpawn } from "./HudSpawn";
 
 type Props = {
@@ -16,10 +19,12 @@ type Props = {
   activeMap: MapState | null;
   events: SessionEvent[];
   battle: BattleState | null;
+  tokens: TokenState[];
+  characters: CharacterState[];
+  fog: FogState | null;
   logCollapsed: boolean;
   onToggleLog: () => void;
   canNext: boolean;
-  characters: CharacterState[];
   spawnPoints: SpawnPoint[];
   spawnTool: boolean;
   onSpawnToolChange: (active: boolean) => void;
@@ -30,16 +35,19 @@ export function HudBottomStrip({
   activeMap,
   events,
   battle,
+  tokens,
+  characters,
+  fog,
   logCollapsed,
   onToggleLog,
   canNext,
-  characters,
   spawnPoints,
   spawnTool,
   onSpawnToolChange,
 }: Props) {
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [moreOpen, setMoreOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!battle || battle.endedAt) {
@@ -82,7 +90,7 @@ export function HudBottomStrip({
             <button
               type="button"
               className="hud-chip hud-bottom__combat-btn"
-              onClick={() => getSocket().emit(ClientEvents.BattleStart)}
+              onClick={() => setPickerOpen(true)}
             >
               Start
             </button>
@@ -185,6 +193,20 @@ export function HudBottomStrip({
             ))
           )}
         </ul>
+      ) : null}
+
+      {pickerOpen && !(battle && !battle.endedAt) ? (
+        <BattleStartPicker
+          tokens={tokens}
+          characters={characters}
+          map={activeMap}
+          fog={fog}
+          onCancel={() => setPickerOpen(false)}
+          onConfirm={(tokenIds) => {
+            setPickerOpen(false);
+            getSocket().emit(ClientEvents.BattleStart, { tokenIds });
+          }}
+        />
       ) : null}
     </div>
   );

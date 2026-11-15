@@ -32,6 +32,23 @@ export function sortInitiativeEntries<T extends { initiative: number; label: str
   );
 }
 
+export function preserveActiveIndex(
+  order: Array<{ tokenId: string }>,
+  previousActiveTokenId: string | undefined,
+  previousActiveIndex: number,
+): number {
+  if (order.length === 0) {
+    return 0;
+  }
+  if (previousActiveTokenId) {
+    const kept = order.findIndex((entry) => entry.tokenId === previousActiveTokenId);
+    if (kept >= 0) {
+      return kept;
+    }
+  }
+  return Math.min(Math.max(0, previousActiveIndex), order.length - 1);
+}
+
 export function rollInitiative(
   entries: InitiativeRollInput[],
   random: () => number = Math.random,

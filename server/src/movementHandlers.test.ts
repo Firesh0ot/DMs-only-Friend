@@ -183,6 +183,8 @@ describe("spawn and movement budget", () => {
     await join(gm, { code: created.code, role: "gm", pin: "1234", invite: created.gmInviteToken });
     await join(player, { code: created.code, role: "player", characterId: aria.id });
 
+    gm.emit(ClientEvents.BattleStart, { tokenIds: [token.id] });
+    await new Promise((resolve) => setTimeout(resolve, 30));
     gm.emit(ClientEvents.InitiativeSet, {
       order: [{ tokenId: token.id, initiative: 15 }],
     });
@@ -280,6 +282,8 @@ describe("spawn and movement budget", () => {
     await join(gm, { code: created.code, role: "gm", pin: "1234", invite: created.gmInviteToken });
     await join(player, { code: created.code, role: "player", characterId: aria.id });
 
+    gm.emit(ClientEvents.BattleStart, { tokenIds: [token.id] });
+    await new Promise((resolve) => setTimeout(resolve, 30));
     gm.emit(ClientEvents.InitiativeSet, {
       order: [{ tokenId: token.id, initiative: 12 }],
     });
@@ -456,6 +460,8 @@ describe("spawn and movement budget", () => {
     await join(gm, { code: created.code, role: "gm", pin: "1234", invite: created.gmInviteToken });
     await join(player, { code: created.code, role: "player", characterId: aria.id });
 
+    gm.emit(ClientEvents.BattleStart, { tokenIds: [token.id] });
+    await new Promise((resolve) => setTimeout(resolve, 30));
     gm.emit(ClientEvents.InitiativeSet, {
       order: [{ tokenId: token.id, initiative: 12 }],
     });
