@@ -102,6 +102,8 @@ describe("event schemas", () => {
     expect(isCharacterDead({ hpCurrent: null, hpQuarter: 0 })).toBe(true);
     expect(isCharacterDead({ hpCurrent: null, hpQuarter: 2 })).toBe(false);
     expect(isCharacterDead({ hpCurrent: null, hpQuarter: null })).toBe(false);
+    expect(isCharacterDead({ hpCurrent: 0, hpQuarter: null, deathState: "dying" })).toBe(false);
+    expect(isCharacterDead({ hpCurrent: 0, hpQuarter: null, deathState: "dead" })).toBe(true);
   });
 
   it("rejects invalid roles", () => {

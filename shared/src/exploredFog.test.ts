@@ -62,6 +62,7 @@ function token(partial: Partial<TokenState> & Pick<TokenState, "id" | "isPlayer"
     sizeCells: 1,
     mapId: map.id,
     characterId: null,
+    discovered: partial.isPlayer,
     ...partial,
   };
 }

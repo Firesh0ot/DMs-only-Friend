@@ -80,12 +80,12 @@ Akzeptanz: DM kann eine komplette Session vorbereiten, ohne den Play-Bildschirm 
 
 Akzeptanz: (1) Unentdeckter NPC erscheint nach `initiative:roll` nicht in der Reihenfolge. (2) DM fügt ihn mid-combat hinzu → er erscheint sofort korrekt einsortiert. (3) DM entfernt fliehenden NPC → Carousel rotiert weiter, aktiver Zug bleibt korrekt. (4) `battle:start` fragt Teilnehmer ab statt automatisch alle zu nehmen.
 
-### R3 – daraus folgend (später, nur Vermerke)
+### R3 – Combat-Würfel & Todesrettung (Foundations)
 
-- Advantage/Disadvantage im Dice-Parser (`2d20kh1/kl1`)
-- Angriffs-Workflow (d20 vs AC → Schaden → HP)
-- Death-Save-Zustand
-- „Entdeckt"-Status als Bindeglied zwischen LoS-Sichtbarkeit und Initiative-Vorschlag (Default-Auswahl bei R2)
+- Advantage/Disadvantage im Dice-Parser (`2d20kh1` / `2d20kl1`) + GM Adv/Dis-Buttons
+- Angriffs-Assist: d20(+Mod) vs AC → Schadensvorschlag → HP-Delta via `character:setHp`
+- Death Saves: bei 0 HP `dying` mit 3 Erfolg / 3 Fail; Roll-/Stabilize-/Dead-Buttons
+- „Entdeckt" (`token.discovered`): Default-Auswahl bei R2-Battle-Start (Flag oder aktuell LoS-sichtbar)
 
 ## Mapping: Spielablauf ↔ heutige Features
 

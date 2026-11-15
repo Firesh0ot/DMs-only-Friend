@@ -85,6 +85,7 @@ describe("losVisibility", () => {
         isPlayer: true,
         mapId: map.id,
         characterId: "c1",
+        discovered: true,
       },
       {
         id: "t2",
@@ -97,6 +98,7 @@ describe("losVisibility", () => {
         isPlayer: false,
         mapId: map.id,
         characterId: null,
+        discovered: false,
       },
     ];
     const origin = tokenVisionOrigin(tokens[0]!, map);
@@ -144,6 +146,7 @@ describe("losVisibility", () => {
         isPlayer: true,
         mapId: solidOnly.id,
         characterId: "c1",
+        discovered: true,
       },
     ];
     const polygons = playerVisionPolygons(solidOnly, tokens);
@@ -190,6 +193,7 @@ describe("losVisibility", () => {
         isPlayer: true,
         mapId: withDoor.id,
         characterId: "c1",
+        discovered: true,
       },
     ];
 

@@ -92,6 +92,7 @@ const hero: TokenState = {
   isPlayer: true,
   mapId: "tavern",
   characterId: "c1",
+  discovered: true,
 };
 
 describe("tavern divider wall vs door LoS", () => {

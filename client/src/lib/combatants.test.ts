@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CharacterState, MapState, TokenState } from "@dms/shared";
+import type { CharacterState, FogState, MapState, TokenState } from "@dms/shared";
 import { defaultCombatantTokenIds } from "./combatants";
 
 function token(partial: Partial<TokenState> & Pick<TokenState, "id" | "label">): TokenState {
@@ -12,6 +12,7 @@ function token(partial: Partial<TokenState> & Pick<TokenState, "id" | "label">):
     isPlayer: false,
     mapId: "m1",
     characterId: null,
+    discovered: false,
     ...partial,
   };
 }
@@ -32,6 +33,9 @@ function character(
     ac: null,
     hpQuarter: null,
     conditions: [],
+    deathState: "ok",
+    deathSaveSuccesses: 0,
+    deathSaveFailures: 0,
     ...partial,
   };
 }
@@ -56,7 +60,7 @@ const map: MapState = {
 describe("defaultCombatantTokenIds", () => {
   it("includes all PCs and NPCs when there is no fog", () => {
     const tokens = [
-      token({ id: "t1", label: "Aria", isPlayer: true, characterId: "c1" }),
+      token({ id: "t1", label: "Aria", isPlayer: true, characterId: "c1", discovered: true }),
       token({ id: "t2", label: "Goblin", characterId: "c2" }),
     ];
     const characters = [
@@ -64,5 +68,26 @@ describe("defaultCombatantTokenIds", () => {
       character({ id: "c2", name: "Goblin", kind: "npc" }),
     ];
     expect(defaultCombatantTokenIds(tokens, characters, map, null)).toEqual(["t1", "t2"]);
+  });
+
+  it("includes discovered NPCs even when fog hides them", () => {
+    const fog: FogState = {
+      mapId: "m1",
+      baseCovered: true,
+      strokes: [],
+      losEnabled: false,
+      exploredCells: "",
+    };
+    const tokens = [
+      token({ id: "t1", label: "Aria", isPlayer: true, characterId: "c1", discovered: true }),
+      token({ id: "t2", label: "Scouted", characterId: "c2", discovered: true }),
+      token({ id: "t3", label: "Unknown", characterId: "c3", discovered: false }),
+    ];
+    const characters = [
+      character({ id: "c1", name: "Aria", kind: "pc" }),
+      character({ id: "c2", name: "Scouted", kind: "npc" }),
+      character({ id: "c3", name: "Unknown", kind: "npc" }),
+    ];
+    expect(defaultCombatantTokenIds(tokens, characters, map, fog)).toEqual(["t1", "t2"]);
   });
 });

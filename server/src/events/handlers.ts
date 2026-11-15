@@ -1,6 +1,7 @@
 import {
   applyMove,
   CameraSetPayloadSchema,
+  CharacterDeathSavePayloadSchema,
   CharacterRemovePayloadSchema,
   CharacterSetConditionsPayloadSchema,
   CharacterSetHpPayloadSchema,
@@ -42,6 +43,7 @@ import {
   TokenCreatePayloadSchema,
   TokenMovePayloadSchema,
   TokenRemovePayloadSchema,
+  TokenSetDiscoveredPayloadSchema,
   TurnFlagPayloadSchema,
   VisibilitySetPayloadSchema,
   normalizeRoomCode,
@@ -1100,6 +1102,88 @@ export function registerSocketHandlers(
         }
         rooms.setCharacterConditions(data.characterId, data.conditions);
         emitCharactersUpdated(io, rooms, session.roomId);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.CharacterDeathSave, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = CharacterDeathSavePayloadSchema.parse(payload);
+        const character = rooms.getCharacter(data.characterId);
+        if (!character || character.roomId !== session.roomId) {
+          emitError(socket, new Error("Character not found"));
+          return;
+        }
+        const result = rooms.applyCharacterDeathSave(data.characterId, data.action);
+        if (result.roll) {
+          const playerName = session.playerName ?? "GM";
+          const logged = rooms.logDice({
+            roomId: session.roomId,
+            playerName,
+            expr: result.roll.expr,
+            results: result.roll.results,
+            total: result.roll.total,
+          });
+          io.to(roomChannel(session.roomId)).emit(ServerEvents.DiceRolled, {
+            id: logged.id,
+            playerName,
+            expr: result.roll.expr,
+            results: result.roll.results,
+            total: result.roll.total,
+            createdAt: logged.createdAt,
+          });
+          emitLog(
+            io,
+            session.roomId,
+            rooms.appendEvent({
+              roomId: session.roomId,
+              type: "dice_roll",
+              summary: `${result.character.name} death save: ${result.roll.total}`,
+              payload: {
+                diceLogId: logged.id,
+                characterId: result.character.id,
+                expr: result.roll.expr,
+                results: result.roll.results,
+                total: result.roll.total,
+                deathState: result.character.deathState,
+              },
+            }),
+          );
+        }
+        const initiative = rooms.pruneZeroHpInitiative(session.roomId);
+        emitCharactersUpdated(io, rooms, session.roomId);
+        if (initiative) {
+          emitActiveBattle(io, rooms, session.roomId);
+          io.to(roomChannel(session.roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+        }
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.TokenSetDiscovered, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = TokenSetDiscoveredPayloadSchema.parse(payload);
+        const token = rooms.getToken(data.tokenId);
+        if (!token || token.roomId !== session.roomId) {
+          emitError(socket, new Error("Token not found"));
+          return;
+        }
+        const updated = rooms.setTokenDiscovered(data.tokenId, data.discovered);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.TokenMoved, updated);
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.TokensSynced,
+          rooms.listTokens(session.roomId),
+        );
       } catch (error) {
         emitError(socket, error);
       }

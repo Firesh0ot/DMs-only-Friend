@@ -136,6 +136,9 @@ function migrate(db: Db): void {
   ensureColumn(db, "characters", "hp_max", "INT");
   ensureColumn(db, "characters", "ac", "INT");
   ensureColumn(db, "characters", "conditions_json", "TEXT NOT NULL DEFAULT '[]'");
+  ensureColumn(db, "characters", "death_state", "TEXT NOT NULL DEFAULT 'ok'");
+  ensureColumn(db, "characters", "death_save_successes", "INT NOT NULL DEFAULT 0");
+  ensureColumn(db, "characters", "death_save_failures", "INT NOT NULL DEFAULT 0");
   ensureColumn(db, "rooms", "pin_hash", "TEXT");
   ensureColumn(db, "rooms", "pin_salt", "TEXT");
   ensureColumn(db, "rooms", "gm_invite_hash", "TEXT");
@@ -201,7 +204,9 @@ function migrate(db: Db): void {
 
   backfillActiveMaps(db);
   backfillTokenMaps(db);
+  ensureColumn(db, "tokens", "discovered", "INT NOT NULL DEFAULT 0");
   ensureTokensForeignKeys(db);
+  ensureColumn(db, "tokens", "discovered", "INT NOT NULL DEFAULT 0");
 }
 
 type TokenForeignKey = {
@@ -249,14 +254,16 @@ function ensureTokensForeignKeys(db: Db): void {
       size_cells REAL NOT NULL DEFAULT 1,
       is_player INT NOT NULL DEFAULT 0,
       map_id TEXT REFERENCES maps(id) ON DELETE CASCADE,
-      character_id TEXT REFERENCES characters(id) ON DELETE CASCADE
+      character_id TEXT REFERENCES characters(id) ON DELETE CASCADE,
+      discovered INT NOT NULL DEFAULT 0
     );
 
     INSERT INTO tokens_fk (
-      id, room_id, label, image, x, y, size_cells, is_player, map_id, character_id
+      id, room_id, label, image, x, y, size_cells, is_player, map_id, character_id, discovered
     )
     SELECT
-      id, room_id, label, image, x, y, size_cells, is_player, map_id, character_id
+      id, room_id, label, image, x, y, size_cells, is_player, map_id, character_id,
+      CASE WHEN is_player = 1 THEN 1 ELSE COALESCE(discovered, 0) END
     FROM tokens;
 
     DROP TABLE tokens;
