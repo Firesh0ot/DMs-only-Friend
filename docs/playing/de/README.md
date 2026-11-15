@@ -1,6 +1,6 @@
 # Spielen — DMs-only-Friend
 
-Anleitung für Spielleitung (GM) und Remote-Spieler. Primärziel ist der Tisch (GM-Laptop + TV/Tablet als Spielbrett); Remote-Spieler joinen per Link.
+Anleitung für Spielleitung (GM) und Remote-Spieler. – **Schnellstart (Karte bauen → hochladen → spielen):** [jonas-schnellstart.md](jonas-schnellstart.md) Primärziel ist der Tisch (GM-Laptop + TV/Tablet als Spielbrett); Remote-Spieler joinen per Link.
 
 ## Rollen
 
