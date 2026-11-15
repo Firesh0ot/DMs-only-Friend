@@ -32,6 +32,9 @@ type Props = {
   visibility?: VisibilityState;
   movement?: MovementBudget | null;
   compact?: boolean;
+  showHp?: boolean;
+  showControls?: boolean;
+  showChrome?: boolean;
 };
 
 type CardModel = {
@@ -99,6 +102,9 @@ export function TurnCarousel({
   visibility,
   movement = null,
   compact = false,
+  showHp = true,
+  showControls = true,
+  showChrome = true,
 }: Props) {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [orderOpen, setOrderOpen] = useState(false);
@@ -146,8 +152,9 @@ export function TurnCarousel({
     role === "player" &&
     Boolean(selfCharacterId) &&
     activeToken?.characterId === selfCharacterId;
-  const canControl = role === "gm" || isActivePlayer;
-  const showGmChrome = role === "gm";
+  const canControl = showControls && (role === "gm" || isActivePlayer);
+  const showGmChrome = showChrome && role === "gm";
+  const renderHp = showHp;
 
   const cards = useMemo((): CardModel[] => {
     if (!initiative || initiative.order.length === 0) {
@@ -250,7 +257,12 @@ export function TurnCarousel({
               </label>
             </div>
             <div className="turn-carousel__idle-actions row">
-              <button type="button" className="secondary hud-chip" onClick={rollAll} disabled={tokens.length === 0}>
+              <button
+                type="button"
+                className="secondary hud-chip"
+                onClick={rollAll}
+                disabled={tokens.length === 0}
+              >
                 Roll
               </button>
               <button
@@ -275,75 +287,83 @@ export function TurnCarousel({
               <p className="muted turn-carousel__idle">Start combat — roll or set initiative</p>
             )}
           </div>
-        ) : role === "player" && selfCharacterId ? (
+        ) : role === "player" && selfCharacterId && showControls ? (
           <div className="turn-carousel__idle-actions stack">
             <p className="muted">Waiting for initiative…</p>
             <button type="button" className="secondary hud-chip" onClick={rollSelf}>
               Roll mine
             </button>
           </div>
-        ) : (
-          <p className="muted">Waiting for initiative…</p>
-        )}
+        ) : showChrome || showControls ? (
+          <p className="muted turn-carousel__idle">Waiting for initiative…</p>
+        ) : null}
       </div>
     );
   }
 
+  const showHeader =
+    showChrome || (role === "player" && Boolean(selfCharacterId) && showControls);
+
   return (
     <div className={rootClass} aria-label="Initiative order">
-      <div className="turn-carousel__header">
-        <div className="turn-carousel__round">
-          <span className="muted">R</span>
-          <strong>{initiative.round}</strong>
+      {showHeader ? (
+        <div className="turn-carousel__header">
+          {showChrome ? (
+            <div className="turn-carousel__round">
+              <span className="muted">R</span>
+              <strong>{initiative.round}</strong>
+            </div>
+          ) : null}
+          {showGmChrome && visibility ? (
+            <div className="turn-carousel__display" role="group" aria-label="Token display">
+              <label className="hud-check">
+                <input
+                  type="checkbox"
+                  checked={visibility.showPcs}
+                  onChange={(event) => setVisibility({ showPcs: event.target.checked })}
+                />
+                <span>PC</span>
+              </label>
+              <label className="hud-check">
+                <input
+                  type="checkbox"
+                  checked={visibility.showNpcs}
+                  onChange={(event) => setVisibility({ showNpcs: event.target.checked })}
+                />
+                <span>NPC</span>
+              </label>
+            </div>
+          ) : null}
+          {showGmChrome ? (
+            <div className="turn-carousel__idle-actions row">
+              <button type="button" className="secondary hud-chip" onClick={rollAll}>
+                Roll
+              </button>
+              <button
+                type="button"
+                className="secondary hud-chip"
+                onClick={() => setOrderOpen((open) => !open)}
+                aria-expanded={orderOpen}
+              >
+                {orderOpen ? "Hide" : "Set"}
+              </button>
+            </div>
+          ) : null}
+          {role === "player" && selfCharacterId && showControls ? (
+            <button type="button" className="secondary hud-chip" onClick={rollSelf}>
+              Roll mine
+            </button>
+          ) : null}
         </div>
-        {showGmChrome && visibility ? (
-          <div className="turn-carousel__display" role="group" aria-label="Token display">
-            <label className="hud-check">
-              <input
-                type="checkbox"
-                checked={visibility.showPcs}
-                onChange={(event) => setVisibility({ showPcs: event.target.checked })}
-              />
-              <span>PC</span>
-            </label>
-            <label className="hud-check">
-              <input
-                type="checkbox"
-                checked={visibility.showNpcs}
-                onChange={(event) => setVisibility({ showNpcs: event.target.checked })}
-              />
-              <span>NPC</span>
-            </label>
-          </div>
-        ) : null}
-        {showGmChrome ? (
-          <div className="turn-carousel__idle-actions row">
-            <button type="button" className="secondary hud-chip" onClick={rollAll}>
-              Roll
-            </button>
-            <button
-              type="button"
-              className="secondary hud-chip"
-              onClick={() => setOrderOpen((open) => !open)}
-              aria-expanded={orderOpen}
-            >
-              {orderOpen ? "Hide" : "Set"}
-            </button>
-          </div>
-        ) : null}
-        {role === "player" && selfCharacterId ? (
-          <button type="button" className="secondary hud-chip" onClick={rollSelf}>
-            Roll mine
-          </button>
-        ) : null}
-      </div>
+      ) : null}
 
       <div ref={stageRef} className="turn-carousel__stage" aria-live="polite">
         {cards.map((card) => {
           const initial = card.entry.label.trim().charAt(0).toUpperCase() || "?";
-          const hp = displayHp(card.character, role);
-          const quarter = hpQuarterValue(card.character);
+          const hp = renderHp ? displayHp(card.character, role) : null;
+          const quarter = renderHp ? hpQuarterValue(card.character) : null;
           const isActive = card.slot === "active";
+          const showGmCardTools = canControl && role === "gm";
           return (
             <article
               key={card.entry.tokenId}
@@ -368,24 +388,30 @@ export function TurnCarousel({
               </div>
               <div className="turn-card__body">
                 <strong className="turn-card__name">{card.entry.label}</strong>
-                <div className="turn-card__stats">
-                  {quarter !== null ? (
-                    <span className="hp-bar" title={hp ?? undefined} aria-label={hp ? `HP ${hp}` : "HP"}>
-                      {[0, 1, 2, 3].map((step) => (
-                        <span
-                          key={step}
-                          className={step < quarter ? "hp-bar__seg is-filled" : "hp-bar__seg"}
-                        />
-                      ))}
-                    </span>
-                  ) : hp ? (
-                    <span className="hp-chip">{hp}</span>
-                  ) : null}
-                  {isActive && card.character?.ac != null ? (
-                    <span className="turn-card__ac">AC {card.character.ac}</span>
-                  ) : null}
-                </div>
-                {isActive && card.character ? (
+                {renderHp || (showControls && isActive && card.character?.ac != null) ? (
+                  <div className="turn-card__stats">
+                    {quarter !== null ? (
+                      <span
+                        className="hp-bar"
+                        title={hp ?? undefined}
+                        aria-label={hp ? `HP ${hp}` : "HP"}
+                      >
+                        {[0, 1, 2, 3].map((step) => (
+                          <span
+                            key={step}
+                            className={step < quarter ? "hp-bar__seg is-filled" : "hp-bar__seg"}
+                          />
+                        ))}
+                      </span>
+                    ) : hp ? (
+                      <span className="hp-chip">{hp}</span>
+                    ) : null}
+                    {showControls && isActive && card.character?.ac != null ? (
+                      <span className="turn-card__ac">AC {card.character.ac}</span>
+                    ) : null}
+                  </div>
+                ) : null}
+                {isActive && showControls && card.character ? (
                   <ConditionBadges conditions={card.character.conditions} compact />
                 ) : null}
                 {isActive && canControl ? (
@@ -394,7 +420,9 @@ export function TurnCarousel({
                       type="button"
                       className="secondary hud-chip"
                       disabled={moveRemaining === null}
-                      title={moveRemaining === null ? "Movement after turn start" : "Movement remaining"}
+                      title={
+                        moveRemaining === null ? "Movement after turn start" : "Movement remaining"
+                      }
                     >
                       Move {moveRemaining === null ? "–" : moveRemaining}
                     </button>
@@ -417,7 +445,7 @@ export function TurnCarousel({
                     <button type="button" onClick={endTurn}>
                       End Turn
                     </button>
-                    {showGmChrome && card.character ? (
+                    {showGmCardTools && card.character ? (
                       <div className="row turn-card__hp-nudge">
                         <button
                           type="button"
@@ -437,7 +465,7 @@ export function TurnCarousel({
                         </button>
                       </div>
                     ) : null}
-                    {showGmChrome && card.character ? (
+                    {showGmCardTools && card.character ? (
                       <ConditionToggles
                         characterId={card.character.id}
                         conditions={card.character.conditions}
@@ -446,7 +474,7 @@ export function TurnCarousel({
                     ) : null}
                   </div>
                 ) : null}
-                {isActive && !canControl && role !== "screen" ? (
+                {isActive && showControls && !canControl && role !== "screen" ? (
                   <div className="turn-card__controls turn-card__controls--readonly">
                     <span className="hp-chip">
                       Move {moveRemaining === null ? "–" : moveRemaining}
