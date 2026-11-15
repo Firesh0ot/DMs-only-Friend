@@ -40,7 +40,21 @@ import {
 } from "./mapLights";
 import { loadMapVideoLayer } from "./mapVideoLayer";
 
-export type FogToolMode = "off" | "brush" | "rect";
+export type FogToolMode =
+  | "off"
+  | "brush"
+  | "rect"
+  | "wall"
+  | "obstacle-seeThrough"
+  | "obstacle-solid";
+
+export function isFogPaintTool(tool: FogToolMode): boolean {
+  return tool === "brush" || tool === "rect";
+}
+
+export function isStructureTool(tool: FogToolMode): boolean {
+  return tool === "wall" || tool === "obstacle-seeThrough" || tool === "obstacle-solid";
+}
 
 export type MapSceneProps = {
   map: MapState | null;
@@ -65,6 +79,9 @@ export type MapSceneProps = {
   spawnTool?: boolean;
   spawnPoints?: SpawnPoint[];
   onSpawnPlace?: (x: number, y: number) => void;
+  onWallAddSegment?: (a: { x: number; y: number }, b: { x: number; y: number }) => void;
+  onObstaclePlace?: (kind: "seeThrough" | "solid", x: number, y: number) => void;
+  onObstacleRemove?: (id: string) => void;
   movement?: MovementBudget | null;
 };
 
@@ -115,6 +132,8 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     points?: Array<{ x: number; y: number }>;
     startWorld?: { x: number; y: number };
   } | null>(null);
+  const wallDraftRef = useRef<{ x: number; y: number } | null>(null);
+  const wallCursorRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!host) {
@@ -196,13 +215,56 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
 
         const fogTool = propsRef.current.fogTool;
         const map = propsRef.current.map;
+        if (event.button === 2 && fogTool === "wall") {
+          wallDraftRef.current = null;
+          wallCursorRef.current = null;
+          syncOverlay();
+          return;
+        }
         if (propsRef.current.spawnTool && map && event.button === 0) {
           const worldPoint = screenToWorld(event.global.x, event.global.y);
           const cell = pixelToCell(worldPoint.x, worldPoint.y, map);
           propsRef.current.onSpawnPlace?.(Math.round(cell.x), Math.round(cell.y));
           return;
         }
-        if (fogTool !== "off" && map && event.button === 0) {
+        if (fogTool === "wall" && map && event.button === 0) {
+          const worldPoint = screenToWorld(event.global.x, event.global.y);
+          const point = pixelToWallPoint(worldPoint.x, worldPoint.y, map);
+          const draft = wallDraftRef.current;
+          if (!draft) {
+            wallDraftRef.current = point;
+            wallCursorRef.current = point;
+            syncOverlay();
+            return;
+          }
+          if (draft.x === point.x && draft.y === point.y) {
+            return;
+          }
+          propsRef.current.onWallAddSegment?.(draft, point);
+          wallDraftRef.current = null;
+          wallCursorRef.current = null;
+          syncOverlay();
+          return;
+        }
+        if (
+          (fogTool === "obstacle-seeThrough" || fogTool === "obstacle-solid") &&
+          map &&
+          event.button === 0
+        ) {
+          const worldPoint = screenToWorld(event.global.x, event.global.y);
+          const cell = pixelToCell(worldPoint.x, worldPoint.y, map);
+          const x = Math.round(cell.x);
+          const y = Math.round(cell.y);
+          const hit = hitTestObstacle(map, x, y);
+          if (hit) {
+            propsRef.current.onObstacleRemove?.(hit.id);
+            return;
+          }
+          const kind = fogTool === "obstacle-solid" ? "solid" : "seeThrough";
+          propsRef.current.onObstaclePlace?.(kind, x, y);
+          return;
+        }
+        if (isFogPaintTool(fogTool) && map && event.button === 0) {
           const worldPoint = screenToWorld(event.global.x, event.global.y);
           if (fogTool === "brush") {
             dragRef.current = {
@@ -240,6 +302,21 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       });
 
       app.stage.on("pointermove", (event) => {
+        if (
+          propsRef.current.role === "gm" &&
+          propsRef.current.fogTool === "wall" &&
+          wallDraftRef.current &&
+          propsRef.current.map
+        ) {
+          const worldPoint = screenToWorld(event.global.x, event.global.y);
+          wallCursorRef.current = pixelToWallPoint(
+            worldPoint.x,
+            worldPoint.y,
+            propsRef.current.map,
+          );
+          syncOverlay();
+        }
+
         const drag = dragRef.current;
         const currentWorld = worldRef.current;
         if (!drag || !currentWorld) {
@@ -385,11 +462,32 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
     };
 
     host.addEventListener("wheel", onWheel, { passive: false });
+
+    const onContextMenu = (event: MouseEvent) => {
+      if (propsRef.current.fogTool === "wall") {
+        event.preventDefault();
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+      if (wallDraftRef.current) {
+        wallDraftRef.current = null;
+        wallCursorRef.current = null;
+        syncOverlay();
+      }
+    };
+    host.addEventListener("contextmenu", onContextMenu);
+    window.addEventListener("keydown", onKeyDown);
+
     const tokenViews = tokenViewsRef.current;
 
     return () => {
       destroyed = true;
       host.removeEventListener("wheel", onWheel);
+      host.removeEventListener("contextmenu", onContextMenu);
+      window.removeEventListener("keydown", onKeyDown);
       tokenViews.clear();
       const animatedUrl = animatedUrlRef.current;
       animatedUrlRef.current = null;
@@ -495,13 +593,32 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
 
   useEffect(() => {
     syncOverlay();
-  }, [props.spawnPoints, props.spawnTool, props.movement, props.tokens, props.map, props.role]);
+  }, [
+    props.spawnPoints,
+    props.spawnTool,
+    props.movement,
+    props.tokens,
+    props.map,
+    props.role,
+    props.fogTool,
+  ]);
+
+  useEffect(() => {
+    if (props.fogTool !== "wall") {
+      wallDraftRef.current = null;
+      wallCursorRef.current = null;
+      syncOverlay();
+    }
+  }, [props.fogTool]);
 
   useEffect(() => {
     if (!host) {
       return;
     }
-    host.classList.toggle("canvas-host--fog-tool", props.role === "gm" && props.fogTool !== "off");
+    host.classList.toggle(
+      "canvas-host--fog-tool",
+      props.role === "gm" && (isFogPaintTool(props.fogTool) || isStructureTool(props.fogTool)),
+    );
   }, [host, props.fogTool, props.role]);
 
   async function releaseAnimatedTexture(): Promise<void> {
@@ -632,7 +749,11 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
         created.root.eventMode = "static";
         const tokenId = created.tokenId;
         created.root.on("pointerdown", (event) => {
-          if (propsRef.current.fogTool !== "off" || propsRef.current.spawnTool) {
+          if (
+            propsRef.current.fogTool !== "off" ||
+            propsRef.current.spawnTool ||
+            isStructureTool(propsRef.current.fogTool)
+          ) {
             return;
           }
           const current = propsRef.current.tokens.find((entry) => entry.id === tokenId);
@@ -667,6 +788,7 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
         canDragToken(token)
           ? "grab"
           : "default";
+      // structure/fog tools already force fogTool !== "off"
     }
 
     for (const [id, view] of tokenViewsRef.current) {
@@ -855,6 +977,24 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
       }
     }
 
+    if (propsRef.current.role === "gm" && propsRef.current.fogTool === "wall") {
+      const draft = wallDraftRef.current;
+      const cursor = wallCursorRef.current;
+      if (draft) {
+        const start = wallPointToPixel(draft, map);
+        graphics.circle(start.x, start.y, Math.max(4, map.gridPx * 0.12));
+        graphics.fill({ color: 0xfbbf24, alpha: 0.95 });
+        if (cursor) {
+          const end = wallPointToPixel(cursor, map);
+          graphics.moveTo(start.x, start.y);
+          graphics.lineTo(end.x, end.y);
+          graphics.stroke({ width: 2, color: 0xfbbf24, alpha: 0.75, cap: "round" });
+          graphics.circle(end.x, end.y, Math.max(3, map.gridPx * 0.08));
+          graphics.fill({ color: 0xfde68a, alpha: 0.9 });
+        }
+      }
+    }
+
     const movement = propsRef.current.movement;
     if (
       movement?.active &&
@@ -871,7 +1011,9 @@ export function useMapScene(host: HTMLDivElement | null, props: MapSceneProps): 
             propsRef.current.characterId &&
             token.characterId === propsRef.current.characterId);
         if (show) {
-          const blockers = movementBlockerSegments(map.walls, map.portals);
+          const blockers = movementBlockerSegments(map.walls, map.portals, {
+            obstacles: map.obstacles,
+          });
           const bounds = mapGridBounds(map);
           const cells = reachableCells(
             movement.turnStart,
@@ -990,6 +1132,114 @@ function drawWallsAndPortals(graphics: Graphics, map: MapState, showOverlay: boo
       join: "round",
     });
   }
+
+  for (const obstacle of map.obstacles) {
+    const x = map.offsetX + obstacle.x * map.gridPx;
+    const y = map.offsetY + obstacle.y * map.gridPx;
+    const w = obstacle.w * map.gridPx;
+    const h = obstacle.h * map.gridPx;
+    if (obstacle.kind === "solid") {
+      graphics.rect(x, y, w, h);
+      graphics.fill({ color: 0x7f1d1d, alpha: 0.35 });
+      graphics.rect(x, y, w, h);
+      graphics.stroke({ width: 2, color: 0xdc2626, alpha: 0.9 });
+    } else {
+      graphics.rect(x, y, w, h);
+      graphics.fill({ color: 0x0e7490, alpha: 0.12 });
+      drawDashedRect(graphics, x, y, w, h, 0x22d3ee, 2);
+    }
+  }
+}
+
+function drawDashedRect(
+  graphics: Graphics,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: number,
+  width: number,
+): void {
+  const dash = Math.max(4, Math.min(w, h) * 0.18);
+  const gap = dash * 0.7;
+  drawDashedLine(graphics, x, y, x + w, y, dash, gap, color, width);
+  drawDashedLine(graphics, x + w, y, x + w, y + h, dash, gap, color, width);
+  drawDashedLine(graphics, x + w, y + h, x, y + h, dash, gap, color, width);
+  drawDashedLine(graphics, x, y + h, x, y, dash, gap, color, width);
+}
+
+function drawDashedLine(
+  graphics: Graphics,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  dash: number,
+  gap: number,
+  color: number,
+  width: number,
+): void {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const length = Math.hypot(dx, dy);
+  if (length < 1e-6) {
+    return;
+  }
+  const ux = dx / length;
+  const uy = dy / length;
+  let offset = 0;
+  let drawing = true;
+  while (offset < length) {
+    const segment = drawing ? dash : gap;
+    const next = Math.min(length, offset + segment);
+    if (drawing) {
+      graphics.moveTo(x0 + ux * offset, y0 + uy * offset);
+      graphics.lineTo(x0 + ux * next, y0 + uy * next);
+      graphics.stroke({ width, color, alpha: 0.95, cap: "butt" });
+    }
+    offset = next;
+    drawing = !drawing;
+  }
+}
+
+function hitTestObstacle(
+  map: MapState,
+  cellX: number,
+  cellY: number,
+): MapState["obstacles"][number] | null {
+  for (let index = map.obstacles.length - 1; index >= 0; index -= 1) {
+    const obstacle = map.obstacles[index]!;
+    if (
+      cellX >= obstacle.x &&
+      cellX < obstacle.x + obstacle.w &&
+      cellY >= obstacle.y &&
+      cellY < obstacle.y + obstacle.h
+    ) {
+      return obstacle;
+    }
+  }
+  return null;
+}
+
+function pixelToWallPoint(
+  x: number,
+  y: number,
+  map: MapState,
+): { x: number; y: number } {
+  return {
+    x: (x - map.offsetX) / map.gridPx,
+    y: (y - map.offsetY) / map.gridPx,
+  };
+}
+
+function wallPointToPixel(
+  point: { x: number; y: number },
+  map: MapState,
+): { x: number; y: number } {
+  return {
+    x: map.offsetX + point.x * map.gridPx,
+    y: map.offsetY + point.y * map.gridPx,
+  };
 }
 
 function hitTestPortal(

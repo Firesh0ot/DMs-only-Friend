@@ -257,6 +257,39 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
     });
   }
 
+  function onWallAddSegment(a: { x: number; y: number }, b: { x: number; y: number }) {
+    if (!snapshot?.map) {
+      return;
+    }
+    getSocket().emit(ClientEvents.WallAddSegment, {
+      mapId: snapshot.map.id,
+      a,
+      b,
+    });
+  }
+
+  function onObstaclePlace(kind: "seeThrough" | "solid", x: number, y: number) {
+    if (!snapshot?.map) {
+      return;
+    }
+    getSocket().emit(ClientEvents.ObstaclePlace, {
+      mapId: snapshot.map.id,
+      kind,
+      x,
+      y,
+    });
+  }
+
+  function onObstacleRemove(id: string) {
+    if (!snapshot?.map) {
+      return;
+    }
+    getSocket().emit(ClientEvents.ObstacleRemove, {
+      mapId: snapshot.map.id,
+      id,
+    });
+  }
+
   function onFogPaint(stroke: FogStrokeInput) {
     if (role !== "gm" || !snapshot?.map) {
       return;
@@ -329,7 +362,10 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
             <p className="muted">
               {connected ? "Connected" : "Connecting…"} · {role}
               {snapshot?.playerName ? ` · ${snapshot.playerName}` : ""}
-              {isGm && fogTool !== "off" ? " · Fog tool" : ""}
+              {isGm && (fogTool === "brush" || fogTool === "rect") ? " · Fog tool" : ""}
+              {isGm && fogTool === "wall" ? " · Wall tool" : ""}
+              {isGm && fogTool === "obstacle-seeThrough" ? " · Obstacle (see-through)" : ""}
+              {isGm && fogTool === "obstacle-solid" ? " · Obstacle (solid)" : ""}
               {isGm && spawnTool ? " · Spawn tool" : ""}
             </p>
             <h1 className="brand brand--compact">Room {code}</h1>
@@ -452,6 +488,9 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                   spawnTool={isGm && spawnTool}
                   spawnPoints={snapshot.spawnPoints}
                   onSpawnPlace={isGm ? onSpawnPlace : undefined}
+                  onWallAddSegment={isGm ? onWallAddSegment : undefined}
+                  onObstaclePlace={isGm ? onObstaclePlace : undefined}
+                  onObstacleRemove={isGm ? onObstacleRemove : undefined}
                   movement={snapshot.movement}
                 />
               </div>
@@ -471,7 +510,9 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                 lastDice={lastDice}
                 recentDice={recentDice}
                 hasLosGeometry={
-                  (snapshot.map?.walls.length ?? 0) > 0 || (snapshot.map?.portals.length ?? 0) > 0
+                  (snapshot.map?.walls.length ?? 0) > 0 ||
+                  (snapshot.map?.portals.length ?? 0) > 0 ||
+                  (snapshot.map?.obstacles.some((obstacle) => obstacle.kind === "solid") ?? false)
                 }
                 portals={snapshot.map?.portals ?? []}
                 losEnabled={snapshot.fog?.losEnabled ?? false}

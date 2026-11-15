@@ -16,6 +16,7 @@ const map: MapState = {
   walls: [],
   portals: [],
   lights: [],
+  obstacles: [],
 };
 
 const light: LightState = {

@@ -1,4 +1,4 @@
-import type { MapState, PortalState, TokenState, WallPolyline } from "./events.js";
+import type { MapState, ObstacleState, PortalState, TokenState, WallPolyline } from "./events.js";
 import { healWallsAroundPortals, snapPortalBoundsToWalls } from "./wallHeal.js";
 
 export type LosPoint = { x: number; y: number };
@@ -7,8 +7,14 @@ export type LosSegment = { a: LosPoint; b: LosPoint };
 const ANGLE_EPS = 1e-6;
 const RAY_EPS = 1e-4;
 
-export function mapHasLosGeometry(map: Pick<MapState, "walls" | "portals">): boolean {
-  return map.walls.length > 0 || map.portals.length > 0;
+export function mapHasLosGeometry(
+  map: Pick<MapState, "walls" | "portals" | "obstacles">,
+): boolean {
+  return (
+    map.walls.length > 0 ||
+    map.portals.length > 0 ||
+    map.obstacles.some((obstacle) => obstacle.kind === "solid")
+  );
 }
 
 export function wallPolylinesToSegments(
@@ -54,13 +60,47 @@ export function closedPortalSegments(
   return segments;
 }
 
+export function solidObstacleSegments(
+  obstacles: Array<Pick<ObstacleState, "kind" | "x" | "y" | "w" | "h">>,
+  map: Pick<MapState, "gridPx" | "offsetX" | "offsetY">,
+): LosSegment[] {
+  const segments: LosSegment[] = [];
+  for (const obstacle of obstacles) {
+    if (obstacle.kind !== "solid") {
+      continue;
+    }
+    const corners = [
+      { x: obstacle.x, y: obstacle.y },
+      { x: obstacle.x + obstacle.w, y: obstacle.y },
+      { x: obstacle.x + obstacle.w, y: obstacle.y + obstacle.h },
+      { x: obstacle.x, y: obstacle.y + obstacle.h },
+    ];
+    for (let index = 0; index < corners.length; index += 1) {
+      const from = corners[index]!;
+      const to = corners[(index + 1) % corners.length]!;
+      if (from.x === to.x && from.y === to.y) {
+        continue;
+      }
+      segments.push({
+        a: wallPointToPixel(from, map),
+        b: wallPointToPixel(to, map),
+      });
+    }
+  }
+  return segments;
+}
+
 export function losBlockingSegments(
-  map: Pick<MapState, "walls" | "portals" | "gridPx" | "offsetX" | "offsetY" | "width" | "height">,
+  map: Pick<
+    MapState,
+    "walls" | "portals" | "obstacles" | "gridPx" | "offsetX" | "offsetY" | "width" | "height"
+  >,
 ): LosSegment[] {
   const healedWalls = healWallsAroundPortals(map.walls, map.portals);
   return [
     ...wallPolylinesToSegments(healedWalls, map),
     ...closedPortalSegments(map.portals, map),
+    ...solidObstacleSegments(map.obstacles, map),
     ...mapBoundarySegments(map.width, map.height),
   ];
 }

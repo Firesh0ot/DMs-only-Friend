@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { MapState, TokenState } from "./events.js";
 import {
   closedPortalSegments,
+  losBlockingSegments,
   mapBoundarySegments,
   mapHasLosGeometry,
   playerVisionPolygons,
   pointInPolygon,
+  solidObstacleSegments,
   tokenVisionOrigin,
   visibilityPolygon,
   wallPolylinesToSegments,
@@ -37,6 +39,7 @@ const map: MapState = {
   ],
   portals: [],
   lights: [],
+  obstacles: [],
 };
 
 describe("losVisibility", () => {
@@ -105,9 +108,49 @@ describe("losVisibility", () => {
   });
 
   it("returns no polygons without walls or portals", () => {
-    const bare = { ...map, walls: [], portals: [] };
+    const bare = { ...map, walls: [], portals: [], obstacles: [] };
     expect(mapHasLosGeometry(bare)).toBe(false);
     expect(playerVisionPolygons(bare, [])).toEqual([]);
+  });
+
+  it("solid obstacles count as LoS geometry; see-through do not", () => {
+    const seeThroughOnly = {
+      ...map,
+      walls: [],
+      portals: [],
+      obstacles: [{ id: "o1", kind: "seeThrough" as const, x: 1, y: 0, w: 1, h: 1 }],
+    };
+    expect(mapHasLosGeometry(seeThroughOnly)).toBe(false);
+    expect(solidObstacleSegments(seeThroughOnly.obstacles, seeThroughOnly)).toHaveLength(0);
+
+    const solidOnly = {
+      ...map,
+      walls: [],
+      portals: [],
+      obstacles: [{ id: "o2", kind: "solid" as const, x: 2, y: 0, w: 1, h: 2 }],
+    };
+    expect(mapHasLosGeometry(solidOnly)).toBe(true);
+    expect(solidObstacleSegments(solidOnly.obstacles, solidOnly)).toHaveLength(4);
+
+    const tokens: TokenState[] = [
+      {
+        id: "t1",
+        roomId: "room-1",
+        label: "Hero",
+        image: null,
+        x: 0,
+        y: 0,
+        sizeCells: 1,
+        isPlayer: true,
+        mapId: solidOnly.id,
+        characterId: "c1",
+      },
+    ];
+    const polygons = playerVisionPolygons(solidOnly, tokens);
+    expect(polygons).toHaveLength(1);
+    expect(pointInPolygon({ x: 35, y: 35 }, polygons[0]!)).toBe(true);
+    expect(pointInPolygon({ x: 245, y: 35 }, polygons[0]!)).toBe(false);
+    expect(losBlockingSegments(solidOnly).length).toBeGreaterThan(4);
   });
 
   it("closed portals block LoS and open portals do not", () => {

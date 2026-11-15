@@ -11,6 +11,9 @@ import {
   MapPackageManifestSchema,
   MapStateSchema,
   PortalSetClosedPayloadSchema,
+  WallAddSegmentPayloadSchema,
+  ObstaclePlacePayloadSchema,
+  ObstacleRemovePayloadSchema,
   RoomCodeSchema,
   RoomCreatePayloadSchema,
   RoomJoinPayloadSchema,
@@ -326,6 +329,33 @@ describe("event schemas", () => {
       closed: false,
     });
     expect(payload.closed).toBe(false);
+    expect(map.obstacles).toEqual([]);
+
+    const withObstacle = MapStateSchema.parse({
+      ...map,
+      obstacles: [{ id: "obs-1", kind: "seeThrough", x: 2, y: 3 }],
+    });
+    expect(withObstacle.obstacles[0]?.w).toBe(1);
+    expect(withObstacle.obstacles[0]?.h).toBe(1);
+
+    expect(
+      WallAddSegmentPayloadSchema.parse({
+        mapId: "map-1",
+        a: { x: 0, y: 0 },
+        b: { x: 2, y: 0 },
+      }).b.x,
+    ).toBe(2);
+    expect(
+      ObstaclePlacePayloadSchema.parse({
+        mapId: "map-1",
+        kind: "solid",
+        x: 1,
+        y: 2,
+      }).kind,
+    ).toBe("solid");
+    expect(
+      ObstacleRemovePayloadSchema.parse({ mapId: "map-1", id: "obs-1" }).id,
+    ).toBe("obs-1");
 
     const withoutAnimated = MapStateSchema.parse({
       id: "map-2",

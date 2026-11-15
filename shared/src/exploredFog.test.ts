@@ -40,6 +40,7 @@ const map: MapState = {
   ],
   portals: [],
   lights: [],
+  obstacles: [],
 };
 
 function fog(partial: Partial<FogState> = {}): FogState {

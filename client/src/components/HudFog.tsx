@@ -142,6 +142,56 @@ function IconDoor() {
   );
 }
 
+function IconWall() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="hud-fog-rail__glyph">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        d="M4 18 10 6l6 12M8 14h8"
+      />
+    </svg>
+  );
+}
+
+function IconObstacleSeeThrough() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="hud-fog-rail__glyph">
+      <rect
+        x="5"
+        y="5"
+        width="14"
+        height="14"
+        rx="1.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeDasharray="3.5 2.5"
+      />
+    </svg>
+  );
+}
+
+function IconObstacleSolid() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="hud-fog-rail__glyph">
+      <rect x="5" y="5" width="14" height="14" rx="1.5" fill="currentColor" opacity="0.35" />
+      <rect
+        x="5"
+        y="5"
+        width="14"
+        height="14"
+        rx="1.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
 export function HudFog({
   mapId,
   hasLosGeometry,
@@ -298,12 +348,50 @@ export function HudFog({
               ? losEnabled
                 ? "LoS on — click to turn off"
                 : "LoS off — click to turn on"
-              : "Import a .dd2vtt map with walls or doors"
+              : "Add walls, solid obstacles, or import a .dd2vtt map"
           }
           aria-label={losEnabled ? "Line of sight on" : "Line of sight off"}
           aria-pressed={losEnabled}
         >
           <IconLos />
+        </button>
+      </div>
+
+      <div className="hud-fog-rail__group" role="group" aria-label="Structure">
+        <button
+          type="button"
+          className={toolClass(tool === "wall")}
+          disabled={!mapId}
+          onClick={() => onToolChange(tool === "wall" ? "off" : "wall")}
+          title="Wall — click two points (Esc / right-click cancels)"
+          aria-label="Wall tool"
+          aria-pressed={tool === "wall"}
+        >
+          <IconWall />
+        </button>
+        <button
+          type="button"
+          className={toolClass(tool === "obstacle-seeThrough")}
+          disabled={!mapId}
+          onClick={() =>
+            onToolChange(tool === "obstacle-seeThrough" ? "off" : "obstacle-seeThrough")
+          }
+          title="See-through obstacle — blocks movement only; click again to remove"
+          aria-label="See-through obstacle tool"
+          aria-pressed={tool === "obstacle-seeThrough"}
+        >
+          <IconObstacleSeeThrough />
+        </button>
+        <button
+          type="button"
+          className={toolClass(tool === "obstacle-solid")}
+          disabled={!mapId}
+          onClick={() => onToolChange(tool === "obstacle-solid" ? "off" : "obstacle-solid")}
+          title="Solid obstacle — blocks LoS and movement; click again to remove"
+          aria-label="Solid obstacle tool"
+          aria-pressed={tool === "obstacle-solid"}
+        >
+          <IconObstacleSolid />
         </button>
       </div>
 

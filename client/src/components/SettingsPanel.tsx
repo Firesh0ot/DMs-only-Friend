@@ -948,6 +948,7 @@ export function SettingsPanel({
                     {map.width}×{map.height} · grid {map.gridPx}
                     {map.walls.length > 0 ? ` · ${map.walls.length} walls` : ""}
                     {map.portals.length > 0 ? ` · ${map.portals.length} doors` : ""}
+                    {map.obstacles.length > 0 ? ` · ${map.obstacles.length} obstacles` : ""}
                     {map.lights.length > 0 ? ` · ${map.lights.length} lights` : ""}
                     {map.animatedFilename ? " · WebM" : ""}
                     {map.id === activeMapId ? " · active" : ""}

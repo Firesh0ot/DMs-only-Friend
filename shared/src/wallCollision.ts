@@ -1,4 +1,4 @@
-import type { PortalState, WallPolyline } from "./events.js";
+import type { ObstacleState, PortalState, WallPolyline } from "./events.js";
 import type { GridPoint } from "./movement.js";
 import { healWallsAroundPortals, snapPortalBoundsToWalls } from "./wallHeal.js";
 
@@ -24,6 +24,28 @@ export function wallPolylinesToGridSegments(walls: WallPolyline[]): GridSegment[
   return segments;
 }
 
+export function obstacleAabbToGridSegments(
+  obstacles: Array<Pick<ObstacleState, "x" | "y" | "w" | "h">>,
+): GridSegment[] {
+  const segments: GridSegment[] = [];
+  for (const obstacle of obstacles) {
+    const x0 = obstacle.x;
+    const y0 = obstacle.y;
+    const x1 = obstacle.x + obstacle.w;
+    const y1 = obstacle.y + obstacle.h;
+    if (x0 === x1 && y0 === y1) {
+      continue;
+    }
+    segments.push(
+      { a: { x: x0, y: y0 }, b: { x: x1, y: y0 } },
+      { a: { x: x1, y: y0 }, b: { x: x1, y: y1 } },
+      { a: { x: x1, y: y1 }, b: { x: x0, y: y1 } },
+      { a: { x: x0, y: y1 }, b: { x: x0, y: y0 } },
+    );
+  }
+  return segments;
+}
+
 export function closedPortalsToGridSegments(
   portals: Array<Pick<PortalState, "bounds" | "closed">>,
   walls: WallPolyline[] = [],
@@ -44,6 +66,7 @@ export function closedPortalsToGridSegments(
 
 export type MovementBlockerOptions = {
   ignoreClosedPortals?: boolean;
+  obstacles?: Array<Pick<ObstacleState, "x" | "y" | "w" | "h">>;
 };
 
 export function movementBlockerSegments(
@@ -61,7 +84,8 @@ export function movementBlockerSegments(
   const portalBlockers = options.ignoreClosedPortals
     ? []
     : closedPortalsToGridSegments(portals, healedWalls);
-  return [...wallPolylinesToGridSegments(healedWalls), ...portalBlockers];
+  const obstacleBlockers = obstacleAabbToGridSegments(options.obstacles ?? []);
+  return [...wallPolylinesToGridSegments(healedWalls), ...portalBlockers, ...obstacleBlockers];
 }
 
 export function cellCenter(point: GridPoint): GridPoint {

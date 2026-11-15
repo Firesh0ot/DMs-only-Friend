@@ -77,6 +77,7 @@ function tavernDividerMap(closedDoor: boolean): MapState {
       },
     ],
     lights: [],
+    obstacles: [],
   };
 }
 

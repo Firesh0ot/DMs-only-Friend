@@ -202,4 +202,49 @@ describe("RoomStore", () => {
     expect(moved.x).toBe(4);
     expect(moved.y).toBe(5);
   });
+
+  it("appends wall segments and places/removes obstacles", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+    const map = store.addMap(room.id, {
+      name: "Plain",
+      filename: "plain.png",
+      width: 280,
+      height: 140,
+      gridPx: 70,
+    });
+    expect(map.obstacles).toEqual([]);
+    expect(map.walls).toEqual([]);
+
+    const withWall = store.addWallSegment(
+      room.id,
+      map.id,
+      { x: 1, y: 0 },
+      { x: 1, y: 2 },
+    );
+    expect(withWall.walls).toEqual([
+      [
+        { x: 1, y: 0 },
+        { x: 1, y: 2 },
+      ],
+    ]);
+
+    const withObstacle = store.placeObstacle(room.id, map.id, {
+      kind: "seeThrough",
+      x: 3,
+      y: 1,
+    });
+    expect(withObstacle.obstacles).toHaveLength(1);
+    expect(withObstacle.obstacles[0]).toMatchObject({
+      kind: "seeThrough",
+      x: 3,
+      y: 1,
+      w: 1,
+      h: 1,
+    });
+
+    const removed = store.removeObstacle(room.id, map.id, withObstacle.obstacles[0]!.id);
+    expect(removed.obstacles).toEqual([]);
+    expect(store.getMapById(map.id)?.walls).toHaveLength(1);
+  });
 });
