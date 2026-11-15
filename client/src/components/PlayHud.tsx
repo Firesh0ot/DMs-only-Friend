@@ -27,6 +27,7 @@ import { HudDice } from "./HudDice";
 import { HudFog } from "./HudFog";
 import { HudInitiative } from "./HudInitiative";
 import { HudPanel } from "./HudPanel";
+import { TurnCarousel } from "./turn/TurnCarousel";
 
 type Props = {
   roomCode: string;
@@ -144,7 +145,20 @@ export function PlayHud({
         />
       </div>
 
-      <div className="play-hud__bottom">
+      <div className="play-hud__bottom stack">
+        <div className="play-hud__carousel" aria-label="Turn order carousel">
+          <TurnCarousel
+            role="gm"
+            initiative={initiative}
+            tokens={tokens}
+            characters={characters}
+            movement={movement}
+            compact
+            showHp={false}
+            showControls={false}
+            showChrome={false}
+          />
+        </div>
         <HudBottomStrip
           maps={maps}
           activeMap={activeMap}
