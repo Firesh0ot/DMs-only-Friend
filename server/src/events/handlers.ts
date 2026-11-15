@@ -26,6 +26,10 @@ import {
   mapGridBounds,
   MonsterImportPayloadSchema,
   MonsterSearchPayloadSchema,
+  EncounterUpsertPayloadSchema,
+  EncounterRemovePayloadSchema,
+  EncounterPlacePayloadSchema,
+  PrepNotesSetPayloadSchema,
   moveBlockedByWalls,
   movementBlockerSegments,
   RoomJoinPayloadSchema,
@@ -1038,6 +1042,10 @@ export function registerSocketHandlers(
           ServerEvents.TokensSynced,
           rooms.listVisibleTokens(session.roomId),
         );
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.EncountersUpdated,
+          rooms.listEncounters(session.roomId),
+        );
         emitActiveBattle(io, rooms, session.roomId);
         if (removed.initiative) {
           io.to(roomChannel(session.roomId)).emit(
@@ -1532,6 +1540,71 @@ export function registerSocketHandlers(
       } catch (error) {
         const message = error instanceof Error ? error.message : "Cache list failed";
         callback?.({ ok: false, error: message });
+      }
+    });
+
+    socket.on(ClientEvents.EncounterUpsert, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = EncounterUpsertPayloadSchema.parse(payload);
+        rooms.upsertEncounter({
+          id: data.id,
+          roomId: session.roomId,
+          name: data.name,
+          npcIds: data.npcIds,
+        });
+        io.to(roomChannel(session.roomId)).emit(
+          ServerEvents.EncountersUpdated,
+          rooms.listEncounters(session.roomId),
+        );
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.EncounterRemove, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = EncounterRemovePayloadSchema.parse(payload);
+        const encounters = rooms.removeEncounter(session.roomId, data.id);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.EncountersUpdated, encounters);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.EncounterPlace, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = EncounterPlacePayloadSchema.parse(payload);
+        const placed = rooms.placeEncounter(session.roomId, data.id);
+        emitCharactersUpdated(io, rooms, session.roomId);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.TokensSynced, placed.tokens);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.PrepNotesSet, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = PrepNotesSetPayloadSchema.parse(payload);
+        const prepNotes = rooms.setPrepNotes(session.roomId, data.notes);
+        io.to(roomChannel(session.roomId)).emit(ServerEvents.PrepNotesUpdated, prepNotes);
+      } catch (error) {
+        emitError(socket, error);
       }
     });
 

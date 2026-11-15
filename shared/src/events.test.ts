@@ -28,6 +28,9 @@ import {
   MonsterImportPayloadSchema,
   MonsterSearchPayloadSchema,
   MovementRejectedPayloadSchema,
+  EncounterUpsertPayloadSchema,
+  EncounterPlacePayloadSchema,
+  PrepNotesSetPayloadSchema,
   hpToQuarter,
   isCharacterDead,
   normalizeRoomCode,
@@ -208,6 +211,22 @@ describe("event schemas", () => {
     expect(snapshot.characterId).toBeNull();
     expect(snapshot.spawnPoints).toEqual([]);
     expect(snapshot.movement).toBeNull();
+    expect(snapshot.encounters).toEqual([]);
+    expect(snapshot.prepNotes).toBe("");
+  });
+
+  it("accepts encounter sketch and prep notes payloads", () => {
+    expect(
+      EncounterUpsertPayloadSchema.parse({
+        name: "Ambush",
+        npcIds: ["npc-1", "npc-2"],
+      }).name,
+    ).toBe("Ambush");
+    expect(EncounterPlacePayloadSchema.parse({ id: "enc-1" }).id).toBe("enc-1");
+    expect(PrepNotesSetPayloadSchema.parse({ notes: "Watch the door" }).notes).toBe(
+      "Watch the door",
+    );
+    expect(() => PrepNotesSetPayloadSchema.parse({ notes: "x".repeat(8001) })).toThrow();
   });
 
   it("accepts spawn and speed payloads", () => {

@@ -173,7 +173,7 @@ export function HudBottomStrip({
             onToolChange={onSpawnToolChange}
           />
           <p className="muted hud-muted hud-bottom__more-note">
-            NPC roster and map prep live in Settings.
+            NPC roster and map prep live in Prep.
           </p>
         </div>
       ) : null}

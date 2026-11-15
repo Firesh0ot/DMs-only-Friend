@@ -61,7 +61,7 @@ type Props = {
   invite: string | null;
 };
 
-type GmMode = "play" | "settings";
+type GmMode = "play" | "prep" | "settings";
 
 export function RoomPage({ code, role, name, characterId, invite }: Props) {
   const joinRoom = useRoomStore((state) => state.joinRoom);
@@ -299,8 +299,10 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
 
   const isGm = role === "gm";
   const isScreen = role === "screen";
+  const showPrep = isGm && gmMode === "prep";
   const showSettings = isGm && gmMode === "settings";
   const showPlayChrome = isGm && gmMode === "play";
+  const showPanel = showPrep || showSettings;
   const screenFs = isScreen && screenFullscreen;
   const carouselPlacement = snapshot?.settings.screenCarousel ?? DEFAULT_SCREEN_CAROUSEL;
 
@@ -395,9 +397,20 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                   Play
                 </button>
                 <button
+                  className={gmMode === "prep" ? "is-active" : "secondary"}
+                  onClick={() => {
+                    setFogTool("off");
+                    setSpawnTool(false);
+                    setGmMode("prep");
+                  }}
+                >
+                  Prep
+                </button>
+                <button
                   className={gmMode === "settings" ? "is-active" : "secondary"}
                   onClick={() => {
                     setFogTool("off");
+                    setSpawnTool(false);
                     setGmMode("settings");
                   }}
                 >
@@ -419,19 +432,22 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
         </p>
       ) : null}
 
-      {snapshot && showSettings ? (
+      {snapshot && showPanel ? (
         <SettingsPanel
+          variant={showPrep ? "prep" : "settings"}
           code={code}
           maps={snapshot.maps}
           activeMapId={snapshot.map?.id ?? null}
           characters={snapshot.characters}
           settings={snapshot.settings}
           uploadToken={uploadToken}
+          encounters={snapshot.encounters}
+          prepNotes={snapshot.prepNotes}
           onClose={() => setGmMode("play")}
         />
       ) : null}
 
-      {snapshot && !showSettings ? (
+      {snapshot && !showPanel ? (
         <div
           className={[
             "play-stage",
