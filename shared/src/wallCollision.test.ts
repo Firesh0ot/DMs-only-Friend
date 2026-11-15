@@ -3,6 +3,7 @@ import {
   closedPortalsToGridSegments,
   moveBlockedByWalls,
   movementBlockerSegments,
+  obstacleAabbToGridSegments,
   segmentsProperlyIntersect,
   wallPolylinesToGridSegments,
 } from "./wallCollision.js";
@@ -169,5 +170,29 @@ describe("movementBlockerSegments ignoreClosedPortals", () => {
     ];
     const blockers = movementBlockerSegments(solidWall, [], { ignoreClosedPortals: true });
     expect(moveBlockedByWalls({ x: 1, y: 1 }, { x: 2, y: 1 }, blockers)).toBe(true);
+  });
+});
+
+describe("obstacle movement blockers", () => {
+  it("expands AABB obstacles to four edge segments", () => {
+    expect(obstacleAabbToGridSegments([{ x: 2, y: 3, w: 1, h: 1 }])).toEqual([
+      { a: { x: 2, y: 3 }, b: { x: 3, y: 3 } },
+      { a: { x: 3, y: 3 }, b: { x: 3, y: 4 } },
+      { a: { x: 3, y: 4 }, b: { x: 2, y: 4 } },
+      { a: { x: 2, y: 4 }, b: { x: 2, y: 3 } },
+    ]);
+  });
+
+  it("blocks movement through see-through and solid obstacles alike", () => {
+    const seeThrough = movementBlockerSegments([], [], {
+      obstacles: [{ x: 2, y: 1, w: 1, h: 1 }],
+    });
+    expect(moveBlockedByWalls({ x: 1, y: 1 }, { x: 2, y: 1 }, seeThrough)).toBe(true);
+    expect(moveBlockedByWalls({ x: 1, y: 0 }, { x: 1, y: 1 }, seeThrough)).toBe(false);
+
+    const solid = movementBlockerSegments([], [], {
+      obstacles: [{ x: 2, y: 1, w: 1, h: 1 }],
+    });
+    expect(moveBlockedByWalls({ x: 1, y: 1 }, { x: 2, y: 1 }, solid)).toBe(true);
   });
 });

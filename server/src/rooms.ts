@@ -4,6 +4,7 @@ import {
   encodeExploredBits,
   growExploredFromCurrentVisibility,
   growExploredFromStroke,
+  healWallsAroundPortals,
   hpToQuarter,
   normalizeRoomCode,
   parseExploredCells,
@@ -20,6 +21,7 @@ import {
   type InitiativeState,
   type MapState,
   type MovementBudget,
+  type ObstacleState,
   type Role,
   type RoomSettings,
   type RoomState,
@@ -73,6 +75,7 @@ type MapRow = {
   walls_json: string | null;
   portals_json: string | null;
   lights_json: string | null;
+  obstacles_json: string | null;
 };
 type TokenRow = {
   id: string;
@@ -1632,7 +1635,12 @@ export class RoomStore {
   }
 
   private mapSupportsLos(map: MapState | null): boolean {
-    return Boolean(map && (map.walls.length > 0 || map.portals.length > 0));
+    return Boolean(
+      map &&
+        (map.walls.length > 0 ||
+          map.portals.length > 0 ||
+          map.obstacles.some((obstacle) => obstacle.kind === "solid")),
+    );
   }
 
   private defaultFogState(mapId: string, map: MapState | null): FogState {
@@ -1744,8 +1752,13 @@ export class RoomStore {
     if (!map || map.roomId !== roomId) {
       throw new Error("Map not found");
     }
-    if (enabled && map.walls.length === 0 && map.portals.length === 0) {
-      throw new Error("Line of sight needs wall or portal data from a .dd2vtt map");
+    if (
+      enabled &&
+      map.walls.length === 0 &&
+      map.portals.length === 0 &&
+      !map.obstacles.some((obstacle) => obstacle.kind === "solid")
+    ) {
+      throw new Error("Line of sight needs walls, portals, or solid obstacles");
     }
     const current = this.getFog(mapId);
     const next: FogState = {
@@ -1824,6 +1837,94 @@ export class RoomStore {
     this.db
       .prepare("UPDATE maps SET portals_json = ? WHERE id = ?")
       .run(JSON.stringify(portals), mapId);
+    const updated = this.getMapById(mapId);
+    if (!updated) {
+      throw new Error("Map not found");
+    }
+    return updated;
+  }
+
+  updateWalls(mapId: string, walls: MapState["walls"]): MapState {
+    this.db
+      .prepare("UPDATE maps SET walls_json = ? WHERE id = ?")
+      .run(JSON.stringify(walls), mapId);
+    const updated = this.getMapById(mapId);
+    if (!updated) {
+      throw new Error("Map not found");
+    }
+    return updated;
+  }
+
+  addWallSegment(
+    roomId: string,
+    mapId: string,
+    a: { x: number; y: number },
+    b: { x: number; y: number },
+  ): MapState {
+    const map = this.getMapById(mapId);
+    if (!map || map.roomId !== roomId) {
+      throw new Error("Map not found");
+    }
+    if (a.x === b.x && a.y === b.y) {
+      throw new Error("Wall segment needs two distinct points");
+    }
+    const appended: MapState["walls"] = [...map.walls, [a, b]];
+    const walls =
+      map.portals.length > 0 ? healWallsAroundPortals(appended, map.portals) : appended;
+    return this.updateWalls(mapId, walls);
+  }
+
+  placeObstacle(
+    roomId: string,
+    mapId: string,
+    input: {
+      kind: ObstacleState["kind"];
+      x: number;
+      y: number;
+      w?: number;
+      h?: number;
+    },
+  ): MapState {
+    const map = this.getMapById(mapId);
+    if (!map || map.roomId !== roomId) {
+      throw new Error("Map not found");
+    }
+    const w = input.w ?? 1;
+    const h = input.h ?? 1;
+    if (w < 1 || h < 1) {
+      throw new Error("Obstacle size must be at least 1×1");
+    }
+    const obstacle: ObstacleState = {
+      id: makeId(),
+      kind: input.kind,
+      x: input.x,
+      y: input.y,
+      w,
+      h,
+    };
+    const obstacles = [...map.obstacles, obstacle];
+    this.db
+      .prepare("UPDATE maps SET obstacles_json = ? WHERE id = ?")
+      .run(JSON.stringify(obstacles), mapId);
+    const updated = this.getMapById(mapId);
+    if (!updated) {
+      throw new Error("Map not found");
+    }
+    return updated;
+  }
+
+  removeObstacle(roomId: string, mapId: string, obstacleId: string): MapState {
+    const map = this.getMapById(mapId);
+    if (!map || map.roomId !== roomId) {
+      throw new Error("Map not found");
+    }
+    if (!map.obstacles.some((obstacle) => obstacle.id === obstacleId)) {
+      throw new Error("Obstacle not found");
+    }
+    const obstacles = map.obstacles.filter((obstacle) => obstacle.id !== obstacleId);
+    this.db
+      .prepare("UPDATE maps SET obstacles_json = ? WHERE id = ?")
+      .run(JSON.stringify(obstacles), mapId);
     const updated = this.getMapById(mapId);
     if (!updated) {
       throw new Error("Map not found");
@@ -2093,6 +2194,7 @@ function mapRowToState(row: MapRow): MapState {
     walls: parseWallsJson(row.walls_json),
     portals: parsePortalsJson(row.portals_json),
     lights: parseLightsJson(row.lights_json),
+    obstacles: parseObstaclesJson(row.obstacles_json),
   };
 }
 
@@ -2175,6 +2277,59 @@ function parsePortalsJson(raw: string | null | undefined): MapState["portals"] {
       });
     }
     return portals;
+  } catch {
+    return [];
+  }
+}
+
+function parseObstaclesJson(raw: string | null | undefined): MapState["obstacles"] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    const obstacles: MapState["obstacles"] = [];
+    for (const entry of parsed) {
+      if (!entry || typeof entry !== "object") {
+        continue;
+      }
+      const record = entry as {
+        id?: unknown;
+        kind?: unknown;
+        x?: unknown;
+        y?: unknown;
+        w?: unknown;
+        h?: unknown;
+      };
+      if (typeof record.id !== "string" || record.id.length === 0) {
+        continue;
+      }
+      if (record.kind !== "seeThrough" && record.kind !== "solid") {
+        continue;
+      }
+      if (
+        typeof record.x !== "number" ||
+        typeof record.y !== "number" ||
+        !Number.isInteger(record.x) ||
+        !Number.isInteger(record.y)
+      ) {
+        continue;
+      }
+      const w = typeof record.w === "number" && Number.isInteger(record.w) && record.w > 0 ? record.w : 1;
+      const h = typeof record.h === "number" && Number.isInteger(record.h) && record.h > 0 ? record.h : 1;
+      obstacles.push({
+        id: record.id,
+        kind: record.kind,
+        x: record.x,
+        y: record.y,
+        w,
+        h,
+      });
+    }
+    return obstacles;
   } catch {
     return [];
   }

@@ -267,7 +267,9 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
         snapshot.maps.find((entry) => entry.id === current.mapId) ??
         snapshot.map ??
         null;
-      const blockers = map ? movementBlockerSegments(map.walls, map.portals) : [];
+      const blockers = map
+        ? movementBlockerSegments(map.walls, map.portals, { obstacles: map.obstacles })
+        : [];
       const bounds = map ? mapGridBounds(map) : null;
       next = clampMoveToBudget({
         from: { x: current.x, y: current.y },

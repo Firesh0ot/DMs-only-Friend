@@ -71,3 +71,4 @@ What becomes easier, harder, or out of scope.
 | [0030](0030-screen-fog-defaults.md) | Screen fog defaults: empty explored, LoS Active | accepted |
 | [0031](0031-screen-carousel-facing-center.md) | Screen fullscreen fan carousel; facing toward screen center | accepted |
 | [0032](0032-design-rework-tokens.md) | Design rework: tokens-first, two themes as user-toggleable dark/light | accepted |
+| [0033](0033-manual-wall-obstacle-placer.md) | Manual wall and obstacle placer in Play | accepted |

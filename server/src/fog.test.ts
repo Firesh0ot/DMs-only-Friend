@@ -326,7 +326,9 @@ describe("manual fog of war", () => {
       height: 200,
       gridPx: 50,
     });
-    expect(() => store.setFogLos(room.id, map.id, true)).toThrow(/wall or portal/i);
+    expect(() => store.setFogLos(room.id, map.id, true)).toThrow(
+      /walls, portals, or solid obstacles/i,
+    );
   });
 
   it("allows LoS enable with portals only", () => {
@@ -350,6 +352,21 @@ describe("manual fog of war", () => {
         },
       ],
     });
+    expect(() => store.setFogLos(room.id, map.id, true)).not.toThrow();
+    expect(store.getFog(map.id).losEnabled).toBe(true);
+  });
+
+  it("allows LoS enable with solid obstacles only", () => {
+    const store = createStore();
+    const { room } = store.createRoom();
+    const map = store.addMap(room.id, {
+      name: "Blocks",
+      filename: "blocks.png",
+      width: 200,
+      height: 200,
+      gridPx: 50,
+    });
+    store.placeObstacle(room.id, map.id, { kind: "solid", x: 1, y: 1 });
     expect(() => store.setFogLos(room.id, map.id, true)).not.toThrow();
     expect(store.getFog(map.id).losEnabled).toBe(true);
   });

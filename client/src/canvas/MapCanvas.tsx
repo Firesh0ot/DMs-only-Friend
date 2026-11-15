@@ -37,6 +37,9 @@ type Props = {
   spawnTool?: boolean;
   spawnPoints?: SpawnPoint[];
   onSpawnPlace?: (x: number, y: number) => void;
+  onWallAddSegment?: (a: { x: number; y: number }, b: { x: number; y: number }) => void;
+  onObstaclePlace?: (kind: "seeThrough" | "solid", x: number, y: number) => void;
+  onObstacleRemove?: (id: string) => void;
   movement?: MovementBudget | null;
 };
 

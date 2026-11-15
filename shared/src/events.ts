@@ -49,6 +49,19 @@ export const LightStateSchema = z.object({
 });
 export type LightState = z.infer<typeof LightStateSchema>;
 
+export const ObstacleKindSchema = z.enum(["seeThrough", "solid"]);
+export type ObstacleKind = z.infer<typeof ObstacleKindSchema>;
+
+export const ObstacleStateSchema = z.object({
+  id: z.string().min(1),
+  kind: ObstacleKindSchema,
+  x: z.number().int(),
+  y: z.number().int(),
+  w: z.number().int().positive().default(1),
+  h: z.number().int().positive().default(1),
+});
+export type ObstacleState = z.infer<typeof ObstacleStateSchema>;
+
 export const MapStateSchema = z.object({
   id: z.string(),
   roomId: z.string(),
@@ -63,6 +76,7 @@ export const MapStateSchema = z.object({
   walls: z.array(WallPolylineSchema).default([]),
   portals: z.array(PortalStateSchema).default([]),
   lights: z.array(LightStateSchema).default([]),
+  obstacles: z.array(ObstacleStateSchema).default([]),
 });
 export type MapState = z.infer<typeof MapStateSchema>;
 
@@ -679,6 +693,29 @@ export const PortalSetClosedPayloadSchema = z.object({
 });
 export type PortalSetClosedPayload = z.infer<typeof PortalSetClosedPayloadSchema>;
 
+export const WallAddSegmentPayloadSchema = z.object({
+  mapId: z.string().min(1),
+  a: WallPointSchema,
+  b: WallPointSchema,
+});
+export type WallAddSegmentPayload = z.infer<typeof WallAddSegmentPayloadSchema>;
+
+export const ObstaclePlacePayloadSchema = z.object({
+  mapId: z.string().min(1),
+  kind: ObstacleKindSchema,
+  x: z.number().int(),
+  y: z.number().int(),
+  w: z.number().int().positive().optional(),
+  h: z.number().int().positive().optional(),
+});
+export type ObstaclePlacePayload = z.infer<typeof ObstaclePlacePayloadSchema>;
+
+export const ObstacleRemovePayloadSchema = z.object({
+  mapId: z.string().min(1),
+  id: z.string().min(1),
+});
+export type ObstacleRemovePayload = z.infer<typeof ObstacleRemovePayloadSchema>;
+
 export const DiceRolledSchema = z.object({
   id: z.number().int(),
   playerName: z.string(),
@@ -724,6 +761,9 @@ export const ClientEvents = {
   FogReset: "fog:reset",
   FogSetLos: "fog:setLos",
   PortalSetClosed: "portal:setClosed",
+  WallAddSegment: "wall:addSegment",
+  ObstaclePlace: "obstacle:place",
+  ObstacleRemove: "obstacle:remove",
   MonsterSearch: "monster:search",
   MonsterImport: "monster:import",
   MonsterCacheList: "monster:cache:list",
@@ -809,6 +849,9 @@ export type ClientToServerEvents = {
   [ClientEvents.FogReset]: (payload: FogResetPayload) => void;
   [ClientEvents.FogSetLos]: (payload: FogSetLosPayload) => void;
   [ClientEvents.PortalSetClosed]: (payload: PortalSetClosedPayload) => void;
+  [ClientEvents.WallAddSegment]: (payload: WallAddSegmentPayload) => void;
+  [ClientEvents.ObstaclePlace]: (payload: ObstaclePlacePayload) => void;
+  [ClientEvents.ObstacleRemove]: (payload: ObstacleRemovePayload) => void;
   [ClientEvents.MonsterSearch]: (
     payload: MonsterSearchPayload,
     callback?: (result: MonsterSearchResponse) => void,

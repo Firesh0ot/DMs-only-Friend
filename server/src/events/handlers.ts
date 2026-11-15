@@ -12,6 +12,9 @@ import {
   FogResetPayloadSchema,
   FogSetLosPayloadSchema,
   PortalSetClosedPayloadSchema,
+  WallAddSegmentPayloadSchema,
+  ObstaclePlacePayloadSchema,
+  ObstacleRemovePayloadSchema,
   GmChangePinPayloadSchema,
   InitiativeSetPayloadSchema,
   MapActivatePayloadSchema,
@@ -198,6 +201,7 @@ export function registerSocketHandlers(
         const blockers = map
           ? movementBlockerSegments(map.walls, map.portals, {
               ignoreClosedPortals: !battleActive,
+              obstacles: map.obstacles,
             })
           : [];
         const bounds = map ? mapGridBounds(map) : null;
@@ -1172,15 +1176,55 @@ export function registerSocketHandlers(
           data.portalId,
           data.closed,
         );
-        io.to(roomChannel(session.roomId)).emit(ServerEvents.MapsUpdated, rooms.listMaps(session.roomId));
-        const active = rooms.getActiveMap(session.roomId);
-        if (active?.id === map.id) {
-          io.to(roomChannel(session.roomId)).emit(ServerEvents.MapSet, map);
-          const exploredFog = rooms.growExploredFromVision(session.roomId);
-          if (exploredFog) {
-            io.to(roomChannel(session.roomId)).emit(ServerEvents.FogUpdated, exploredFog);
-          }
-        }
+        broadcastMapUpdate(io, rooms, session.roomId, map);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.WallAddSegment, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = WallAddSegmentPayloadSchema.parse(payload);
+        const map = rooms.addWallSegment(session.roomId, data.mapId, data.a, data.b);
+        broadcastMapUpdate(io, rooms, session.roomId, map);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.ObstaclePlace, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = ObstaclePlacePayloadSchema.parse(payload);
+        const map = rooms.placeObstacle(session.roomId, data.mapId, {
+          kind: data.kind,
+          x: data.x,
+          y: data.y,
+          w: data.w,
+          h: data.h,
+        });
+        broadcastMapUpdate(io, rooms, session.roomId, map);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
+
+    socket.on(ClientEvents.ObstacleRemove, (payload) => {
+      const session = requireGm(socket, rooms);
+      if (!session) {
+        return;
+      }
+      try {
+        const data = ObstacleRemovePayloadSchema.parse(payload);
+        const map = rooms.removeObstacle(session.roomId, data.mapId, data.id);
+        broadcastMapUpdate(io, rooms, session.roomId, map);
       } catch (error) {
         emitError(socket, error);
       }
@@ -1297,6 +1341,23 @@ function broadcastMapView(
   const initiative = rooms.pruneStaleInitiative(roomId);
   if (initiative) {
     io.to(roomChannel(roomId)).emit(ServerEvents.InitiativeUpdated, initiative);
+  }
+}
+
+function broadcastMapUpdate(
+  io: AppServer,
+  rooms: RoomStore,
+  roomId: string,
+  map: NonNullable<ReturnType<RoomStore["getMapById"]>>,
+): void {
+  io.to(roomChannel(roomId)).emit(ServerEvents.MapsUpdated, rooms.listMaps(roomId));
+  const active = rooms.getActiveMap(roomId);
+  if (active?.id === map.id) {
+    io.to(roomChannel(roomId)).emit(ServerEvents.MapSet, map);
+    const exploredFog = rooms.growExploredFromVision(roomId);
+    if (exploredFog) {
+      io.to(roomChannel(roomId)).emit(ServerEvents.FogUpdated, exploredFog);
+    }
   }
 }
 
