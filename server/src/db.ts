@@ -185,6 +185,20 @@ function migrate(db: Db): void {
     CREATE INDEX IF NOT EXISTS idx_spawn_points_room_id ON spawn_points(room_id);
   `);
 
+  ensureColumn(db, "rooms", "prep_notes", "TEXT NOT NULL DEFAULT ''");
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS encounter_sketches (
+      id TEXT PRIMARY KEY,
+      room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      npc_ids_json TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_encounter_sketches_room_id
+      ON encounter_sketches (room_id);
+  `);
+
   backfillActiveMaps(db);
   backfillTokenMaps(db);
   ensureTokensForeignKeys(db);

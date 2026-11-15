@@ -25,6 +25,7 @@ import {
   type Role,
   type RoomSettings,
   type RoomState,
+  type EncounterSketch,
   type SessionEvent,
   type SessionEventType,
   type Snapshot,
@@ -60,6 +61,14 @@ type RoomRow = {
   screen_carousel_x: number;
   screen_carousel_y: number;
   gm_claimed: number;
+  prep_notes: string;
+};
+type EncounterSketchRow = {
+  id: string;
+  room_id: string;
+  name: string;
+  npc_ids_json: string;
+  created_at: string;
 };
 type MapRow = {
   id: string;
@@ -892,10 +901,156 @@ export class RoomStore {
       throw new Error("Character not found");
     }
     this.db.prepare("DELETE FROM characters WHERE id = ?").run(characterId);
+    this.pruneEncounterNpc(character.roomId, characterId);
     return {
       roomId: character.roomId,
       initiative: this.pruneStaleInitiative(character.roomId),
     };
+  }
+
+  listEncounters(roomId: string): EncounterSketch[] {
+    const rows = this.db
+      .prepare(
+        "SELECT * FROM encounter_sketches WHERE room_id = ? ORDER BY rowid ASC",
+      )
+      .all(roomId) as EncounterSketchRow[];
+    return rows.map(encounterRowToState);
+  }
+
+  upsertEncounter(input: {
+    id?: string;
+    roomId: string;
+    name: string;
+    npcIds: string[];
+  }): EncounterSketch {
+    const room = this.getRoomRow(input.roomId);
+    if (!room) {
+      throw new Error("Room not found");
+    }
+    const id = input.id ?? makeId();
+    const existing = input.id
+      ? (this.db
+          .prepare("SELECT * FROM encounter_sketches WHERE id = ?")
+          .get(id) as EncounterSketchRow | undefined)
+      : undefined;
+    if (existing && existing.room_id !== input.roomId) {
+      throw new Error("Encounter not found");
+    }
+    const npcIds = this.filterNpcNpc(input.roomId, input.npcIds);
+    const name = input.name.trim();
+    if (!name) {
+      throw new Error("Encounter name required");
+    }
+    if (existing) {
+      this.db
+        .prepare(
+          "UPDATE encounter_sketches SET name = ?, npc_ids_json = ? WHERE id = ?",
+        )
+        .run(name, JSON.stringify(npcIds), id);
+    } else {
+      this.db
+        .prepare(
+          `INSERT INTO encounter_sketches (id, room_id, name, npc_ids_json, created_at)
+           VALUES (?, ?, ?, ?, ?)`,
+        )
+        .run(id, input.roomId, name, JSON.stringify(npcIds), new Date().toISOString());
+    }
+    const sketch = this.listEncounters(input.roomId).find((entry) => entry.id === id);
+    if (!sketch) {
+      throw new Error("Failed to persist encounter");
+    }
+    return sketch;
+  }
+
+  removeEncounter(roomId: string, encounterId: string): EncounterSketch[] {
+    const row = this.db
+      .prepare("SELECT room_id FROM encounter_sketches WHERE id = ?")
+      .get(encounterId) as { room_id: string } | undefined;
+    if (!row || row.room_id !== roomId) {
+      throw new Error("Encounter not found");
+    }
+    this.db.prepare("DELETE FROM encounter_sketches WHERE id = ?").run(encounterId);
+    return this.listEncounters(roomId);
+  }
+
+  placeEncounter(roomId: string, encounterId: string): {
+    encounter: EncounterSketch;
+    placedCharacterIds: string[];
+    tokens: TokenState[];
+  } {
+    const encounter = this.listEncounters(roomId).find((entry) => entry.id === encounterId);
+    if (!encounter) {
+      throw new Error("Encounter not found");
+    }
+    const active = this.getActiveMap(roomId);
+    if (!active) {
+      throw new Error("No active map");
+    }
+    const placedCharacterIds: string[] = [];
+    let offset = 0;
+    for (const npcId of encounter.npcIds) {
+      const character = this.getCharacter(npcId);
+      if (!character || character.roomId !== roomId || character.kind !== "npc") {
+        continue;
+      }
+      const mapIds = character.mapIds.includes(active.id)
+        ? character.mapIds
+        : [...character.mapIds, active.id];
+      this.setCharacterMaps(character.id, roomId, mapIds);
+      const x = 2 + (offset % 6);
+      const y = 2 + Math.floor(offset / 6);
+      this.setCharacterMapPosition(character.id, active.id, x, y);
+      placedCharacterIds.push(character.id);
+      offset += 1;
+    }
+    const tokens = this.syncTokensForActiveMap(roomId);
+    return { encounter, placedCharacterIds, tokens };
+  }
+
+  getPrepNotes(roomId: string): string {
+    const room = this.getRoomRow(roomId);
+    return room?.prep_notes ?? "";
+  }
+
+  setPrepNotes(roomId: string, notes: string): string {
+    const room = this.getRoomRow(roomId);
+    if (!room) {
+      throw new Error("Room not found");
+    }
+    const next = notes.slice(0, 8000);
+    this.db.prepare("UPDATE rooms SET prep_notes = ? WHERE id = ?").run(next, roomId);
+    return next;
+  }
+
+  private filterNpcNpc(roomId: string, npcIds: string[]): string[] {
+    const npcs = new Set(
+      this.listCharacters(roomId)
+        .filter((character) => character.kind === "npc")
+        .map((character) => character.id),
+    );
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const id of npcIds) {
+      if (!npcs.has(id) || seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      result.push(id);
+    }
+    return result;
+  }
+
+  private pruneEncounterNpc(roomId: string, characterId: string): void {
+    const sketches = this.listEncounters(roomId);
+    for (const sketch of sketches) {
+      if (!sketch.npcIds.includes(characterId)) {
+        continue;
+      }
+      const npcIds = sketch.npcIds.filter((id) => id !== characterId);
+      this.db
+        .prepare("UPDATE encounter_sketches SET npc_ids_json = ? WHERE id = ?")
+        .run(JSON.stringify(npcIds), sketch.id);
+    }
   }
 
   setCharacterMapPosition(
@@ -2096,6 +2251,8 @@ export class RoomStore {
       fog: this.getActiveFog(roomId),
       spawnPoints: this.listSpawnPoints(roomId),
       movement: this.getMovementBudget(roomId),
+      encounters: this.listEncounters(roomId),
+      prepNotes: this.getPrepNotes(roomId),
       role,
       playerName,
       characterId,
@@ -2125,6 +2282,30 @@ function battleRowToState(row: BattleRow): BattleState {
     endedAt: row.ended_at,
     combatantTokenIds: parseCombatantTokenIds(row.combatants_json),
   };
+}
+
+function encounterRowToState(row: EncounterSketchRow): EncounterSketch {
+  return {
+    id: row.id,
+    roomId: row.room_id,
+    name: row.name,
+    npcIds: parseEncounterNpcIds(row.npc_ids_json),
+  };
+}
+
+function parseEncounterNpcIds(raw: string | null | undefined): string[] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
+  } catch {
+    return [];
+  }
 }
 
 function parseCombatantTokenIds(raw: string | null | undefined): string[] {

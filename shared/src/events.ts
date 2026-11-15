@@ -383,6 +383,14 @@ export const FogStateSchema = z.object({
 });
 export type FogState = z.infer<typeof FogStateSchema>;
 
+export const EncounterSketchSchema = z.object({
+  id: z.string().min(1),
+  roomId: z.string().min(1),
+  name: z.string().min(1).max(64),
+  npcIds: z.array(z.string().min(1)).max(64),
+});
+export type EncounterSketch = z.infer<typeof EncounterSketchSchema>;
+
 export const SnapshotSchema = z.object({
   room: RoomStateSchema,
   map: MapStateSchema.nullable(),
@@ -398,6 +406,8 @@ export const SnapshotSchema = z.object({
   fog: FogStateSchema.nullable(),
   spawnPoints: z.array(SpawnPointSchema).default([]),
   movement: MovementBudgetSchema.nullable().default(null),
+  encounters: z.array(EncounterSketchSchema).default([]),
+  prepNotes: z.string().max(8000).default(""),
   role: RoleSchema,
   playerName: z.string().nullable(),
   characterId: z.string().nullable(),
@@ -542,6 +552,28 @@ export const CharacterUpsertPayloadSchema = z.object({
   ac: z.number().int().min(0).max(99).nullable().optional(),
 });
 export type CharacterUpsertPayload = z.infer<typeof CharacterUpsertPayloadSchema>;
+
+export const EncounterUpsertPayloadSchema = z.object({
+  id: z.string().min(1).optional(),
+  name: z.string().min(1).max(64),
+  npcIds: z.array(z.string().min(1)).max(64),
+});
+export type EncounterUpsertPayload = z.infer<typeof EncounterUpsertPayloadSchema>;
+
+export const EncounterRemovePayloadSchema = z.object({
+  id: z.string().min(1),
+});
+export type EncounterRemovePayload = z.infer<typeof EncounterRemovePayloadSchema>;
+
+export const EncounterPlacePayloadSchema = z.object({
+  id: z.string().min(1),
+});
+export type EncounterPlacePayload = z.infer<typeof EncounterPlacePayloadSchema>;
+
+export const PrepNotesSetPayloadSchema = z.object({
+  notes: z.string().max(8000),
+});
+export type PrepNotesSetPayload = z.infer<typeof PrepNotesSetPayloadSchema>;
 
 export const MonsterSearchPayloadSchema = z.object({
   query: z.string().max(64),
@@ -788,6 +820,10 @@ export const ClientEvents = {
   MonsterSearch: "monster:search",
   MonsterImport: "monster:import",
   MonsterCacheList: "monster:cache:list",
+  EncounterUpsert: "encounter:upsert",
+  EncounterRemove: "encounter:remove",
+  EncounterPlace: "encounter:place",
+  PrepNotesSet: "prep:setNotes",
 } as const;
 
 export const ServerEvents = {
@@ -812,6 +848,8 @@ export const ServerEvents = {
   MovementUpdated: "movement:updated",
   MovementRejected: "movement:rejected",
   MonsterImported: "monster:imported",
+  EncountersUpdated: "encounters:updated",
+  PrepNotesUpdated: "prepNotes:updated",
   Error: "error",
 } as const;
 
@@ -886,6 +924,10 @@ export type ClientToServerEvents = {
   [ClientEvents.MonsterCacheList]: (
     callback?: (result: MonsterCacheListResponse) => void,
   ) => void;
+  [ClientEvents.EncounterUpsert]: (payload: EncounterUpsertPayload) => void;
+  [ClientEvents.EncounterRemove]: (payload: EncounterRemovePayload) => void;
+  [ClientEvents.EncounterPlace]: (payload: EncounterPlacePayload) => void;
+  [ClientEvents.PrepNotesSet]: (payload: PrepNotesSetPayload) => void;
 };
 
 export type ServerToClientEvents = {
@@ -907,6 +949,8 @@ export type ServerToClientEvents = {
   [ServerEvents.BattleUpdated]: (battle: BattleState | null) => void;
   [ServerEvents.FogUpdated]: (fog: FogState | null) => void;
   [ServerEvents.SpawnUpdated]: (payload: SpawnUpdatedPayload) => void;
+  [ServerEvents.EncountersUpdated]: (encounters: EncounterSketch[]) => void;
+  [ServerEvents.PrepNotesUpdated]: (prepNotes: string) => void;
   [ServerEvents.MovementUpdated]: (payload: MovementUpdatedPayload) => void;
   [ServerEvents.MovementRejected]: (payload: MovementRejectedPayload) => void;
   [ServerEvents.MonsterImported]: (payload: MonsterImportedPayload) => void;

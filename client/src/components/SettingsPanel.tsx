@@ -7,6 +7,7 @@ import {
   roomCodePathSegment,
   type CharacterKind,
   type CharacterState,
+  type EncounterSketch,
   type MapState,
   type MonsterSearchResult,
   type RoomSettings,
@@ -23,13 +24,18 @@ import { getSocket } from "../socket/socket";
 import { CopyableLinkField } from "./CopyableLinkField";
 import { ThemeToggle } from "./ThemeToggle";
 
+type PanelVariant = "prep" | "settings";
+
 type Props = {
+  variant: PanelVariant;
   code: string;
   maps: MapState[];
   activeMapId: string | null;
   characters: CharacterState[];
   settings: RoomSettings;
   uploadToken: string | null;
+  encounters: EncounterSketch[];
+  prepNotes: string;
   onClose: () => void;
 };
 
@@ -67,15 +73,19 @@ function scrollToSettingsSection(sectionId: string): void {
 }
 
 export function SettingsPanel({
+  variant,
   code,
   maps,
   activeMapId,
   characters,
   settings,
   uploadToken,
+  encounters,
+  prepNotes,
   onClose,
 }: Props) {
   const baseId = useId();
+  const isPrep = variant === "prep";
   const [uploadGridPx, setUploadGridPx] = useState("70");
   const [mapName, setMapName] = useState("");
   const [pendingMapFiles, setPendingMapFiles] = useState<File[]>([]);
@@ -108,12 +118,19 @@ export function SettingsPanel({
   const [srdBusy, setSrdBusy] = useState(false);
   const [srdRollHp, setSrdRollHp] = useState(false);
   const [srdError, setSrdError] = useState<string | null>(null);
+  const [encounterName, setEncounterName] = useState("");
+  const [encounterNpcIds, setEncounterNpcIds] = useState<string[]>([]);
+  const [prepNotesDraft, setPrepNotesDraft] = useState(prepNotes);
 
   useEffect(() => {
     setPhysicalCellCmDraft(
       settings.physicalCellCm === null ? "" : String(settings.physicalCellCm),
     );
   }, [settings.physicalCellCm]);
+
+  useEffect(() => {
+    setPrepNotesDraft(prepNotes);
+  }, [prepNotes]);
 
   useEffect(() => {
     function sync() {
@@ -188,6 +205,10 @@ export function SettingsPanel({
 
   const pcs = characters.filter((character) => character.kind === "pc");
   const npcs = characters.filter((character) => character.kind === "npc");
+  const npcById = useMemo(
+    () => new Map(npcs.map((character) => [character.id, character])),
+    [npcs],
+  );
 
   function uploadHeaders(): HeadersInit {
     if (!uploadToken) {
@@ -548,6 +569,50 @@ export function SettingsPanel({
 
   function removeCharacter(characterId: string) {
     getSocket().emit(ClientEvents.CharacterRemove, { characterId });
+    setEncounterNpcIds((current) => current.filter((id) => id !== characterId));
+  }
+
+  function toggleEncounterNpc(npcId: string) {
+    setEncounterNpcIds((current) =>
+      current.includes(npcId) ? current.filter((id) => id !== npcId) : [...current, npcId],
+    );
+  }
+
+  function saveEncounter() {
+    const name = encounterName.trim();
+    if (!name) {
+      setMessage("Enter an encounter name");
+      return;
+    }
+    if (encounterNpcIds.length === 0) {
+      setMessage("Pick at least one NPC for the encounter");
+      return;
+    }
+    getSocket().emit(ClientEvents.EncounterUpsert, {
+      name,
+      npcIds: encounterNpcIds,
+    });
+    setEncounterName("");
+    setEncounterNpcIds([]);
+    setMessage(`Saved encounter ${name}`);
+  }
+
+  function placeEncounter(encounterId: string, name: string) {
+    if (!activeMapId) {
+      setMessage("Set an active map before placing an encounter");
+      return;
+    }
+    getSocket().emit(ClientEvents.EncounterPlace, { id: encounterId });
+    setMessage(`Placed ${name} on the active map`);
+  }
+
+  function removeEncounter(encounterId: string) {
+    getSocket().emit(ClientEvents.EncounterRemove, { id: encounterId });
+  }
+
+  function savePrepNotes() {
+    getSocket().emit(ClientEvents.PrepNotesSet, { notes: prepNotesDraft });
+    setMessage("Session notes saved");
   }
 
   function renderCharacterCard(character: CharacterState) {
@@ -744,7 +809,7 @@ export function SettingsPanel({
   return (
     <section className="settings-panel panel stack" aria-labelledby={`${baseId}-title`}>
       <div className="settings-panel__header row">
-        <h2 id={`${baseId}-title`}>Settings</h2>
+        <h2 id={`${baseId}-title`}>{isPrep ? "Prep" : "Settings"}</h2>
         <div className="row settings-panel__header-actions">
           <ThemeToggle className="theme-toggle--prominent" />
           <button type="button" className="secondary" onClick={onClose}>
@@ -753,30 +818,55 @@ export function SettingsPanel({
         </div>
       </div>
 
+      {isPrep ? (
+        <p className="muted">
+          Prepare maps, roster, and encounter sketches here — then open Play when the table is ready.
+        </p>
+      ) : (
+        <p className="muted">
+          Screen display and room links. Maps, NPCs, and encounter sketches live under Prep.
+        </p>
+      )}
+
       {message ? (
         <p className="settings-status" role="status" aria-live="polite">
           {message}
         </p>
       ) : null}
 
-      <nav className="settings-toc" aria-label="Settings sections">
-        <button type="button" onClick={() => scrollToSettingsSection("settings-maps")}>
-          Maps
-        </button>
-        <button
-          type="button"
-          onClick={() => scrollToSettingsSection("settings-characters")}
-        >
-          Characters
-        </button>
-        <button type="button" onClick={() => scrollToSettingsSection("settings-screen")}>
-          Screen
-        </button>
-        <button type="button" onClick={() => scrollToSettingsSection("settings-links")}>
-          Room links
-        </button>
+      <nav className="settings-toc" aria-label={isPrep ? "Prep sections" : "Settings sections"}>
+        {isPrep ? (
+          <>
+            <button type="button" onClick={() => scrollToSettingsSection("settings-maps")}>
+              Maps
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSettingsSection("settings-characters")}
+            >
+              Characters
+            </button>
+            <button type="button" onClick={() => scrollToSettingsSection("settings-encounters")}>
+              Encounters
+            </button>
+            <button type="button" onClick={() => scrollToSettingsSection("settings-notes")}>
+              Notes
+            </button>
+          </>
+        ) : (
+          <>
+            <button type="button" onClick={() => scrollToSettingsSection("settings-screen")}>
+              Screen
+            </button>
+            <button type="button" onClick={() => scrollToSettingsSection("settings-links")}>
+              Room links
+            </button>
+          </>
+        )}
       </nav>
 
+      {isPrep ? (
+      <>
       <section className="settings-section stack" aria-labelledby="settings-maps">
         <h3 id="settings-maps">Maps</h3>
         <label className="stack" htmlFor={`${baseId}-map-name`}>
@@ -1202,6 +1292,109 @@ export function SettingsPanel({
         </aside>
       </section>
 
+      <section className="settings-section stack" aria-labelledby="settings-encounters">
+        <h3 id="settings-encounters">Encounter sketches</h3>
+        <p className="muted">
+          Named NPC lists you can place onto the active map in one step. Positions are a simple
+          grid offset — nudge tokens in Play if needed.
+        </p>
+        <label className="stack" htmlFor={`${baseId}-encounter-name`}>
+          <span className="muted">Encounter name</span>
+          <input
+            id={`${baseId}-encounter-name`}
+            value={encounterName}
+            onChange={(event) => setEncounterName(event.target.value)}
+            placeholder="Door ambush"
+            autoComplete="off"
+          />
+        </label>
+        {npcs.length === 0 ? (
+          <p className="muted">Add NPCs above before sketching an encounter.</p>
+        ) : (
+          <fieldset className="settings-fieldset">
+            <legend className="muted">NPCs in sketch</legend>
+            <div className="row" style={{ flexWrap: "wrap" }}>
+              {npcs.map((npc) => {
+                const checkboxId = `${baseId}-encounter-npc-${npc.id}`;
+                return (
+                  <label key={npc.id} className="check-row" htmlFor={checkboxId}>
+                    <input
+                      id={checkboxId}
+                      type="checkbox"
+                      checked={encounterNpcIds.includes(npc.id)}
+                      onChange={() => toggleEncounterNpc(npc.id)}
+                    />
+                    <span>{npc.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
+        <div className="row">
+          <button type="button" onClick={saveEncounter}>
+            Save sketch
+          </button>
+        </div>
+        <ul className="token-list">
+          {encounters.map((encounter) => (
+            <li key={encounter.id}>
+              <div className="stack" style={{ flex: 1, gap: "0.35rem" }}>
+                <strong>{encounter.name}</strong>
+                <span className="muted">
+                  {encounter.npcIds.length === 0
+                    ? "No NPCs"
+                    : encounter.npcIds
+                        .map((id) => npcById.get(id)?.name ?? "Removed NPC")
+                        .join(", ")}
+                </span>
+                <div className="row">
+                  <button
+                    type="button"
+                    disabled={!activeMapId || encounter.npcIds.length === 0}
+                    onClick={() => placeEncounter(encounter.id, encounter.name)}
+                  >
+                    Place all on active map
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => removeEncounter(encounter.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="settings-section stack" aria-labelledby="settings-notes">
+        <h3 id="settings-notes">Session notes</h3>
+        <p className="muted">Free-text prep notes for this room. Random tables come later.</p>
+        <label className="stack" htmlFor={`${baseId}-prep-notes`}>
+          <span className="visually-hidden">Session notes</span>
+          <textarea
+            id={`${baseId}-prep-notes`}
+            rows={6}
+            maxLength={8000}
+            value={prepNotesDraft}
+            placeholder="Rumours, loot ideas, secret doors…"
+            onChange={(event) => setPrepNotesDraft(event.target.value)}
+          />
+        </label>
+        <div className="row">
+          <button type="button" onClick={savePrepNotes}>
+            Save notes
+          </button>
+        </div>
+      </section>
+      </>
+      ) : null}
+
+      {!isPrep ? (
+      <>
       <section className="settings-section stack" aria-labelledby="settings-screen">
         <h3 id="settings-screen">Screen</h3>
         <p className="muted">
@@ -1392,6 +1585,8 @@ export function SettingsPanel({
           value={links.player}
         />
       </section>
+      </>
+      ) : null}
     </section>
   );
 }

@@ -8,6 +8,7 @@ import {
   type CameraState,
   type CharacterState,
   type DiceRolled,
+  type EncounterSketch,
   type FogState,
   type InitiativeState,
   type MapState,
@@ -62,6 +63,8 @@ type RoomStore = {
   setFog: (fog: FogState | null) => void;
   setSpawnPoints: (mapId: string, points: SpawnPoint[]) => void;
   setMovement: (movement: MovementBudget | null) => void;
+  setEncounters: (encounters: EncounterSketch[]) => void;
+  setPrepNotes: (prepNotes: string) => void;
   moveTokenOptimistic: (
     tokenId: string,
     x: number,
@@ -244,6 +247,22 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     set({ snapshot: { ...snapshot, movement } });
   },
 
+  setEncounters: (encounters) => {
+    const snapshot = get().snapshot;
+    if (!snapshot) {
+      return;
+    }
+    set({ snapshot: { ...snapshot, encounters } });
+  },
+
+  setPrepNotes: (prepNotes) => {
+    const snapshot = get().snapshot;
+    if (!snapshot) {
+      return;
+    }
+    set({ snapshot: { ...snapshot, prepNotes } });
+  },
+
   moveTokenOptimistic: (tokenId, x, y) => {
     const snapshot = get().snapshot;
     if (!snapshot) {
@@ -386,6 +405,8 @@ export function bindSocketListeners(): void {
   socket.on(ServerEvents.FogUpdated, (fog) => store().setFog(fog));
   socket.on(ServerEvents.SpawnUpdated, ({ mapId, points }) => store().setSpawnPoints(mapId, points));
   socket.on(ServerEvents.MovementUpdated, (movement) => store().setMovement(movement));
+  socket.on(ServerEvents.EncountersUpdated, (encounters) => store().setEncounters(encounters));
+  socket.on(ServerEvents.PrepNotesUpdated, (prepNotes) => store().setPrepNotes(prepNotes));
   socket.on(ServerEvents.MovementRejected, ({ tokenId, reason }) => {
     const optimisticTokens = { ...store().optimisticTokens };
     delete optimisticTokens[tokenId];
