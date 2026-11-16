@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  DOOR_MOVEMENT_HALF_EXTEND_CELLS,
   closedPortalsToGridSegments,
+  expandSegmentAlongLength,
   moveBlockedByWalls,
   movementBlockerSegments,
   obstacleAabbToGridSegments,
@@ -28,8 +30,19 @@ describe("wallPolylinesToGridSegments", () => {
   });
 });
 
+describe("expandSegmentAlongLength", () => {
+  it("extends half a cell on each end along the long axis", () => {
+    expect(
+      expandSegmentAlongLength({ x: 2, y: 1 }, { x: 2, y: 2 }, DOOR_MOVEMENT_HALF_EXTEND_CELLS),
+    ).toEqual({ a: { x: 2, y: 0.5 }, b: { x: 2, y: 2.5 } });
+    expect(
+      expandSegmentAlongLength({ x: 1, y: 3 }, { x: 2, y: 3 }, DOOR_MOVEMENT_HALF_EXTEND_CELLS),
+    ).toEqual({ a: { x: 0.5, y: 3 }, b: { x: 2.5, y: 3 } });
+  });
+});
+
 describe("closedPortalsToGridSegments", () => {
-  it("includes only closed portals", () => {
+  it("includes only closed portals, widened by half a cell on each end", () => {
     const segments = closedPortalsToGridSegments([
       {
         closed: true,
@@ -46,7 +59,7 @@ describe("closedPortalsToGridSegments", () => {
         ],
       },
     ]);
-    expect(segments).toEqual([{ a: { x: 1, y: 0 }, b: { x: 1, y: 1 } }]);
+    expect(segments).toEqual([{ a: { x: 1, y: -0.5 }, b: { x: 1, y: 1.5 } }]);
   });
 });
 
@@ -120,6 +133,7 @@ describe("moveBlockedByWalls", () => {
       ],
     );
     expect(moveBlockedByWalls({ x: 1, y: 1 }, { x: 2, y: 1 }, closedDoor)).toBe(true);
+    expect(moveBlockedByWalls({ x: 1, y: 0 }, { x: 2, y: 0 }, closedDoor)).toBe(true);
   });
 
   it("does not block a zero-length move", () => {

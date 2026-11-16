@@ -1,6 +1,7 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
   ClientEvents,
+  isBattleActive,
   type BattleState,
   type CharacterState,
   type InitiativeState,
@@ -40,7 +41,7 @@ export function HudInitiative({
     [characters],
   );
 
-  const battleActive = Boolean(battle && !battle.endedAt);
+  const battleActive = isBattleActive(battle);
   const combatantSet = useMemo(
     () => new Set(battleActive ? (battle?.combatantTokenIds ?? []) : []),
     [battleActive, battle?.combatantTokenIds],

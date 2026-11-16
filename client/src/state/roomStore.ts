@@ -2,7 +2,9 @@ import {
   ClientEvents,
   ServerEvents,
   clampMoveToBudget,
+  isBattleActive,
   mapGridBounds,
+  moveBlockedByWalls,
   movementBlockerSegments,
   type BattleState,
   type CameraState,
@@ -274,6 +276,14 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       return null;
     }
     let next = { x, y };
+    const map =
+      snapshot.maps.find((entry) => entry.id === current.mapId) ?? snapshot.map ?? null;
+    const battleActive = isBattleActive(snapshot.battle);
+    const blockers =
+      battleActive && map
+        ? movementBlockerSegments(map.walls, map.portals, { obstacles: map.obstacles })
+        : [];
+    const bounds = map ? mapGridBounds(map) : null;
     const movement = snapshot.movement;
     if (
       movement?.active &&
@@ -282,14 +292,6 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       movement.remainingCells !== null &&
       movement.budgetCells !== null
     ) {
-      const map =
-        snapshot.maps.find((entry) => entry.id === current.mapId) ??
-        snapshot.map ??
-        null;
-      const blockers = map
-        ? movementBlockerSegments(map.walls, map.portals, { obstacles: map.obstacles })
-        : [];
-      const bounds = map ? mapGridBounds(map) : null;
       next = clampMoveToBudget({
         from: { x: current.x, y: current.y },
         to: next,
@@ -299,6 +301,11 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
         blockers,
         bounds,
       });
+    } else if (
+      blockers.length > 0 &&
+      moveBlockedByWalls({ x: current.x, y: current.y }, next, blockers)
+    ) {
+      return null;
     }
     set({
       optimisticTokens: {

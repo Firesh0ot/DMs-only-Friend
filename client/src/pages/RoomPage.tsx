@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ClientEvents,
   DEFAULT_SCREEN_CAROUSEL,
+  isBattleActive,
   roomCodePathSegment,
   type CameraState,
   type FogPaintMode,
@@ -305,6 +306,7 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
   const showPanel = showPrep || showSettings;
   const screenFs = isScreen && screenFullscreen;
   const carouselPlacement = snapshot?.settings.screenCarousel ?? DEFAULT_SCREEN_CAROUSEL;
+  const battleActive = isBattleActive(snapshot?.battle);
 
   if (isGm && !pinReady) {
     return (
@@ -459,16 +461,18 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
         >
           {role !== "gm" && !screenFs ? (
             <div className="play-stage__side stack">
-              <aside className="initiative-rail turn-carousel-rail" aria-label="Initiative">
-                <TurnCarousel
-                  role={role}
-                  selfCharacterId={snapshot.characterId}
-                  initiative={snapshot.initiative}
-                  tokens={tokens}
-                  characters={snapshot.characters}
-                  movement={role === "player" ? snapshot.movement : null}
-                />
-              </aside>
+              {battleActive ? (
+                <aside className="initiative-rail turn-carousel-rail" aria-label="Initiative">
+                  <TurnCarousel
+                    role={role}
+                    selfCharacterId={snapshot.characterId}
+                    initiative={snapshot.initiative}
+                    tokens={tokens}
+                    characters={snapshot.characters}
+                    movement={role === "player" ? snapshot.movement : null}
+                  />
+                </aside>
+              ) : null}
               <SessionStrip battle={snapshot.battle} events={snapshot.eventLog} />
             </div>
           ) : null}
@@ -554,29 +558,33 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
 
             {screenFs ? (
               <>
-                <ScreenFanCarousel
-                  role={role}
-                  initiative={snapshot.initiative}
-                  tokens={tokens}
-                  characters={snapshot.characters}
-                  placement={carouselPlacement}
-                  draggable
-                  invertFacing={carouselInvert}
-                />
+                {battleActive ? (
+                  <ScreenFanCarousel
+                    role={role}
+                    initiative={snapshot.initiative}
+                    tokens={tokens}
+                    characters={snapshot.characters}
+                    placement={carouselPlacement}
+                    draggable
+                    invertFacing={carouselInvert}
+                  />
+                ) : null}
                 <div className="screen-fs-controls">
-                  <button
-                    type="button"
-                    className={carouselInvert ? "is-active" : "secondary"}
-                    aria-pressed={carouselInvert}
-                    title="Flip Screen/TV card facing outside-in or toward center"
-                    onClick={() => {
-                      const next = !carouselInvert;
-                      writeScreenCarouselInvert(next);
-                      setCarouselInvert(next);
-                    }}
-                  >
-                    Flip
-                  </button>
+                  {battleActive ? (
+                    <button
+                      type="button"
+                      className={carouselInvert ? "is-active" : "secondary"}
+                      aria-pressed={carouselInvert}
+                      title="Flip Screen/TV card facing outside-in or toward center"
+                      onClick={() => {
+                        const next = !carouselInvert;
+                        writeScreenCarouselInvert(next);
+                        setCarouselInvert(next);
+                      }}
+                    >
+                      Flip
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="secondary"

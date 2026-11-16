@@ -2379,6 +2379,10 @@ export class RoomStore {
     return token.characterId === session.characterId;
   }
 
+  isBattleActive(roomId: string): boolean {
+    return this.getActiveBattle(roomId) !== null;
+  }
+
   playerMovementLocked(roomId: string): boolean {
     const battle = this.getActiveBattle(roomId);
     const initiative = this.getInitiative(roomId);

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import {
   DEFAULT_SCREEN_CAROUSEL,
+  isBattleActive,
   type BattleState,
   type CharacterState,
   type DiceRolled,
@@ -91,6 +92,7 @@ export function PlayHud({
   const [prefs, setPrefs] = useState<PlayHudPrefs | null>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   const [stripHeightPx, setStripHeightPx] = useState(0);
+  const battleActive = isBattleActive(battle);
 
   useEffect(() => {
     setPrefs(loadPlayHudPrefs(roomCode));
@@ -176,17 +178,19 @@ export function PlayHud({
       </div>
 
       <div className="play-hud__bottom" style={bottomStyle}>
-        <div className="play-hud__carousel" aria-label="Turn order carousel">
-          <ScreenFanCarousel
-            role="gm"
-            initiative={initiative}
-            tokens={tokens}
-            characters={characters}
-            placement={DEFAULT_SCREEN_CAROUSEL}
-            showHp={false}
-            embedded
-          />
-        </div>
+        {battleActive ? (
+          <div className="play-hud__carousel" aria-label="Turn order carousel">
+            <ScreenFanCarousel
+              role="gm"
+              initiative={initiative}
+              tokens={tokens}
+              characters={characters}
+              placement={DEFAULT_SCREEN_CAROUSEL}
+              showHp={false}
+              embedded
+            />
+          </div>
+        ) : null}
         <HudBottomStrip
           ref={stripRef}
           maps={maps}

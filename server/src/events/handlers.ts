@@ -209,13 +209,13 @@ export function registerSocketHandlers(
         const map = token.mapId
           ? rooms.getMapById(token.mapId)
           : rooms.getActiveMap(session.roomId);
-        const battleActive = rooms.playerMovementLocked(session.roomId);
-        const blockers = map
-          ? movementBlockerSegments(map.walls, map.portals, {
-              ignoreClosedPortals: !battleActive,
-              obstacles: map.obstacles,
-            })
-          : [];
+        const battleActive = rooms.isBattleActive(session.roomId);
+        const blockers =
+          battleActive && map
+            ? movementBlockerSegments(map.walls, map.portals, {
+                obstacles: map.obstacles,
+              })
+            : [];
         const bounds = map ? mapGridBounds(map) : null;
         if (map && blockers.length > 0) {
           if (
