@@ -1453,9 +1453,10 @@ export function SettingsPanel({
         <fieldset className="settings-fieldset stack">
           <legend>Fullscreen initiative carousel</legend>
           <p className="muted">
-            Edge placement for the Screen fullscreen fan. By default cards face toward the screen
-            center; Flip turns them outside-in. Flip is saved on this device (like theme /
-            fullscreen). Screens can also drag the Place handle.
+            Edge placement for the Screen/TV fullscreen fan. By default cards face toward the screen
+            center; Flip turns them outside-in on this Screen only (not the DM or player HUDs). Flip
+            is saved on this device (like theme / fullscreen). Screens can also drag the Place
+            handle.
           </p>
           <div className="row" role="group" aria-label="Carousel edge">
             {(
@@ -1485,7 +1486,7 @@ export function SettingsPanel({
               type="button"
               className={carouselInvert ? "is-active" : "secondary"}
               aria-pressed={carouselInvert}
-              title="Flip card facing outside-in or toward center"
+              title="Flip Screen/TV card facing outside-in or toward center"
               onClick={() => {
                 const next = !carouselInvert;
                 writeScreenCarouselInvert(next);

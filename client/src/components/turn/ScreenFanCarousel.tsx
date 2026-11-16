@@ -115,8 +115,10 @@ export function ScreenFanCarousel({
     originY: number;
   } | null>(null);
 
+  const applyDeviceInvert = role === "screen" && invertFacing === undefined;
+
   useEffect(() => {
-    if (invertFacing !== undefined) {
+    if (!applyDeviceInvert) {
       return;
     }
     function sync() {
@@ -133,7 +135,7 @@ export function ScreenFanCarousel({
       window.removeEventListener(SCREEN_CAROUSEL_INVERT_EVENT, sync);
       window.removeEventListener("storage", onStorage);
     };
-  }, [invertFacing]);
+  }, [applyDeviceInvert]);
 
   const byToken = useMemo(() => new Map(tokens.map((token) => [token.id, token])), [tokens]);
   const byCharacter = useMemo(
@@ -157,7 +159,8 @@ export function ScreenFanCarousel({
     );
   }, [initiative, byToken, byCharacter]);
 
-  const inverted = invertFacing ?? localInvert;
+  const inverted =
+    invertFacing ?? (role === "screen" ? localInvert : false);
   const facing = carouselFacingWithInvert(carouselFacingDeg(placement), inverted);
 
   useEffect(() => {
