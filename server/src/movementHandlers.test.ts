@@ -246,6 +246,72 @@ describe("spawn and movement budget", () => {
     player.close();
   });
 
+  it("allows token:move through walls before battle starts for GM and player", async () => {
+    const { url, rooms } = await startServer();
+    const created = rooms.createRoom({ code: "WALL0", pin: "1234" });
+    const map = rooms.addMap(created.room.id, {
+      name: "Split",
+      filename: "split.png",
+      width: 700,
+      height: 700,
+      gridPx: 70,
+      walls: [
+        [
+          { x: 2, y: 0 },
+          { x: 2, y: 4 },
+        ],
+      ],
+    });
+    rooms.setActiveMap(created.room.id, map.id);
+    rooms.placeObstacle(created.room.id, map.id, { kind: "solid", x: 4, y: 1 });
+    const aria = rooms.upsertCharacter({
+      roomId: created.room.id,
+      name: "Aria",
+      kind: "pc",
+      speedCells: 6,
+      mapIds: [map.id],
+    });
+    const goblin = rooms.upsertCharacter({
+      roomId: created.room.id,
+      name: "Goblin",
+      kind: "npc",
+      speedCells: 6,
+      mapIds: [map.id],
+    });
+    const pcToken = rooms
+      .listAllTokensOnActiveMap(created.room.id)
+      .find((entry) => entry.characterId === aria.id)!;
+    const npcToken = rooms
+      .listAllTokensOnActiveMap(created.room.id)
+      .find((entry) => entry.characterId === goblin.id)!;
+    rooms.moveToken(pcToken.id, 0, 1);
+    rooms.moveToken(npcToken.id, 0, 2);
+
+    const gm = connect(url);
+    const player = connect(url);
+    await waitConnected(gm);
+    await waitConnected(player);
+    await join(gm, { code: created.code, role: "gm", pin: "1234", invite: created.gmInviteToken });
+    await join(player, { code: created.code, role: "player", characterId: aria.id });
+
+    expect(rooms.isBattleActive(created.room.id)).toBe(false);
+
+    const pcMoved = new Promise<TokenState>((resolve) => {
+      player.once(ServerEvents.TokenMoved, resolve);
+    });
+    player.emit(ClientEvents.TokenMove, { tokenId: pcToken.id, x: 3, y: 1 });
+    await expect(pcMoved).resolves.toMatchObject({ id: pcToken.id, x: 3, y: 1 });
+
+    const npcMoved = new Promise<TokenState>((resolve) => {
+      gm.once(ServerEvents.TokenMoved, resolve);
+    });
+    gm.emit(ClientEvents.TokenMove, { tokenId: npcToken.id, x: 5, y: 2 });
+    await expect(npcMoved).resolves.toMatchObject({ id: npcToken.id, x: 5, y: 2 });
+
+    gm.close();
+    player.close();
+  });
+
   it("rejects token:move through walls for GM and player without consuming budget", async () => {
     const { url, rooms } = await startServer();
     const created = rooms.createRoom({ code: "WALL1", pin: "1234" });

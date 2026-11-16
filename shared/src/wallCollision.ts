@@ -46,6 +46,27 @@ export function obstacleAabbToGridSegments(
   return segments;
 }
 
+export const DOOR_MOVEMENT_HALF_EXTEND_CELLS = 0.5;
+
+export function expandSegmentAlongLength(
+  a: GridPoint,
+  b: GridPoint,
+  halfCells: number,
+): GridSegment {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const length = Math.hypot(dx, dy);
+  if (length <= EPS || halfCells === 0) {
+    return { a: { x: a.x, y: a.y }, b: { x: b.x, y: b.y } };
+  }
+  const ux = dx / length;
+  const uy = dy / length;
+  return {
+    a: { x: a.x - ux * halfCells, y: a.y - uy * halfCells },
+    b: { x: b.x + ux * halfCells, y: b.y + uy * halfCells },
+  };
+}
+
 export function closedPortalsToGridSegments(
   portals: Array<Pick<PortalState, "bounds" | "closed">>,
   walls: WallPolyline[] = [],
@@ -59,7 +80,7 @@ export function closedPortalsToGridSegments(
     if (a.x === b.x && a.y === b.y) {
       continue;
     }
-    segments.push({ a: { x: a.x, y: a.y }, b: { x: b.x, y: b.y } });
+    segments.push(expandSegmentAlongLength(a, b, DOOR_MOVEMENT_HALF_EXTEND_CELLS));
   }
   return segments;
 }

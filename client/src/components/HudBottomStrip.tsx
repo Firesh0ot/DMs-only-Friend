@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useState } from "react";
 import {
   ClientEvents,
+  isBattleActive,
   type BattleState,
   type CharacterState,
   type FogState,
@@ -52,17 +53,20 @@ export const HudBottomStrip = forwardRef<HTMLDivElement, Props>(function HudBott
   const [moreOpen, setMoreOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  const battleActive = isBattleActive(battle);
+
   useEffect(() => {
-    if (!battle || battle.endedAt) {
+    if (!battleActive) {
       return;
     }
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [battle]);
+  }, [battleActive]);
 
-  const elapsed = battle
-    ? formatDuration(battleElapsedMs(battle.startedAt, battle.endedAt, nowMs))
-    : null;
+  const elapsed =
+    battle && battleActive
+      ? formatDuration(battleElapsedMs(battle.startedAt, battle.endedAt, nowMs))
+      : null;
   const recent = [...events].reverse().slice(0, 12);
   const mapId = activeMap?.id ?? null;
 
@@ -79,9 +83,9 @@ export const HudBottomStrip = forwardRef<HTMLDivElement, Props>(function HudBott
       <div className="hud-bottom__bar">
         <div className="hud-bottom__group hud-bottom__combat" aria-label="Battle">
           <span className="muted hud-bottom__combat-label">
-            {battle && !battle.endedAt ? `Battle ${elapsed}` : "No battle"}
+            {battleActive ? `Battle ${elapsed}` : "No battle"}
           </span>
-          {battle && !battle.endedAt ? (
+          {battleActive ? (
             <button
               type="button"
               className="hud-chip hud-bottom__combat-btn"
@@ -192,7 +196,7 @@ export const HudBottomStrip = forwardRef<HTMLDivElement, Props>(function HudBott
         </ul>
       ) : null}
 
-      {pickerOpen && !(battle && !battle.endedAt) ? (
+      {pickerOpen && !battleActive ? (
         <BattleStartPicker
           tokens={tokens}
           characters={characters}
