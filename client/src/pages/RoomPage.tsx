@@ -568,7 +568,7 @@ export function RoomPage({ code, role, name, characterId, invite }: Props) {
                     type="button"
                     className={carouselInvert ? "is-active" : "secondary"}
                     aria-pressed={carouselInvert}
-                    title="Flip card facing outside-in or toward center"
+                    title="Flip Screen/TV card facing outside-in or toward center"
                     onClick={() => {
                       const next = !carouselInvert;
                       writeScreenCarouselInvert(next);
